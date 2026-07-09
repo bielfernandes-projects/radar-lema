@@ -13,7 +13,7 @@ favoritos, eventos realizados e gestão de eventos/categorias.
 | Camada | Tecnologia |
 |---|---|
 | Frontend | Vite + React 18 + Material UI v7 |
-| Roteamento | react-router-dom v6 |
+| Roteamento | react-router-dom v6 (Data Router: `createBrowserRouter`) |
 | Tipografia | Manrope + Roboto (Google Fonts) |
 | Backend | Supabase (PostgreSQL + Storage + Auth) |
 | Supabase IaC | `supabase` CLI (migrations + seed, zero Dashboard) |
@@ -371,6 +371,7 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
 - Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
 - Navbar com `position: static` (sem Toolbar spacer). Espaçamento do conteúdo gerenciado pelo padding do `<main>` (`px: 2, pt: 1.5, pb: 2`).
+- Roteamento com Data Router (`createBrowserRouter`): necessário para o `useBlocker` (confirmação ao sair com alterações não salvas) no formulário de eventos. Rotas definidas como array de configuração em vez de JSX.
 
 ## Notificações (demo)
 
@@ -473,3 +474,6 @@ no protótipo. Push real requer:
 - **2026-07-09** — Logout mobile: ícone `LogoutIcon` na Navbar visível
   apenas em breakpoint `xs`, com variante `LoginIcon` para usuários
   não autenticados.
+- **2026-07-09** — Correção de roteamento: migração de `<BrowserRouter>` para
+  `createBrowserRouter` (Data Router) para suportar `useBlocker` no formulário
+  de eventos. Rotas definidas como array de configuração em `App.jsx`.

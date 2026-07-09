@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { Box } from '@mui/material'
 import Navbar from './components/Layout/Navbar'
 import BottomNav from './components/Layout/BottomNav'
@@ -18,35 +18,41 @@ function Layout() {
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
       <Navbar />
       <Box component="main" sx={{ px: 2, pt: 1.5, pb: 2 }}>
-        <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<EventList />} />
-            <Route path="/evento/:id" element={<EventDetail />} />
-            <Route path="/favoritos" element={<Favorites />} />
-            <Route path="/realizados" element={<PastEvents />} />
-            <Route path="/configuracoes" element={<Settings />} />
-          </Route>
-          <Route element={<ProtectedRoute requireStaff />}>
-            <Route path="/gestao" element={<ManageEvents />} />
-            <Route path="/gestao/novo" element={<EventFormPage />} />
-            <Route path="/gestao/:id/editar" element={<EventFormPage />} />
-            <Route path="/categorias" element={<Categories />} />
-          </Route>
-        </Routes>
+        <Outlet />
       </Box>
       <BottomNav />
     </Box>
   )
 }
 
-function App() {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/*" element={<Layout />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-  )
-}
-
-export default App
+export const routes = [
+  {
+    path: '/login',
+    element: <Login />
+  },
+  {
+    element: <Layout />,
+    children: [
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { index: true, element: <EventList /> },
+          { path: 'evento/:id', element: <EventDetail /> },
+          { path: 'favoritos', element: <Favorites /> },
+          { path: 'realizados', element: <PastEvents /> },
+          { path: 'configuracoes', element: <Settings /> }
+        ]
+      },
+      {
+        element: <ProtectedRoute requireStaff />,
+        children: [
+          { path: 'gestao', element: <ManageEvents /> },
+          { path: 'gestao/novo', element: <EventFormPage /> },
+          { path: 'gestao/:id/editar', element: <EventFormPage /> },
+          { path: 'categorias', element: <Categories /> }
+        ]
+      },
+      { path: '*', element: <Navigate to="/login" replace /> }
+    ]
+  }
+]
