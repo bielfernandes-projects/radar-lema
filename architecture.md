@@ -71,7 +71,9 @@ lema-discovery/
 │   ├── contexts/
 │   │   └── AuthContext.jsx
 │   ├── hooks/
-│   │   └── useFavorites.js
+│   │   ├── useFavorites.js
+│   │   ├── useReminders.js
+│   │   └── useNotificationSettings.js
 │   ├── components/
 │   │   ├── Layout/
 │   │   │   ├── Navbar.jsx
@@ -79,6 +81,7 @@ lema-discovery/
 │   │   ├── EventCard.jsx
 │   │   ├── EventFilters.jsx
 │   │   ├── MapEmbed.jsx
+│   │   ├── ReminderDialog.jsx
 │   │   ├── ProtectedRoute.jsx
 │   │   ├── SessionEditor.jsx
 │   │   ├── RecurrenceEditor.jsx
@@ -89,6 +92,7 @@ lema-discovery/
 │   │   ├── EventDetail.jsx
 │   │   ├── Favorites.jsx
 │   │   ├── PastEvents.jsx
+│   │   ├── Settings.jsx
 │   │   ├── ManageEvents.jsx
 │   │   ├── EventFormPage.jsx
 │   │   └── Categories.jsx
@@ -119,6 +123,8 @@ O schema segue o `PLAN.md`:
 - `event_sessions`: datas/horários de cada evento.
 - `event_photos`: fotos de capa/carrossel com URL pública estática.
 - `favorites`: eventos salvos por usuário (`UNIQUE(user_id, event_id)`).
+- `event_reminders`: lembretes configurados por evento favoritado, com offsets de 1440/60/30/10/5 minutos (`UNIQUE(user_id, event_id, offset_minutes)`).
+- `notification_settings`: configuração global de notificações por usuário (`push_enabled`, `email_enabled`, `categories_enabled`).
 - Views `v_past_events` e `v_ongoing_events`.
 - Bucket `event-photos` público para leitura.
 
@@ -142,6 +148,7 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0012 | `0012_seed_mock_users.sql` | 2 usuários mock + perfis |
 | 0013 | `0013_seed_sample_events.sql` | 6 eventos + sessões + fotos |
 | 0014 | `0014_rename_order_to_sort_order.sql` | Renomeia coluna `order` para `sort_order` em `event_photos` |
+| 0015 | `20260709162156_event_reminders_and_settings.sql` | Tabelas `event_reminders` e `notification_settings` + RLS + índice |
 
 ## RLS
 
@@ -151,6 +158,8 @@ Todas as tabelas têm RLS habilitado:
 - `categories`, `events`, `event_sessions`, `event_photos`: leitura pública;
   escrita apenas `ROLE_SUPER_ADMIN`.
 - `favorites`: isolado por `user_id = auth.uid()`.
+- `event_reminders`: isolado por `user_id = auth.uid()` (política `reminders_owner`).
+- `notification_settings`: isolado por `user_id = auth.uid()` (política `settings_owner`).
 - Storage `event-photos`: leitura pública; escrita apenas autenticado.
 
 ## Auth
@@ -189,6 +198,10 @@ Todas as tabelas têm RLS habilitado:
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
 | `RecurrenceEditor` | Toggle, frequência e data fim da recorrência | `EventFormPage` |
 | `PhotoUploader` | Upload/remove de fotos com limite 5 fotos/3MB | `EventFormPage` |
+| `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK | `EventCard`, `EventDetail`, `Settings` |
+| `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao | `Settings` |
+| `ReminderDialog` | Dialog com checkboxes de offsets ao favoritar evento pela primeira vez | `EventCard`, `EventDetail`, `Settings` |
+| `Settings` | Pagina de configuracao de notificacoes, teste de notificacao e lista de lembretes | Rota `/configuracoes` |
 
 ## Rotas
 
@@ -203,6 +216,7 @@ Todas as tabelas têm RLS habilitado:
 | `/gestao/novo` | `EventFormPage` | Staff |
 | `/gestao/:id/editar` | `EventFormPage` | Staff |
 | `/categorias` | `Categories` | Staff |
+| `/configuracoes` | `Settings` | Autenticado |
 
 ## PWA
 
@@ -287,6 +301,8 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 | `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos |
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
 | `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS |
+| `hooks/useReminders.js` | `remindersByEvent`, `hasRemindersForEvent`, `saveReminders`, `removeReminders`, `removeOneReminder`, `refresh` | Gerencia lembretes no Supabase (event_reminders) |
+| `hooks/useNotificationSettings.js` | `settings`, `saveSettings`, `refresh` | Gerencia configuracoes de notificacao (notification_settings) |
 
 ## Decisões técnicas
 
@@ -295,6 +311,40 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 - Auth mockada no Supabase (ADR 0003): futuramente migra para leitura do banco do UNO.
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
+- Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
+
+## Notificações (demo)
+
+As notificações estão implementadas em modo demo: toda a UI e persistência
+funcionam, mas **não há push automático**. O fluxo atual:
+
+1. **Favoritar evento**: ao favoritar um evento pela primeira vez (sem
+   lembretes salvos ainda), o `ReminderDialog` abre perguntando com quanta
+   antecedência o usuário quer ser avisado (1 dia, 1 hora, 30 min, 10 min
+   e/ou 5 min antes).
+2. **Persistência**: os offsets selecionados são salvos em `event_reminders`
+   via Supabase SDK respeitando RLS (`user_id = auth.uid()`).
+3. **Desfavoritar**: ao desfavoritar, os lembretes **não são removidos** —
+   permanecem no banco para quando o usuário refavoritar.
+4. **Configurações**: a tela `/configuracoes` permite:
+   - Ativar/desativar notificações push (`push_enabled` em `notification_settings`).
+   - Ativar/desativar notificação por email (placeholder, `email_enabled`).
+   - Selecionar categorias de interesse (`categories_enabled` como `TEXT[]`).
+   - Testar notificação local com `new Notification()`.
+   - Visualizar, editar e remover lembretes ativos agrupados por evento.
+5. **Teste de notificação**: o botão "Testar notificação agora" solicita
+   permissão via `Notification.requestPermission()` e, se concedida, dispara
+   uma `Notification` local real. Permissão só funciona em HTTPS ou localhost.
+
+### Limitação
+
+Lembretes salvos em `event_reminders` **NÃO disparam push automaticamente**
+no protótipo. Push real requer:
+- Service worker com listener de `push` event.
+- VAPID keys registradas no navegador.
+- Edge Function (cron ou gatilhada por pg_cron) que consulta `event_reminders`
+  e envia push notifications via Web Push API.
+- Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
 
@@ -330,3 +380,8 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
   refatoracao do `EventFilters` com botao "Mais filtros" em Popover e chips
   toggle de data; helper `utils/dateFilters.js`; aviso de resolucao baixa no
   `PhotoUploader`; `BottomNav` visivel apenas no mobile.
+- **2026-07-09** — Feature de notificações (demo) — UI + persistência, sem
+  push real. Popup ao favoritar, tela de Configurações, teste de notificação
+  local. Migration 0015: tabelas `event_reminders` e `notification_settings`.
+  Hooks `useReminders`, `useNotificationSettings`. Componentes `ReminderDialog`
+  e `Settings`. Rota `/configuracoes`. Navbar e BottomNav com acesso.

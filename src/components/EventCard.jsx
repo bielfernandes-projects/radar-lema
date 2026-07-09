@@ -21,10 +21,14 @@ import {
   formatModality,
   formatPrice
 } from '../utils/formatters'
+import { useReminders } from '../hooks/useReminders'
+import ReminderDialog from './ReminderDialog'
 
 export default function EventCard({ event, isFavorite, onToggleFavorite }) {
   const navigate = useNavigate()
+  const { hasRemindersForEvent, refresh: refreshReminders } = useReminders()
   const [snackbar, setSnackbar] = useState({ open: false, message: '' })
+  const [reminderOpen, setReminderOpen] = useState(false)
 
   const locationLabel =
     event.modality === 'online'
@@ -39,6 +43,10 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
     if (result?.error) {
       setSnackbar({ open: true, message: 'Erro ao atualizar favorito.' })
       return
+    }
+
+    if (result?.favorited && !hasRemindersForEvent(event.id)) {
+      setReminderOpen(true)
     }
 
     setSnackbar({
@@ -136,6 +144,13 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
         autoHideDuration={2500}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         message={snackbar.message}
+      />
+
+      <ReminderDialog
+        open={reminderOpen}
+        event={event}
+        onClose={() => setReminderOpen(false)}
+        onSaved={() => refreshReminders()}
       />
     </Card>
   )

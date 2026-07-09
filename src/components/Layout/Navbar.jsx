@@ -13,6 +13,7 @@ export default function Navbar() {
     { label: 'Eventos', path: '/', show: true },
     { label: 'Favoritos', path: '/favoritos', show: !!user },
     { label: 'Realizados', path: '/realizados', show: true },
+    { label: 'Configurações', path: '/configuracoes', show: !!user },
     { label: 'Gestão', path: '/gestao', show: isStaff },
     { label: 'Categorias', path: '/categorias', show: isStaff }
   ]

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Box, Toolbar } from '@mui/material'
+import { Box } from '@mui/material'
 import Navbar from './components/Layout/Navbar'
 import BottomNav from './components/Layout/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -11,19 +11,20 @@ import PastEvents from './pages/PastEvents'
 import ManageEvents from './pages/ManageEvents'
 import EventFormPage from './pages/EventFormPage'
 import Categories from './pages/Categories'
+import Settings from './pages/Settings'
 
 function Layout() {
   return (
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
       <Navbar />
-      <Toolbar variant="dense" />
-      <Box component="main" sx={{ p: 2 }}>
+      <Box component="main" sx={{ px: 2, pt: 1.5, pb: 2 }}>
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<EventList />} />
             <Route path="/evento/:id" element={<EventDetail />} />
             <Route path="/favoritos" element={<Favorites />} />
             <Route path="/realizados" element={<PastEvents />} />
+            <Route path="/configuracoes" element={<Settings />} />
           </Route>
           <Route element={<ProtectedRoute requireStaff />}>
             <Route path="/gestao" element={<ManageEvents />} />

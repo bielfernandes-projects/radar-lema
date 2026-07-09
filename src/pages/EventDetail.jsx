@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useFavorites } from '../hooks/useFavorites'
+import { useReminders } from '../hooks/useReminders'
+import ReminderDialog from '../components/ReminderDialog'
 import {
   Alert,
   Box,
   Button,
   Chip,
   Container,
+  Dialog,
+  DialogContent,
   Divider,
   IconButton,
   MobileStepper,
@@ -17,6 +21,8 @@ import {
 } from '@mui/material'
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft'
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
+import ArrowBack from '@mui/icons-material/ArrowBack'
+import Close from '@mui/icons-material/Close'
 import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
 import Favorite from '@mui/icons-material/Favorite'
 import Share from '@mui/icons-material/Share'
@@ -35,6 +41,7 @@ import {
 export default function EventDetail() {
   const { id } = useParams()
   const { favoriteIds, toggleFavorite } = useFavorites()
+  const { hasRemindersForEvent, refresh: refreshReminders } = useReminders()
   const [event, setEvent] = useState(null)
   const [photos, setPhotos] = useState([])
   const [sessions, setSessions] = useState([])
@@ -43,6 +50,8 @@ export default function EventDetail() {
   const [error, setError] = useState('')
   const [activePhoto, setActivePhoto] = useState(0)
   const [toast, setToast] = useState('')
+  const [reminderOpen, setReminderOpen] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -134,12 +143,53 @@ export default function EventDetail() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 2 }}>
+    <Container maxWidth="md" sx={{ pt: 0, pb: 2 }}>
       {toast && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {toast}
         </Alert>
       )}
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 0.5 }}
+      >
+        <IconButton onClick={() => window.history.back()} aria-label="Voltar">
+          <ArrowBack />
+        </IconButton>
+
+        <Stack direction="row" spacing={0.5}>
+          <IconButton
+            onClick={async () => {
+              const result = await toggleFavorite(id)
+              if (result?.error) {
+                setToast('Erro ao atualizar favorito.')
+              } else {
+                if (result?.favorited && !hasRemindersForEvent(id)) {
+                  setReminderOpen(true)
+                }
+                setToast(
+                  result?.favorited
+                    ? 'Adicionado aos favoritos'
+                    : 'Removido dos favoritos'
+                )
+              }
+            }}
+            aria-label="Favoritar"
+          >
+            {favoriteIds.has(id) ? (
+              <Favorite color="error" />
+            ) : (
+              <FavoriteBorder />
+            )}
+          </IconButton>
+          <IconButton onClick={handleShare} aria-label="Compartilhar">
+            <Share />
+          </IconButton>
+        </Stack>
+      </Stack>
 
       <Paper elevation={2} sx={{ mb: 3, overflow: 'hidden' }}>
         <Box sx={{ position: 'relative' }}>
@@ -147,54 +197,9 @@ export default function EventDetail() {
             component="img"
             src={photos[activePhoto]?.public_url || '/placeholder-event.png'}
             alt={event.title}
-            sx={{ width: '100%', height: { xs: 240, md: 360 }, objectFit: 'cover' }}
+            onClick={() => setLightboxOpen(true)}
+            sx={{ width: '100%', height: { xs: 240, md: 360 }, objectFit: 'cover', cursor: 'pointer' }}
           />
-
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ position: 'absolute', top: 12, left: 12 }}
-          >
-            {event.is_past && <Chip label="Realizado" color="default" />}
-            {event.is_ongoing && <Chip label="Em andamento" color="secondary" />}
-            {category && <Chip label={category.name} color="primary" />}
-          </Stack>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ position: 'absolute', top: 12, right: 12 }}
-          >
-            <IconButton
-              onClick={async () => {
-                const result = await toggleFavorite(id)
-                if (result?.error) {
-                  setToast('Erro ao atualizar favorito.')
-                } else {
-                  setToast(
-                    result?.favorited
-                      ? 'Adicionado aos favoritos'
-                      : 'Removido dos favoritos'
-                  )
-                }
-              }}
-              sx={{ bgcolor: 'background.paper' }}
-              aria-label="Favoritar"
-            >
-              {favoriteIds.has(id) ? (
-                <Favorite color="error" />
-              ) : (
-                <FavoriteBorder />
-              )}
-            </IconButton>
-            <IconButton
-              onClick={handleShare}
-              sx={{ bgcolor: 'background.paper' }}
-              aria-label="Compartilhar"
-            >
-              <Share />
-            </IconButton>
-          </Stack>
         </Box>
 
         {photos.length > 1 && (
@@ -226,6 +231,12 @@ export default function EventDetail() {
           />
         )}
       </Paper>
+
+      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+        {event.is_past && <Chip label="Realizado" color="default" size="small" />}
+        {event.is_ongoing && <Chip label="Em andamento" color="secondary" size="small" />}
+        {category && <Chip label={category.name} color="primary" size="small" />}
+      </Stack>
 
       <Typography variant="h4" component="h1" gutterBottom>
         {event.title}
@@ -308,6 +319,94 @@ export default function EventDetail() {
           <MapEmbed address={event.address} />
         </>
       )}
+
+      <ReminderDialog
+        open={reminderOpen}
+        event={event}
+        onClose={() => setReminderOpen(false)}
+        onSaved={() => refreshReminders()}
+      />
+
+      <Dialog
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        maxWidth={false}
+        fullScreen
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(0,0,0,0.9)',
+            position: 'relative'
+          }
+        }}
+      >
+        <DialogContent
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 0,
+            overflow: 'hidden',
+            position: 'relative'
+          }}
+        >
+          <IconButton
+            onClick={() => setLightboxOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 2,
+              color: 'white',
+              bgcolor: 'rgba(0,0,0,0.4)',
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' }
+            }}
+            aria-label="Fechar"
+          >
+            <Close />
+          </IconButton>
+
+          <Box
+            component="img"
+            src={photos[activePhoto]?.public_url || '/placeholder-event.png'}
+            alt={event.title}
+            sx={{
+              maxWidth: '100%',
+              maxHeight: '100vh',
+              objectFit: 'contain',
+              cursor: 'zoom-out'
+            }}
+            onClick={() => setLightboxOpen(false)}
+          />
+        </DialogContent>
+
+        {photos.length > 1 && (
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              position: 'absolute',
+              bottom: 24,
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }}
+          >
+            <Button
+              variant="contained"
+              onClick={() => setActivePhoto((prev) => Math.max(0, prev - 1))}
+              disabled={activePhoto === 0}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setActivePhoto((prev) => Math.min(photos.length - 1, prev + 1))}
+              disabled={activePhoto === photos.length - 1}
+            >
+              Próxima
+            </Button>
+          </Stack>
+        )}
+      </Dialog>
     </Container>
   )
 }

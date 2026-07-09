@@ -3,6 +3,7 @@ import {
   CalendarMonth,
   Favorite,
   History,
+  Notifications,
   Settings,
   Category
 } from '@mui/icons-material'
@@ -25,6 +26,12 @@ export default function BottomNav() {
       show: !!user
     },
     { label: 'Realizados', path: '/realizados', icon: <History />, show: true },
+    {
+      label: 'Avisos',
+      path: '/configuracoes',
+      icon: <Notifications />,
+      show: !!user
+    },
     {
       label: 'Gestão',
       path: '/gestao',
@@ -59,6 +66,18 @@ export default function BottomNav() {
           navigate(newValue)
         }}
         showLabels
+        sx={{
+          '& .MuiBottomNavigationAction-root': {
+            minWidth: 0,
+            px: { xs: 0.5, sm: 1 },
+            '& .MuiBottomNavigationAction-label': {
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }
+          }
+        }}
       >
         {visibleItems.map((item) => (
           <BottomNavigationAction
