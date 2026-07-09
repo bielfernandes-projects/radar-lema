@@ -1,17 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useUserData } from './useUserData'
 
 export function useFavorites() {
   const [favoriteIds, setFavoriteIds] = useState(new Set())
-  const [loading, setLoading] = useState(true)
 
-  const fetchFavorites = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    const userId = data.session?.user?.id
-
+  const { refresh, loading } = useUserData(async (userId) => {
     if (!userId) {
       setFavoriteIds(new Set())
-      setLoading(false)
       return
     }
 
@@ -26,21 +22,7 @@ export function useFavorites() {
     } else {
       setFavoriteIds(new Set(favorites.map((f) => f.event_id)))
     }
-
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchFavorites()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      fetchFavorites()
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [fetchFavorites])
+  })
 
   const toggleFavorite = useCallback(
     async (eventId) => {
@@ -94,8 +76,8 @@ export function useFavorites() {
       favoriteIds,
       loading,
       toggleFavorite,
-      refresh: fetchFavorites
+      refresh
     }),
-    [favoriteIds, loading, toggleFavorite, fetchFavorites]
+    [favoriteIds, loading, toggleFavorite, refresh]
   )
 }

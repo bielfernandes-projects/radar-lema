@@ -8,16 +8,7 @@ import {
   Typography
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-
-function emptySession() {
-  const today = new Date().toISOString().slice(0, 10)
-  return {
-    start_date: today,
-    start_time: '09:00',
-    end_date: today,
-    end_time: '10:00'
-  }
-}
+import { emptySession } from '../utils/eventForm'
 
 export default function SessionEditor({ sessions = [], onChange }) {
   const sorted = [...sessions].sort(

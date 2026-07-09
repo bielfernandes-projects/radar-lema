@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Box, CircularProgress } from '@mui/material'
 
 export default function ProtectedRoute({ requireStaff }) {
-  const { user, user_type, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -25,7 +25,7 @@ export default function ProtectedRoute({ requireStaff }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requireStaff && user_type !== 'staff') {
+  if (requireStaff && profile?.user_type !== 'staff') {
     return <Navigate to="/" replace />
   }
 

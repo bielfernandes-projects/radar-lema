@@ -26,7 +26,7 @@ export function applyDatePresets(presets = []) {
     .filter(Boolean)
 }
 
-function normalizeDate(dateInput) {
+export function normalizeDate(dateInput) {
   if (!dateInput) return null
   return new Date(`${dateInput}T00:00:00`)
 }

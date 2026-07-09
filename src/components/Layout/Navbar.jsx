@@ -1,22 +1,18 @@
 import { AppBar, Box, Button, Toolbar, Typography } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { NAV_ITEMS } from '../../utils/constants'
+
+const NAV_LABEL_OVERRIDES = {
+  '/configuracoes': 'Configurações'
+}
 
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, user_type, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
 
-  const isStaff = user_type === 'staff'
-
-  const navItems = [
-    { label: 'Eventos', path: '/', show: true },
-    { label: 'Favoritos', path: '/favoritos', show: !!user },
-    { label: 'Realizados', path: '/realizados', show: true },
-    { label: 'Configurações', path: '/configuracoes', show: !!user },
-    { label: 'Gestão', path: '/gestao', show: isStaff },
-    { label: 'Categorias', path: '/categorias', show: isStaff }
-  ]
+  const userWithType = user ? { ...user, user_type: profile?.user_type } : null
 
   return (
     <AppBar position="static">
@@ -31,8 +27,8 @@ export default function Navbar() {
         </Typography>
 
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-          {navItems
-            .filter((item) => item.show)
+          {NAV_ITEMS
+            .filter((item) => item.show(userWithType))
             .map((item) => (
               <Button
                 key={item.path}
@@ -43,7 +39,7 @@ export default function Navbar() {
                     location.pathname === item.path ? 'bold' : 'normal'
                 }}
               >
-                {item.label}
+                {NAV_LABEL_OVERRIDES[item.path] || item.label}
               </Button>
             ))}
 

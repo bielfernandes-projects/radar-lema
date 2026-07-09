@@ -71,9 +71,13 @@ lema-discovery/
 │   ├── contexts/
 │   │   └── AuthContext.jsx
 │   ├── hooks/
+│   │   ├── useUserData.js
 │   │   ├── useFavorites.js
 │   │   ├── useReminders.js
 │   │   └── useNotificationSettings.js
+│   ├── services/
+│   │   ├── eventData.js
+│   │   └── eventPersistence.js
 │   ├── components/
 │   │   ├── Layout/
 │   │   │   ├── Navbar.jsx
@@ -97,7 +101,11 @@ lema-discovery/
 │   │   ├── EventFormPage.jsx
 │   │   └── Categories.jsx
 │   └── utils/
+│       ├── auth.js
+│       ├── constants.js
 │       ├── events.js
+│       ├── eventForm.js
+│       ├── filterEvents.js
 │       ├── formatters.js
 │       └── recurrence.js
 ├── tests/
@@ -105,7 +113,8 @@ lema-discovery/
 │   ├── AuthContext.test.jsx
 │   ├── formatters.test.js
 │   ├── favorites.test.jsx
-│   └── recurrence.test.js
+│   ├── recurrence.test.js
+│   └── events.test.js
 ├── .env.local
 ├── .eslintrc.cjs
 ├── .prettierrc
@@ -175,6 +184,13 @@ Todas as tabelas têm RLS habilitado:
 - `AuthContext` expõe `{ user, profile, user_type, role, loading, signIn, signOut }`
   e carrega o perfil de `profiles` após login.
 
+## Serviços
+
+| Arquivo | Funções | Responsabilidade |
+|---|---|---|
+| `services/eventData.js` | `fetchMetadata`, `fetchCategories`, `fetchAllEventsWithMeta`, `fetchFavoriteEventsWithMeta`, `fetchPastEventsWithMeta` | Todas aceitam `deps = { supabase }` (seam para testes). Encapsulam queries de eventos + metadados + categorias em chamadas únicas. |
+| `services/eventPersistence.js` | `uploadPhotos`, `saveSessions`, `persistEvent` | Extraído do `EventFormPage`. Gerencia o salvamento completo de um evento (dados, fotos, sessões) em transação lógica. |
+
 ## Componentes
 
 | Componente | Responsabilidade | Onde usado |
@@ -191,15 +207,15 @@ Todas as tabelas têm RLS habilitado:
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
 | `Favorites` | Lista de eventos favoritados pelo usuario logado | Rota `/favoritos` |
 | `PastEvents` | Lista de eventos realizados (`v_past_events`) | Rota `/realizados` |
-| `useFavorites` | Hook para carregar e alternar favoritos via Supabase SDK | `EventList`, `EventDetail`, `Favorites`, `PastEvents` |
+| `useFavorites` | Hook para carregar e alternar favoritos via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventList`, `EventDetail`, `Favorites`, `PastEvents` |
 | `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir | Rota `/gestao` |
-| `EventFormPage` | Formulário de criar/editar/duplicar evento | Rotas `/gestao/novo` e `/gestao/:id/editar` |
+| `EventFormPage` | Formulário de criar/editar/duplicar evento. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
 | `Categories` | CRUD de categorias | Rota `/categorias` |
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
 | `RecurrenceEditor` | Toggle, frequência e data fim da recorrência | `EventFormPage` |
 | `PhotoUploader` | Upload/remove de fotos com limite 5 fotos/3MB | `EventFormPage` |
-| `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK | `EventCard`, `EventDetail`, `Settings` |
-| `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao | `Settings` |
+| `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
+| `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
 | `ReminderDialog` | Dialog com checkboxes de offsets ao favoritar evento pela primeira vez | `EventCard`, `EventDetail`, `Settings` |
 | `Settings` | Pagina de configuracao de notificacoes, teste de notificacao e lista de lembretes | Rota `/configuracoes` |
 
@@ -296,13 +312,52 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 ## Utils
 
 | Arquivo | Funcoes | Uso |
-|---|---|---|
+|---|---|---|---|
+| `utils/auth.js` | `getUserId` | Extrai `user.id` da sessão atual |
+| `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `OFFSET_LABELS`, `OFFSET_ORDER`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels e dados estáticos compartilhados entre páginas |
 | `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime` | Cards, detalhe, sessoes e testes |
 | `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos |
+| `utils/eventForm.js` | `parseDateTime`, `formatDateTime`, `calculateDelta`, `applyDelta`, `emptySession`, `validate` | Parsing/format de data/hora, cálculo de delta entre sessões, sessão vazia padrão, validação do formulário |
+| `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias, modalidade, preço, estado, presets de data) |
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
-| `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS |
-| `hooks/useReminders.js` | `remindersByEvent`, `hasRemindersForEvent`, `saveReminders`, `removeReminders`, `removeOneReminder`, `refresh` | Gerencia lembretes no Supabase (event_reminders) |
-| `hooks/useNotificationSettings.js` | `settings`, `saveSettings`, `refresh` | Gerencia configuracoes de notificacao (notification_settings) |
+| `hooks/useUserData.js` | `refresh`, `loading` | Hook genérico: escuta `onAuthStateChange`, chama `fetchFn(userId)` sempre que o auth muda |
+| `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS (usa `useUserData`) |
+| `hooks/useReminders.js` | `remindersByEvent`, `hasRemindersForEvent`, `saveReminders`, `removeReminders`, `removeOneReminder`, `refresh` | Gerencia lembretes no Supabase (usa `useUserData`) |
+| `hooks/useNotificationSettings.js` | `settings`, `saveSettings`, `refresh` | Gerencia configuracoes de notificacao (usa `useUserData`) |
+
+## Padrões
+
+### Listener de autenticação genérico
+
+O hook `useUserData(fetchFn)` substitui o padrão repetitivo de `useEffect` + `onAuthStateChange` + `getSession` que existia em `useFavorites`, `useReminders` e `useNotificationSettings`. O hook cuida de:
+
+1. Chamar `fetchFn(userId)` na montagem.
+2. Escutar `onAuthStateChange` e reexecutar `fetchFn` sempre que o auth mudar.
+3. Limpar o listener no desmonte.
+4. Expor `{ refresh, loading }`.
+
+Os hooks de domínio mantêm apenas a lógica de negócio (montar query, processar resposta).
+
+### Persistência isolada
+
+A lógica de salvar eventos (incluindo fotos e sessões) foi extraída do `EventFormPage` para `services/eventPersistence.js`. O componente chama `persistEvent({ form, sessionsToSave, eventId, isEdit, isDuplicate, user, photos, removedPhotoIds })` sem se preocupar com a implementação.
+
+### Seam para testes
+
+Todas as funções em `services/eventData.js` aceitam `{ supabase }` como último argumento (default = instância real). Isso permite injetar um mock em testes sem precisar de mocking global:
+
+```js
+const mockSupabase = { ... }
+fetchAllEventsWithMeta({ supabase: mockSupabase })
+```
+
+### Constantes centralizadas
+
+Query params (`URL_PARAMS`), labels de modalidade, estados brasileiros, offsets de lembrete e itens de navegação (`NAV_ITEMS`) vivem em `utils/constants.js`. Componentes e páginas importam as constantes em vez de strings soltas, eliminando inconsistências.
+
+### Filtro de eventos unificado
+
+O helper `filterEvents(events, filters, categories, options)` em `utils/filterEvents.js` substitui a lógica inline duplicada em `EventList`, `Favorites` e `PastEvents`. Aceita `{ excludePast, sortBy, sortDir }` para customizar comportamento.
 
 ## Decisões técnicas
 
@@ -397,3 +452,11 @@ no protótipo. Push real requer:
 - **2026-07-09** — Filtros: busca e limpar no cabecalho da listagem; dropdowns
   sempre visiveis (categorias, modalidade, estado); chips toggle (Este mes,
   Proximo mes, Gratuito, Pago). Autocomplete readonly. Filtro cidade removido.
+- **2026-07-09** — Refactoring de arquitetura: criação do hook genérico
+  `useUserData`, deduplicação de `emptySession` em `utils/eventForm.js`,
+  extração de persistência para `services/eventPersistence.js`,
+  seam `deps.supabase` em `services/eventData.js`, centralização de
+  constantes em `utils/constants.js`, unificação de filtros em
+  `utils/filterEvents.js`, helper `utils/auth.js`, remoção de
+  `user_type`/`role` do `AuthContext` (acesso via `profile`).
+  Todas as páginas refatoradas para usar os novos serviços e utilitários.

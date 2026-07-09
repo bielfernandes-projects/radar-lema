@@ -1,17 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useUserData } from './useUserData'
 
 export function useReminders() {
   const [remindersByEvent, setRemindersByEvent] = useState(new Map())
-  const [loading, setLoading] = useState(true)
 
-  const fetchReminders = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    const userId = data.session?.user?.id
-
+  const { refresh, loading } = useUserData(async (userId) => {
     if (!userId) {
       setRemindersByEvent(new Map())
-      setLoading(false)
       return
     }
 
@@ -32,21 +28,7 @@ export function useReminders() {
       }
       setRemindersByEvent(map)
     }
-
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchReminders()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      fetchReminders()
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [fetchReminders])
+  })
 
   const hasRemindersForEvent = useCallback(
     (eventId) => {
@@ -169,7 +151,7 @@ export function useReminders() {
       saveReminders,
       removeReminders,
       removeOneReminder,
-      refresh: fetchReminders,
+      refresh,
       loading
     }),
     [
@@ -178,7 +160,7 @@ export function useReminders() {
       saveReminders,
       removeReminders,
       removeOneReminder,
-      fetchReminders,
+      refresh,
       loading
     ]
   )

@@ -11,16 +11,7 @@ import {
   Typography
 } from '@mui/material'
 import { useReminders } from '../hooks/useReminders'
-
-const OFFSET_LABELS = {
-  1440: '1 dia antes',
-  60: '1 hora antes',
-  30: '30 min antes',
-  10: '10 min antes',
-  5: '5 min antes'
-}
-
-const OFFSET_ORDER = [1440, 60, 30, 10, 5]
+import { OFFSET_LABELS, OFFSET_ORDER } from '../utils/constants'
 
 function formatOffsets(offsets) {
   const labels = offsets

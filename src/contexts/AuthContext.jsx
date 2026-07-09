@@ -98,8 +98,6 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       profile,
-      user_type: profile?.user_type,
-      role: profile?.role,
       loading,
       signIn,
       signOut

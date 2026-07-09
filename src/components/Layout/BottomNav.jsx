@@ -9,44 +9,26 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { NAV_ITEMS } from '../../utils/constants'
+
+const ICONS = {
+  CalendarMonth: <CalendarMonth />,
+  Favorite: <Favorite />,
+  History: <History />,
+  Notifications: <Notifications />,
+  Settings: <Settings />,
+  Category: <Category />
+}
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, user_type } = useAuth()
+  const { user, profile } = useAuth()
 
-  const isStaff = user_type === 'staff'
-
-  const items = [
-    { label: 'Eventos', path: '/', icon: <CalendarMonth />, show: true },
-    {
-      label: 'Favoritos',
-      path: '/favoritos',
-      icon: <Favorite />,
-      show: !!user
-    },
-    { label: 'Realizados', path: '/realizados', icon: <History />, show: true },
-    {
-      label: 'Avisos',
-      path: '/configuracoes',
-      icon: <Notifications />,
-      show: !!user
-    },
-    {
-      label: 'Gestão',
-      path: '/gestao',
-      icon: <Settings />,
-      show: isStaff
-    },
-    {
-      label: 'Categorias',
-      path: '/categorias',
-      icon: <Category />,
-      show: isStaff
-    }
-  ]
-
-  const visibleItems = items.filter((item) => item.show)
+  const userWithType = user ? { ...user, user_type: profile?.user_type } : null
+  const visibleItems = NAV_ITEMS
+    .filter((item) => item.show(userWithType))
+    .map((item) => ({ ...item, icon: ICONS[item.icon] }))
 
   return (
     <Paper

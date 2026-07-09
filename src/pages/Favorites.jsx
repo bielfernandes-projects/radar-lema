@@ -10,19 +10,15 @@ import {
   Typography,
   CircularProgress
 } from '@mui/material'
-import { supabase } from '../lib/supabase'
 import { useFavorites } from '../hooks/useFavorites'
-import { enrichEvents } from '../utils/events'
-import { eventMatchesDatePresets } from '../utils/dateFilters'
+import { filterEvents } from '../utils/filterEvents'
+import { fetchFavoriteEventsWithMeta } from '../services/eventData'
+import { getUserId } from '../utils/auth'
+import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 
 const PAGE_SIZE = 12
-
-function normalizeDate(dateInput) {
-  if (!dateInput) return null
-  return new Date(`${dateInput}T00:00:00`)
-}
 
 export default function Favorites() {
   const navigate = useNavigate()
@@ -39,49 +35,20 @@ export default function Favorites() {
       setLoading(true)
       setError('')
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const userId = sessionData.session?.user?.id
+      try {
+        const userId = await getUserId()
+        if (!userId) {
+          setLoading(false)
+          return
+        }
 
-      if (!userId) {
-        setLoading(false)
-        return
-      }
-
-      const [{ data: favoritesData }, { data: categoriesData }] = await Promise.all([
-        supabase.from('favorites').select('event_id').eq('user_id', userId),
-        supabase.from('categories').select('*').order('name')
-      ])
-
-      const favoriteEventIds = favoritesData?.map((f) => f.event_id) || []
-
-      if (favoriteEventIds.length === 0) {
-        setCategories(categoriesData || [])
-        setEvents([])
-        setLoading(false)
-        return
-      }
-
-      const [{ data: eventsData, error: eventsError }, { data: photos }, { data: sessions }, { data: pastEvents }, { data: ongoingEvents }] =
-        await Promise.all([
-          supabase.from('events').select('*').in('id', favoriteEventIds),
-          supabase.from('event_photos').select('*').eq('sort_order', 0).in('event_id', favoriteEventIds),
-          supabase.from('event_sessions').select('*').in('event_id', favoriteEventIds),
-          supabase.from('v_past_events').select('id').in('id', favoriteEventIds),
-          supabase.from('v_ongoing_events').select('id').in('id', favoriteEventIds)
-        ])
-
-      if (eventsError) {
+        const result = await fetchFavoriteEventsWithMeta(userId)
+        setCategories(result.categories)
+        setEvents(result.events)
+      } catch {
         setError('Erro ao carregar favoritos.')
-        setLoading(false)
-        return
       }
 
-      const pastIds = new Set(pastEvents?.map((e) => e.id) || [])
-      const ongoingIds = new Set(ongoingEvents?.map((e) => e.id) || [])
-      const enriched = enrichEvents(eventsData || [], photos, sessions, pastIds, ongoingIds)
-
-      setCategories(categoriesData || [])
-      setEvents(enriched)
       setLoading(false)
     }
 
@@ -89,67 +56,17 @@ export default function Favorites() {
   }, [favoriteIds])
 
   const filters = useMemo(() => ({
-    q: searchParams.get('q') || '',
-    categories: searchParams.getAll('categoria'),
-    modalities: searchParams.getAll('modalidade'),
-    price: searchParams.get('valor') || 'all',
-    state: searchParams.get('uf') || '',
-    datePresets: searchParams.getAll('data')
+    q: searchParams.get(URL_PARAMS.SEARCH) || '',
+    categories: searchParams.getAll(URL_PARAMS.CATEGORIES),
+    modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
+    price: searchParams.get(URL_PARAMS.PRICE) || 'all',
+    state: searchParams.get(URL_PARAMS.STATE) || '',
+    datePresets: searchParams.getAll(URL_PARAMS.DATE)
   }), [searchParams])
 
-  const filteredEvents = useMemo(() => {
-    let result = events
-
-    if (filters.q.trim()) {
-      const term = filters.q.toLowerCase()
-      result = result.filter(
-        (event) =>
-          event.title?.toLowerCase().includes(term) ||
-          event.description?.toLowerCase().includes(term)
-      )
-    }
-
-    if (filters.categories.length > 0) {
-      const categoryNames = new Set(filters.categories)
-      result = result.filter((event) =>
-        categories.some(
-          (c) => c.id === event.category_id && categoryNames.has(c.name)
-        )
-      )
-    }
-
-    if (filters.modalities.length > 0) {
-      const labels = {
-        Presencial: 'presencial',
-        Online: 'online',
-        Híbrido: 'hibrido'
-      }
-      const values = new Set(filters.modalities.map((m) => labels[m]))
-      result = result.filter((event) => values.has(event.modality))
-    }
-
-    if (filters.price === 'free') {
-      result = result.filter((event) => event.is_free)
-    } else if (filters.price === 'paid') {
-      result = result.filter((event) => !event.is_free)
-    }
-
-    if (filters.state) {
-      result = result.filter((event) => event.state === filters.state)
-    }
-
-    if (filters.datePresets.length > 0) {
-      result = result.filter((event) =>
-        eventMatchesDatePresets(event.min_date, event.max_date, filters.datePresets)
-      )
-    }
-
-    return result.sort((a, b) => {
-      const da = normalizeDate(a.next_date) || new Date('9999-12-31')
-      const db = normalizeDate(b.next_date) || new Date('9999-12-31')
-      return da - db
-    })
-  }, [events, filters, categories])
+  const filteredEvents = useMemo(() =>
+    filterEvents(events, filters, categories),
+  [events, filters, categories])
 
   const pageCount = Math.ceil(filteredEvents.length / PAGE_SIZE)
   const paginatedEvents = filteredEvents.slice(

@@ -11,22 +11,17 @@ import {
   Stack,
   TextField
 } from '@mui/material'
-
-const UFs = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
-  'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
-  'SP', 'SE', 'TO'
-]
+import { URL_PARAMS, UFs } from '../utils/constants'
 
 export default function EventFilters({ categories }) {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const filters = useMemo(() => ({
-    categories: searchParams.getAll('categoria'),
-    modalities: searchParams.getAll('modalidade'),
-    price: searchParams.get('valor') || '',
-    state: searchParams.get('uf') || '',
-    datePresets: searchParams.getAll('data')
+    categories: searchParams.getAll(URL_PARAMS.CATEGORIES),
+    modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
+    price: searchParams.get(URL_PARAMS.PRICE) || '',
+    state: searchParams.get(URL_PARAMS.STATE) || '',
+    datePresets: searchParams.getAll(URL_PARAMS.DATE)
   }), [searchParams])
 
   const updateParam = (key, value) => {
@@ -55,12 +50,12 @@ export default function EventFilters({ categories }) {
 
   const toggleDatePreset = (value) => {
     const next = new URLSearchParams(searchParams)
-    const current = next.getAll('data')
+    const current = next.getAll(URL_PARAMS.DATE)
     if (current.includes(value)) {
-      next.delete('data')
-      current.filter((v) => v !== value).forEach((v) => next.append('data', v))
+      next.delete(URL_PARAMS.DATE)
+      current.filter((v) => v !== value).forEach((v) => next.append(URL_PARAMS.DATE, v))
     } else {
-      next.append('data', value)
+      next.append(URL_PARAMS.DATE, value)
     }
     setSearchParams(next)
   }
@@ -77,7 +72,7 @@ export default function EventFilters({ categories }) {
             multiple
             options={categories.map((c) => c.name)}
             value={filters.categories}
-            onChange={(event, value) => updateParam('categoria', value)}
+            onChange={(event, value) => updateParam(URL_PARAMS.CATEGORIES, value)}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
@@ -99,7 +94,7 @@ export default function EventFilters({ categories }) {
             multiple
             options={['Presencial', 'Online', 'Hibrido']}
             value={filters.modalities}
-            onChange={(event, value) => updateParam('modalidade', value)}
+            onChange={(event, value) => updateParam(URL_PARAMS.MODALITIES, value)}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
@@ -123,7 +118,7 @@ export default function EventFilters({ categories }) {
               labelId="state-label"
               value={filters.state}
               label="Estado"
-              onChange={(e) => updateParam('uf', e.target.value)}
+              onChange={(e) => updateParam(URL_PARAMS.STATE, e.target.value)}
             >
               <MenuItem value="">Todos</MenuItem>
               {UFs.map((uf) => (
@@ -155,14 +150,14 @@ export default function EventFilters({ categories }) {
             clickable
             color={filters.price === 'free' ? 'primary' : 'default'}
             variant={filters.price === 'free' ? 'filled' : 'outlined'}
-            onClick={() => toggleChip('valor', 'free')}
+            onClick={() => toggleChip(URL_PARAMS.PRICE, 'free')}
           />
           <Chip
             label="Pago"
             clickable
             color={filters.price === 'paid' ? 'primary' : 'default'}
             variant={filters.price === 'paid' ? 'filled' : 'outlined'}
-            onClick={() => toggleChip('valor', 'paid')}
+            onClick={() => toggleChip(URL_PARAMS.PRICE, 'paid')}
           />
         </Stack>
       </Stack>

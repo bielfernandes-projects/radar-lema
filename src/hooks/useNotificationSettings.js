@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useUserData } from './useUserData'
 
 const DEFAULTS = {
   push_enabled: false,
@@ -9,15 +10,10 @@ const DEFAULTS = {
 
 export function useNotificationSettings() {
   const [settings, setSettings] = useState(null)
-  const [loading, setLoading] = useState(true)
 
-  const fetchSettings = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    const userId = data.session?.user?.id
-
+  const { refresh, loading } = useUserData(async (userId) => {
     if (!userId) {
       setSettings({ ...DEFAULTS })
-      setLoading(false)
       return
     }
 
@@ -33,21 +29,7 @@ export function useNotificationSettings() {
     } else {
       setSettings(row ? { ...DEFAULTS, ...row } : { ...DEFAULTS })
     }
-
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchSettings()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      fetchSettings()
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [fetchSettings])
+  })
 
   const saveSettings = useCallback(
     async (patch) => {
@@ -84,8 +66,8 @@ export function useNotificationSettings() {
       settings,
       saveSettings,
       loading,
-      refresh: fetchSettings
+      refresh
     }),
-    [settings, saveSettings, loading, fetchSettings]
+    [settings, saveSettings, loading, refresh]
   )
 }

@@ -24,14 +24,7 @@ import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
-
-const OFFSET_LABELS = {
-  1440: '1 dia antes',
-  60: '1 hora antes',
-  30: '30 min antes',
-  10: '10 min antes',
-  5: '5 min antes'
-}
+import { OFFSET_LABELS } from '../utils/constants'
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -211,6 +204,7 @@ export default function Settings() {
                   {...params}
                   label="Quais categorias notificar"
                   helperText="Escolha os tipos de evento sobre os quais quer ser avisado."
+                  inputProps={{ ...params.inputProps, readOnly: true }}
                 />
               )}
             />

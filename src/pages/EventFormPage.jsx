@@ -27,48 +27,8 @@ import RecurrenceEditor from '../components/RecurrenceEditor'
 import PhotoUploader from '../components/PhotoUploader'
 import SessionScopeDialog from '../components/SessionScopeDialog'
 import { generateRecurringSessions } from '../utils/recurrence'
-
-function parseDateTime(dateStr, timeStr) {
-  return new Date(`${dateStr}T${timeStr}`)
-}
-
-function formatDateTime(date) {
-  return {
-    date: date.toISOString().slice(0, 10),
-    time: date.toISOString().slice(11, 19)
-  }
-}
-
-function calculateDelta(original, updated) {
-  const origStart = parseDateTime(original.start_date, original.start_time)
-  const origEnd = parseDateTime(original.end_date, original.end_time)
-  const updStart = parseDateTime(updated.start_date, updated.start_time)
-  const updEnd = parseDateTime(updated.end_date, updated.end_time)
-
-  return {
-    startDeltaMs: updStart.getTime() - origStart.getTime(),
-    durationDeltaMs: updEnd.getTime() - updStart.getTime() - (origEnd.getTime() - origStart.getTime())
-  }
-}
-
-function applyDelta(session, delta) {
-  const start = parseDateTime(session.start_date, session.start_time)
-  const end = parseDateTime(session.end_date, session.end_time)
-
-  const newStart = new Date(start.getTime() + delta.startDeltaMs)
-  const newEnd = new Date(end.getTime() + delta.startDeltaMs + delta.durationDeltaMs)
-
-  const startFmt = formatDateTime(newStart)
-  const endFmt = formatDateTime(newEnd)
-
-  return {
-    ...session,
-    start_date: startFmt.date,
-    start_time: startFmt.time,
-    end_date: endFmt.date,
-    end_time: endFmt.time
-  }
-}
+import { parseDateTime, calculateDelta, applyDelta, emptySession, validate } from '../utils/eventForm'
+import { persistEvent } from '../services/eventPersistence'
 
 const MODALITY_OPTIONS = [
   { value: 'presencial', label: 'Presencial' },
@@ -90,16 +50,6 @@ const EMPTY_FORM = {
   is_recurring: false,
   recurrence_freq: 'semanal',
   recurrence_until: ''
-}
-
-function emptySession() {
-  const today = new Date().toISOString().slice(0, 10)
-  return {
-    start_date: today,
-    start_time: '09:00:00',
-    end_date: today,
-    end_time: '10:00:00'
-  }
 }
 
 export default function EventFormPage() {
@@ -225,114 +175,6 @@ export default function EventFormPage() {
     setError('')
   }
 
-  const validate = () => {
-    if (!form.title.trim()) return 'Titulo e obrigatorio.'
-    if (!form.description.trim()) return 'Descricao e obrigatoria.'
-    if (!form.url.trim()) return 'Link de inscricao e obrigatorio.'
-    if (!form.category_id) return 'Categoria e obrigatoria.'
-    if (form.modality !== 'online' && !form.address.trim()) {
-      return 'Endereco e obrigatorio para eventos presenciais ou hibridos.'
-    }
-    if (!form.is_free && !form.price_from) return 'Informe o valor a partir de.'
-    if (sessions.length === 0) return 'Adicione pelo menos uma sessao.'
-    if (form.is_recurring && (!form.recurrence_freq || !form.recurrence_until)) {
-      return 'Preencha frequencia e data fim para eventos recorrentes.'
-    }
-    if (form.is_recurring && form.recurrence_until < new Date().toISOString().slice(0, 10)) {
-      return 'Datas no passado. Ajuste a data fim da recorrencia antes de salvar.'
-    }
-
-    for (const session of sessions) {
-      if (!session.start_date || !session.start_time || !session.end_date || !session.end_time) {
-        return 'Preencha data e horario de todas as sessoes.'
-      }
-    }
-
-    return ''
-  }
-
-  const uploadPhotos = async (eventId) => {
-    const newPhotos = []
-    for (const photo of photos) {
-      if (photo.file) {
-        const ext = photo.file.name.split('.').pop()
-        const path = `events/${eventId}/${crypto.randomUUID()}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('event-photos')
-          .upload(path, photo.file)
-
-        if (uploadError) {
-          throw new Error(`Erro ao enviar foto: ${uploadError.message}`)
-        }
-
-        const {
-          data: { publicUrl }
-        } = supabase.storage.from('event-photos').getPublicUrl(path)
-
-        newPhotos.push({
-          event_id: eventId,
-          storage_path: path,
-          public_url: publicUrl,
-          sort_order: newPhotos.length + photos.filter((p) => p.id).length
-        })
-      }
-    }
-
-    if (newPhotos.length > 0) {
-      const { error: insertError } = await supabase
-        .from('event_photos')
-        .insert(newPhotos)
-      if (insertError) throw insertError
-    }
-  }
-
-  const saveSessions = async (eventId, sessionsToSave) => {
-    const existingIds = sessionsToSave
-      .filter((s) => s.id)
-      .map((s) => s.id)
-
-    const { data: existingSessions } = await supabase
-      .from('event_sessions')
-      .select('id')
-      .eq('event_id', eventId)
-
-    const toDelete = (existingSessions || [])
-      .filter((s) => !existingIds.includes(s.id))
-      .map((s) => s.id)
-
-    if (toDelete.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('event_sessions')
-        .delete()
-        .in('id', toDelete)
-      if (deleteError) throw deleteError
-    }
-
-    for (const session of sessionsToSave) {
-      const payload = {
-        event_id: eventId,
-        start_date: session.start_date,
-        start_time: session.start_time,
-        end_date: session.end_date,
-        end_time: session.end_time,
-        recurrence_instance: session.recurrence_instance ?? false
-      }
-
-      if (session.id) {
-        const { error: updateError } = await supabase
-          .from('event_sessions')
-          .update(payload)
-          .eq('id', session.id)
-        if (updateError) throw updateError
-      } else {
-        const { error: insertError } = await supabase
-          .from('event_sessions')
-          .insert(payload)
-        if (insertError) throw insertError
-      }
-    }
-  }
-
   const getChangedSessions = () => {
     return sessions
       .map((current) => {
@@ -382,61 +224,20 @@ export default function EventFormPage() {
     })
   }
 
-  const persistEvent = async (sessionsToSave) => {
+  const handlePersist = async (sessionsToSave) => {
     setSaving(true)
 
     try {
-      const eventPayload = {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        modality: form.modality,
-        category_id: form.category_id,
-        is_free: form.is_free,
-        price_from: form.is_free ? null : Number(form.price_from),
-        city: form.modality === 'online' ? null : form.city.trim() || null,
-        state: form.modality === 'online' ? null : form.state.trim() || null,
-        address: form.modality === 'online' ? null : form.address.trim() || null,
-        url: form.url.trim(),
-        is_recurring: form.is_recurring,
-        recurrence_freq: form.is_recurring ? form.recurrence_freq : null,
-        recurrence_until: form.is_recurring ? form.recurrence_until : null,
-        created_by: user.id
-      }
-
-      let eventId = id
-
-      if (isEdit && !isDuplicate) {
-        const { error: updateError } = await supabase
-          .from('events')
-          .update(eventPayload)
-          .eq('id', id)
-        if (updateError) throw updateError
-      } else {
-        const { data: newEvent, error: insertError } = await supabase
-          .from('events')
-          .insert(eventPayload)
-          .select('id')
-          .single()
-        if (insertError) throw insertError
-        eventId = newEvent.id
-      }
-
-      if (removedPhotoIds.length > 0) {
-        const { data: removedPhotos } = await supabase
-          .from('event_photos')
-          .select('storage_path')
-          .in('id', removedPhotoIds)
-
-        await supabase.from('event_photos').delete().in('id', removedPhotoIds)
-
-        const paths = removedPhotos?.map((p) => p.storage_path).filter(Boolean) || []
-        if (paths.length > 0) {
-          await supabase.storage.from('event-photos').remove(paths)
-        }
-      }
-
-      await uploadPhotos(eventId)
-      await saveSessions(eventId, sessionsToSave)
+      await persistEvent({
+        form,
+        sessionsToSave,
+        eventId: id,
+        isEdit,
+        isDuplicate,
+        user,
+        photos,
+        removedPhotoIds
+      })
 
       navigate('/gestao')
     } catch (err) {
@@ -450,7 +251,7 @@ export default function EventFormPage() {
     event.preventDefault()
     setError('')
 
-    const validationError = validate()
+    const validationError = validate(form, sessions)
     if (validationError) {
       setError(validationError)
       return
@@ -467,14 +268,14 @@ export default function EventFormPage() {
       return
     }
 
-    await persistEvent(sessions)
+    await handlePersist(sessions)
   }
 
   const handleConfirmScope = async (scope) => {
     setScopeDialogOpen(false)
     const sessionsToSave = applySessionScope(scope)
     setSessions(sessionsToSave)
-    await persistEvent(sessionsToSave)
+    await handlePersist(sessionsToSave)
   }
 
   const handlePhotosChange = (nextPhotos) => {

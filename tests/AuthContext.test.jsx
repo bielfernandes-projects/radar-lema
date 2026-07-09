@@ -24,12 +24,12 @@ vi.mock('../src/lib/supabase', () => ({
 }))
 
 function TestComponent() {
-  const { loading, user, user_type } = useAuth()
+  const { loading, user, profile } = useAuth()
   return (
     <div>
       <span data-testid="loading">{loading ? 'loading' : 'ready'}</span>
       <span data-testid="user">{user ? user.email : 'no-user'}</span>
-      <span data-testid="type">{user_type || 'no-type'}</span>
+      <span data-testid="type">{profile?.user_type || 'no-type'}</span>
     </div>
   )
 }
