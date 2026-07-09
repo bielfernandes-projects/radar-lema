@@ -63,7 +63,7 @@ export default function EventDetail() {
 
       const [{ data: photosData }, { data: sessionsData }, { data: categoryData }, { data: pastEvents }, { data: ongoingEvents }] =
         await Promise.all([
-          supabase.from('event_photos').select('*').eq('event_id', id).order('order', { ascending: true }),
+          supabase.from('event_photos').select('*').eq('event_id', id).order('sort_order', { ascending: true }),
           supabase.from('event_sessions').select('*').eq('event_id', id).order('start_date', { ascending: true }),
           eventData.category_id
             ? supabase.from('categories').select('*').eq('id', eventData.category_id).single()

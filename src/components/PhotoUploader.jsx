@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -12,12 +12,33 @@ import DeleteIcon from '@mui/icons-material/Delete'
 const MAX_FILES = 5
 const MAX_SIZE_MB = 3
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MIN_WIDTH = 800
+const MIN_HEIGHT = 600
+
+async function getImageDimensions(file) {
+  try {
+    const bitmap = await createImageBitmap(file)
+    return { width: bitmap.width, height: bitmap.height }
+  } catch {
+    return null
+  }
+}
 
 export default function PhotoUploader({ photos = [], onChange }) {
   const inputRef = useRef(null)
   const [error, setError] = useState('')
+  const [lowResWarning, setLowResWarning] = useState(false)
 
-  const handleSelect = (event) => {
+  useEffect(() => {
+    const hasLowRes = photos.some(
+      (photo) =>
+        photo.file &&
+        (photo.width < MIN_WIDTH || photo.height < MIN_HEIGHT)
+    )
+    setLowResWarning(hasLowRes)
+  }, [photos])
+
+  const handleSelect = async (event) => {
     const files = Array.from(event.target.files || [])
     setError('')
 
@@ -39,10 +60,13 @@ export default function PhotoUploader({ photos = [], onChange }) {
         event.target.value = ''
         return
       }
+      const dimensions = await getImageDimensions(file)
       validFiles.push({
         file,
         preview: URL.createObjectURL(file),
-        order: photos.length + validFiles.length
+        sort_order: photos.length + validFiles.length,
+        width: dimensions?.width || 0,
+        height: dimensions?.height || 0
       })
     }
 
@@ -56,7 +80,7 @@ export default function PhotoUploader({ photos = [], onChange }) {
     if (removed?.preview) {
       URL.revokeObjectURL(removed.preview)
     }
-    onChange(next.map((photo, i) => ({ ...photo, order: i })))
+    onChange(next.map((photo, i) => ({ ...photo, sort_order: i })))
   }
 
   return (
@@ -68,6 +92,13 @@ export default function PhotoUploader({ photos = [], onChange }) {
       {error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+
+      {lowResWarning && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Resolucao baixa em algumas fotos. Recomendamos 1200x800px para
+          melhor exibicao.
         </Alert>
       )}
 
@@ -119,7 +150,9 @@ export default function PhotoUploader({ photos = [], onChange }) {
       />
 
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-        Ate {MAX_FILES} fotos, {MAX_SIZE_MB}MB cada.
+        Ate {MAX_FILES} fotos, {MAX_SIZE_MB}MB cada. Dimensao ideal: 1200x800px
+        (3:2). Outras proporcoes sao aceitas mas serao recortadas para caber no
+        card.
       </Typography>
     </Box>
   )

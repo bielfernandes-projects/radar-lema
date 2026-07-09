@@ -141,6 +141,7 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0011 | `0011_seed_categories.sql` | 8 categorias iniciais |
 | 0012 | `0012_seed_mock_users.sql` | 2 usuários mock + perfis |
 | 0013 | `0013_seed_sample_events.sql` | 6 eventos + sessões + fotos |
+| 0014 | `0014_rename_order_to_sort_order.sql` | Renomeia coluna `order` para `sort_order` em `event_photos` |
 
 ## RLS
 
@@ -323,3 +324,9 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
   `vite-plugin-pwa` com manifest, service worker e shell offline; icones
   PWA em `public/icons/`; `vercel.json` com SPA fallback e headers de cache;
   projeto pronto para demo.
+- **2026-07-09** — Correcoes pos-Fase 5: migration 0014 renomeando coluna
+  `order` para `sort_order` (palavra reservada do PostgREST), ajuste do seed
+  e de todos os pontos do frontend; novo `public/placeholder-event.png`;
+  refatoracao do `EventFilters` com botao "Mais filtros" em Popover e chips
+  toggle de data; helper `utils/dateFilters.js`; aviso de resolucao baixa no
+  `PhotoUploader`; `BottomNav` visivel apenas no mobile.

@@ -158,7 +158,7 @@ export default function EventFormPage() {
           .from('event_photos')
           .select('*')
           .eq('event_id', id)
-          .order('order', { ascending: true })
+          .order('sort_order', { ascending: true })
       ])
 
       const nextForm = {
@@ -273,7 +273,7 @@ export default function EventFormPage() {
           event_id: eventId,
           storage_path: path,
           public_url: publicUrl,
-          order: newPhotos.length + photos.filter((p) => p.id).length
+          sort_order: newPhotos.length + photos.filter((p) => p.id).length
         })
       }
     }

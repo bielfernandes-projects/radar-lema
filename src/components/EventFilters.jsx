@@ -1,17 +1,20 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
+  Autocomplete,
+  Badge,
   Box,
   Button,
+  Chip,
   FormControl,
   InputLabel,
   MenuItem,
+  Popover,
   Select,
   Stack,
-  TextField,
-  Chip,
-  Autocomplete
+  TextField
 } from '@mui/material'
+import FilterListIcon from '@mui/icons-material/FilterList'
 
 const UFs = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
@@ -25,8 +28,14 @@ const PRICE_OPTIONS = [
   { value: 'paid', label: 'Pago' }
 ]
 
+const DATE_CHIPS = [
+  { value: 'this-month', label: 'Este mes' },
+  { value: 'next-month', label: 'Proximo mes' }
+]
+
 export default function EventFilters({ categories }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [anchorEl, setAnchorEl] = useState(null)
 
   const filters = useMemo(() => ({
     q: searchParams.get('q') || '',
@@ -35,9 +44,7 @@ export default function EventFilters({ categories }) {
     price: searchParams.get('valor') || 'all',
     city: searchParams.get('cidade') || '',
     state: searchParams.get('uf') || '',
-    datePreset: searchParams.get('data') || '',
-    dateFrom: searchParams.get('de') || '',
-    dateTo: searchParams.get('ate') || ''
+    datePresets: searchParams.getAll('data')
   }), [searchParams])
 
   const updateParam = (key, value) => {
@@ -53,11 +60,41 @@ export default function EventFilters({ categories }) {
     setSearchParams(next)
   }
 
-  const clearFilters = () => {
-    setSearchParams({})
+  const toggleDatePreset = (value) => {
+    const next = new URLSearchParams(searchParams)
+    const current = next.getAll('data')
+    if (current.includes(value)) {
+      next.delete('data')
+      current.filter((v) => v !== value).forEach((v) => next.append('data', v))
+    } else {
+      next.append('data', value)
+    }
+    setSearchParams(next)
   }
 
-  const hasFilters = Array.from(searchParams.keys()).length > 0
+  const clearFilters = () => {
+    setSearchParams({})
+    setAnchorEl(null)
+  }
+
+  const advancedFiltersCount = useMemo(() => {
+    let count = 0
+    if (filters.price !== 'all') count += 1
+    if (filters.city.trim()) count += 1
+    if (filters.state) count += 1
+    return count
+  }, [filters])
+
+  const hasFilters =
+    filters.q.trim() ||
+    filters.categories.length > 0 ||
+    filters.modalities.length > 0 ||
+    filters.price !== 'all' ||
+    filters.city.trim() ||
+    filters.state ||
+    filters.datePresets.length > 0
+
+  const open = Boolean(anchorEl)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -99,7 +136,7 @@ export default function EventFilters({ categories }) {
 
           <Autocomplete
             multiple
-            options={['Presencial', 'Online', 'Híbrido']}
+            options={['Presencial', 'Online', 'Hibrido']}
             value={filters.modalities}
             onChange={(event, value) => updateParam('modalidade', value)}
             renderTags={(value, getTagProps) =>
@@ -119,102 +156,39 @@ export default function EventFilters({ categories }) {
             sx={{ minWidth: 200, flex: 1 }}
           />
 
-          <FormControl sx={{ minWidth: 140 }}>
-            <InputLabel id="price-label">Valor</InputLabel>
-            <Select
-              labelId="price-label"
-              value={filters.price}
-              label="Valor"
-              onChange={(event) => updateParam('valor', event.target.value)}
-            >
-              {PRICE_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
-
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          alignItems="stretch"
-        >
-          <TextField
-            label="Cidade"
-            value={filters.city}
-            onChange={(event) => updateParam('cidade', event.target.value)}
-            sx={{ flex: 1 }}
-          />
-
-          <FormControl sx={{ minWidth: 100 }}>
-            <InputLabel id="state-label">UF</InputLabel>
-            <Select
-              labelId="state-label"
-              value={filters.state}
-              label="UF"
-              onChange={(event) => updateParam('uf', event.target.value)}
-            >
-              <MenuItem value="">Todas</MenuItem>
-              {UFs.map((uf) => (
-                <MenuItem key={uf} value={uf}>
-                  {uf}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 160 }}>
-            <InputLabel id="date-label">Data</InputLabel>
-            <Select
-              labelId="date-label"
-              value={filters.datePreset}
-              label="Data"
-              onChange={(event) => {
-                const value = event.target.value
-                const next = new URLSearchParams(searchParams)
-                if (value) {
-                  next.set('data', value)
-                } else {
-                  next.delete('data')
-                }
-                next.delete('de')
-                next.delete('ate')
-                setSearchParams(next)
-              }}
-            >
-              <MenuItem value="">Todas</MenuItem>
-              <MenuItem value="this-month">Este mes</MenuItem>
-              <MenuItem value="next-month">Proximo mes</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-
-        {filters.datePreset === '' && (
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems="center"
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={(event) => setAnchorEl(event.currentTarget)}
+            sx={{ minWidth: 160, alignSelf: { md: 'flex-end' } }}
           >
-            <TextField
-              label="De"
-              type="date"
-              value={filters.dateFrom}
-              onChange={(event) => updateParam('de', event.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1 }}
-            />
-            <TextField
-              label="Ate"
-              type="date"
-              value={filters.dateTo}
-              onChange={(event) => updateParam('ate', event.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1 }}
-            />
-          </Stack>
-        )}
+            <Badge
+              badgeContent={advancedFiltersCount}
+              color="primary"
+              invisible={advancedFiltersCount === 0}
+            >
+              <Box component="span" sx={{ mr: advancedFiltersCount > 0 ? 2 : 0 }}>
+                Mais filtros
+              </Box>
+            </Badge>
+          </Button>
+        </Stack>
+
+        <Stack direction="row" spacing={1}>
+          {DATE_CHIPS.map((chip) => {
+            const active = filters.datePresets.includes(chip.value)
+            return (
+              <Chip
+                key={chip.value}
+                label={chip.label}
+                clickable
+                color={active ? 'primary' : 'default'}
+                variant={active ? 'filled' : 'outlined'}
+                onClick={() => toggleDatePreset(chip.value)}
+              />
+            )
+          })}
+        </Stack>
 
         {hasFilters && (
           <Box>
@@ -224,6 +198,62 @@ export default function EventFilters({ categories }) {
           </Box>
         )}
       </Stack>
+
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box sx={{ p: 3, width: 320 }}>
+          <Stack spacing={3}>
+            <FormControl fullWidth>
+              <InputLabel id="price-label">Valor</InputLabel>
+              <Select
+                labelId="price-label"
+                value={filters.price}
+                label="Valor"
+                onChange={(event) => updateParam('valor', event.target.value)}
+              >
+                {PRICE_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Cidade"
+              value={filters.city}
+              onChange={(event) => updateParam('cidade', event.target.value)}
+              fullWidth
+            />
+
+            <FormControl fullWidth>
+              <InputLabel id="state-label">UF</InputLabel>
+              <Select
+                labelId="state-label"
+                value={filters.state}
+                label="UF"
+                onChange={(event) => updateParam('uf', event.target.value)}
+              >
+                <MenuItem value="">Todas</MenuItem>
+                {UFs.map((uf) => (
+                  <MenuItem key={uf} value={uf}>
+                    {uf}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button variant="outlined" onClick={clearFilters} fullWidth>
+              Limpar filtros
+            </Button>
+          </Stack>
+        </Box>
+      </Popover>
     </Box>
   )
 }

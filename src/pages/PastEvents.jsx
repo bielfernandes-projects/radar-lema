@@ -12,30 +12,11 @@ import {
 import { supabase } from '../lib/supabase'
 import { useFavorites } from '../hooks/useFavorites'
 import { enrichEvents } from '../utils/events'
+import { eventMatchesDatePresets } from '../utils/dateFilters'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 
 const PAGE_SIZE = 12
-
-function getMonthRange(year, month) {
-  const start = new Date(year, month, 1)
-  const end = new Date(year, month + 1, 0)
-  return {
-    from: start.toISOString().split('T')[0],
-    to: end.toISOString().split('T')[0]
-  }
-}
-
-function applyDatePreset(preset) {
-  const now = new Date()
-  if (preset === 'this-month') {
-    return getMonthRange(now.getFullYear(), now.getMonth())
-  }
-  if (preset === 'next-month') {
-    return getMonthRange(now.getFullYear(), now.getMonth() + 1)
-  }
-  return null
-}
 
 function normalizeDate(dateInput) {
   if (!dateInput) return null
@@ -82,7 +63,7 @@ export default function PastEvents() {
       const [{ data: eventsData, error: eventsError }, { data: photos }, { data: sessions }] =
         await Promise.all([
           supabase.from('events').select('*').in('id', eventIds),
-          supabase.from('event_photos').select('*').eq('order', 0).in('event_id', eventIds),
+          supabase.from('event_photos').select('*').eq('sort_order', 0).in('event_id', eventIds),
           supabase.from('event_sessions').select('*').in('event_id', eventIds)
         ])
 
@@ -110,9 +91,7 @@ export default function PastEvents() {
     price: searchParams.get('valor') || 'all',
     city: searchParams.get('cidade') || '',
     state: searchParams.get('uf') || '',
-    datePreset: searchParams.get('data') || '',
-    dateFrom: searchParams.get('de') || '',
-    dateTo: searchParams.get('ate') || ''
+    datePresets: searchParams.getAll('data')
   }), [searchParams])
 
   const filteredEvents = useMemo(() => {
@@ -161,21 +140,10 @@ export default function PastEvents() {
       result = result.filter((event) => event.state === filters.state)
     }
 
-    const dateRange = applyDatePreset(filters.datePreset)
-    const from = dateRange?.from || filters.dateFrom
-    const to = dateRange?.to || filters.dateTo
-
-    if (from || to) {
-      const fromDate = normalizeDate(from)
-      const toDate = normalizeDate(to)
-      result = result.filter((event) => {
-        const min = normalizeDate(event.min_date)
-        const max = normalizeDate(event.max_date)
-        if (!min || !max) return false
-        if (fromDate && max < fromDate) return false
-        if (toDate && min > toDate) return false
-        return true
-      })
+    if (filters.datePresets.length > 0) {
+      result = result.filter((event) =>
+        eventMatchesDatePresets(event.min_date, event.max_date, filters.datePresets)
+      )
     }
 
     return result.sort((a, b) => {
