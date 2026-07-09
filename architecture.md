@@ -182,12 +182,12 @@ Todas as tabelas têm RLS habilitado:
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
 | `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
 | `Navbar` | Navegação desktop com abas condicionais | `App.jsx` |
-| `BottomNav` | Navegação mobile com abas condicionais | `App.jsx` |
+| `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
 | `Login` | Formulário de login | Rota `/login` |
 | `EventList` | Lista de eventos com filtros e paginacao | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges | `EventList`, `Favorites`, `PastEvents` |
 | `EventFilters` | Filtros de busca, categoria, modalidade, valor, cidade, UF e data | `EventList` |
-| `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa e acoes | Rota `/evento/:id` |
+| `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen) | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
 | `Favorites` | Lista de eventos favoritados pelo usuario logado | Rota `/favoritos` |
 | `PastEvents` | Lista de eventos realizados (`v_past_events`) | Rota `/realizados` |
@@ -312,6 +312,9 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
+- Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
+- Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
+- Navbar com `position: static` (sem Toolbar spacer). Espaçamento do conteúdo gerenciado pelo padding do `<main>` (`px: 2, pt: 1.5, pb: 2`).
 
 ## Notificações (demo)
 
@@ -385,3 +388,8 @@ no protótipo. Push real requer:
   local. Migration 0015: tabelas `event_reminders` e `notification_settings`.
   Hooks `useReminders`, `useNotificationSettings`. Componentes `ReminderDialog`
   e `Settings`. Rota `/configuracoes`. Navbar e BottomNav com acesso.
+- **2026-07-09** — Lightbox: imagem do evento clicável abre fullscreen com
+  zoom e navegação entre fotos. Botões e badges movidos para fora da imagem
+  (sem sobreposição). Toolbar spacer removido do App.jsx, padding do main
+  ajustado. BottomNav responsiva com minWidth 0 e label ellipsis para evitar
+  corte em telas estreitas.
