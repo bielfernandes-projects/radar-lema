@@ -1,0 +1,142 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Card,
+  CardActionArea,
+  CardContent,
+  CardMedia,
+  Chip,
+  IconButton,
+  Snackbar,
+  Stack,
+  Typography,
+  Box
+} from '@mui/material'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
+import PlaceIcon from '@mui/icons-material/Place'
+import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
+import Favorite from '@mui/icons-material/Favorite'
+import {
+  formatDateRange,
+  formatModality,
+  formatPrice
+} from '../utils/formatters'
+
+export default function EventCard({ event, isFavorite, onToggleFavorite }) {
+  const navigate = useNavigate()
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' })
+
+  const locationLabel =
+    event.modality === 'online'
+      ? 'Online'
+      : [event.city, event.state].filter(Boolean).join(' - ')
+
+  const handleFavoriteClick = async (clickEvent) => {
+    clickEvent.stopPropagation()
+    if (!onToggleFavorite) return
+
+    const result = await onToggleFavorite(event.id)
+    if (result?.error) {
+      setSnackbar({ open: true, message: 'Erro ao atualizar favorito.' })
+      return
+    }
+
+    setSnackbar({
+      open: true,
+      message: result?.favorited
+        ? 'Adicionado aos favoritos'
+        : 'Removido dos favoritos'
+    })
+  }
+
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+      }}
+    >
+      <CardActionArea
+        onClick={() => navigate(`/evento/${event.id}`)}
+        sx={{
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch'
+        }}
+      >
+        <Box sx={{ position: 'relative' }}>
+          <CardMedia
+            component="img"
+            height="180"
+            image={event.cover_photo?.public_url || '/placeholder-event.png'}
+            alt={event.title}
+            sx={{ objectFit: 'cover' }}
+          />
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ position: 'absolute', top: 8, left: 8 }}
+          >
+            {event.is_past && <Chip label="Realizado" size="small" color="default" />}
+            {event.is_ongoing && (
+              <Chip label="Em andamento" size="small" color="secondary" />
+            )}
+          </Stack>
+        </Box>
+
+        <CardContent sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            {event.title}
+          </Typography>
+
+          <Stack spacing={0.5}>
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <CalendarMonthIcon fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">
+                {formatDateRange(event.min_date, event.max_date)}
+              </Typography>
+            </Stack>
+
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <PlaceIcon fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">
+                {locationLabel || formatModality(event.modality)}
+              </Typography>
+            </Stack>
+          </Stack>
+
+          <Typography
+            variant="body1"
+            sx={{ mt: 2, fontWeight: 600, color: 'primary.main' }}
+          >
+            {formatPrice(event)}
+          </Typography>
+        </CardContent>
+      </CardActionArea>
+
+      <IconButton
+        onClick={handleFavoriteClick}
+        sx={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          bgcolor: 'background.paper',
+          '&:hover': { bgcolor: 'background.paper' }
+        }}
+        aria-label="Favoritar"
+      >
+        {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
+      </IconButton>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2500}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        message={snackbar.message}
+      />
+    </Card>
+  )
+}
