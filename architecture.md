@@ -184,9 +184,9 @@ Todas as tabelas têm RLS habilitado:
 | `Navbar` | Navegação desktop com abas condicionais | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
 | `Login` | Formulário de login | Rota `/login` |
-| `EventList` | Lista de eventos com filtros e paginacao | Rota `/` |
+| `EventList` | Lista de eventos com filtros e paginacao; botoes busca (lupa) e limpar filtros no cabecalho | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges | `EventList`, `Favorites`, `PastEvents` |
-| `EventFilters` | Filtros de busca, categoria, modalidade, valor, UF e data (Autocomplete readonly p/ evitar teclado no celular) | `EventList` |
+| `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle para Este mes, Proximo mes, Gratuito e Pago | `EventList` |
 | `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen) | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
 | `Favorites` | Lista de eventos favoritados pelo usuario logado | Rota `/favoritos` |
@@ -312,7 +312,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
-- Filtros: Autocomplete de categorias e modalidades usam `readOnly` no input para evitar abertura do teclado no celular. Filtro de cidade removido (só UF como dropdown).
+- Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns sempre visiveis; chips Este mes, Proximo mes, Gratuito, Pago como toggle. Autocomplete com `readOnly` para evitar teclado no celular. Filtro de cidade removido (só estado como dropdown).
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
 - Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
 - Navbar com `position: static` (sem Toolbar spacer). Espaçamento do conteúdo gerenciado pelo padding do `<main>` (`px: 2, pt: 1.5, pb: 2`).
@@ -394,5 +394,6 @@ no protótipo. Push real requer:
   (sem sobreposição). Toolbar spacer removido do App.jsx, padding do main
   ajustado. BottomNav responsiva com minWidth 0 e label ellipsis para evitar
   corte em telas estreitas.
-- **2026-07-09** — Filtros: Autocomplete com readonly para não abrir teclado
-  no celular. Filtro de cidade removido (só UF como dropdown).
+- **2026-07-09** — Filtros: busca e limpar no cabecalho da listagem; dropdowns
+  sempre visiveis (categorias, modalidade, estado); chips toggle (Este mes,
+  Proximo mes, Gratuito, Pago). Autocomplete readonly. Filtro cidade removido.

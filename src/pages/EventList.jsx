@@ -4,11 +4,17 @@ import {
   Box,
   Container,
   Grid,
+  IconButton,
   Pagination,
+  Popover,
+  Stack,
+  TextField,
   Typography,
   CircularProgress,
   Alert
 } from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearAllIcon from '@mui/icons-material/ClearAll'
 import { supabase } from '../lib/supabase'
 import { useFavorites } from '../hooks/useFavorites'
 import { enrichEvents } from '../utils/events'
@@ -24,13 +30,14 @@ function normalizeDate(dateInput) {
 }
 
 export default function EventList() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { favoriteIds, toggleFavorite } = useFavorites()
   const [events, setEvents] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
+  const [searchAnchor, setSearchAnchor] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,10 +85,22 @@ export default function EventList() {
     q: searchParams.get('q') || '',
     categories: searchParams.getAll('categoria'),
     modalities: searchParams.getAll('modalidade'),
-    price: searchParams.get('valor') || 'all',
+    price: searchParams.get('valor') || '',
     state: searchParams.get('uf') || '',
     datePresets: searchParams.getAll('data')
   }), [searchParams])
+
+  const hasFilters =
+    filters.q.trim() ||
+    filters.categories.length > 0 ||
+    filters.modalities.length > 0 ||
+    filters.price ||
+    filters.state ||
+    filters.datePresets.length > 0
+
+  const clearFilters = () => {
+    setSearchParams({})
+  }
 
   const filteredEvents = useMemo(() => {
     let result = events.filter((event) => !event.is_past)
@@ -149,9 +168,56 @@ export default function EventList() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Eventos
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h4" component="h1">
+          Eventos
+        </Typography>
+        <Stack direction="row" spacing={0.5}>
+          <IconButton
+            onClick={(e) => setSearchAnchor(e.currentTarget)}
+            color={filters.q ? 'primary' : 'default'}
+            aria-label="Buscar"
+          >
+            <SearchIcon />
+          </IconButton>
+          <Popover
+            open={Boolean(searchAnchor)}
+            anchorEl={searchAnchor}
+            onClose={() => setSearchAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <Box sx={{ p: 2, width: 280 }}>
+              <TextField
+                label="Buscar eventos"
+                placeholder="Titulo ou descricao"
+                value={filters.q}
+                onChange={(e) => {
+                  const next = new URLSearchParams(searchParams)
+                  if (e.target.value) {
+                    next.set('q', e.target.value)
+                  } else {
+                    next.delete('q')
+                  }
+                  setSearchParams(next)
+                }}
+                fullWidth
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setSearchAnchor(null)
+                }}
+              />
+            </Box>
+          </Popover>
+          <IconButton
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            aria-label="Limpar filtros"
+          >
+            <ClearAllIcon />
+          </IconButton>
+        </Stack>
+      </Stack>
 
       <EventFilters categories={categories} />
 
