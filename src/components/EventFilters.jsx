@@ -42,7 +42,6 @@ export default function EventFilters({ categories }) {
     categories: searchParams.getAll('categoria'),
     modalities: searchParams.getAll('modalidade'),
     price: searchParams.get('valor') || 'all',
-    city: searchParams.get('cidade') || '',
     state: searchParams.get('uf') || '',
     datePresets: searchParams.getAll('data')
   }), [searchParams])
@@ -80,7 +79,6 @@ export default function EventFilters({ categories }) {
   const advancedFiltersCount = useMemo(() => {
     let count = 0
     if (filters.price !== 'all') count += 1
-    if (filters.city.trim()) count += 1
     if (filters.state) count += 1
     return count
   }, [filters])
@@ -90,7 +88,6 @@ export default function EventFilters({ categories }) {
     filters.categories.length > 0 ||
     filters.modalities.length > 0 ||
     filters.price !== 'all' ||
-    filters.city.trim() ||
     filters.state ||
     filters.datePresets.length > 0
 
@@ -129,7 +126,7 @@ export default function EventFilters({ categories }) {
               ))
             }
             renderInput={(params) => (
-              <TextField {...params} label="Categorias" />
+              <TextField {...params} label="Categorias" inputProps={{ ...params.inputProps, readOnly: true }} />
             )}
             sx={{ minWidth: 240, flex: 1 }}
           />
@@ -151,7 +148,7 @@ export default function EventFilters({ categories }) {
               ))
             }
             renderInput={(params) => (
-              <TextField {...params} label="Modalidade" />
+              <TextField {...params} label="Modalidade" inputProps={{ ...params.inputProps, readOnly: true }} />
             )}
             sx={{ minWidth: 200, flex: 1 }}
           />
@@ -223,13 +220,6 @@ export default function EventFilters({ categories }) {
                 ))}
               </Select>
             </FormControl>
-
-            <TextField
-              label="Cidade"
-              value={filters.city}
-              onChange={(event) => updateParam('cidade', event.target.value)}
-              fullWidth
-            />
 
             <FormControl fullWidth>
               <InputLabel id="state-label">UF</InputLabel>

@@ -89,7 +89,6 @@ export default function PastEvents() {
     categories: searchParams.getAll('categoria'),
     modalities: searchParams.getAll('modalidade'),
     price: searchParams.get('valor') || 'all',
-    city: searchParams.get('cidade') || '',
     state: searchParams.get('uf') || '',
     datePresets: searchParams.getAll('data')
   }), [searchParams])
@@ -129,11 +128,6 @@ export default function PastEvents() {
       result = result.filter((event) => event.is_free)
     } else if (filters.price === 'paid') {
       result = result.filter((event) => !event.is_free)
-    }
-
-    if (filters.city.trim()) {
-      const term = filters.city.toLowerCase()
-      result = result.filter((event) => event.city?.toLowerCase().includes(term))
     }
 
     if (filters.state) {
