@@ -119,7 +119,7 @@ function translateError(message) {
     return 'E-mail ou senha incorretos.'
   }
   if (lower.includes('email not confirmed')) {
-    return 'E-mail ainda nao confirmado.'
+    return 'E-mail ainda não confirmado.'
   }
   if (lower.includes('too many requests')) {
     return 'Muitas tentativas. Tente novamente mais tarde.'

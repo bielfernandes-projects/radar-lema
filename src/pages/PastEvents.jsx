@@ -6,6 +6,8 @@ import {
   Container,
   Grid,
   Pagination,
+  Stack,
+  TextField,
   Typography,
   CircularProgress
 } from '@mui/material'
@@ -19,7 +21,7 @@ import EventFilters from '../components/EventFilters'
 const PAGE_SIZE = 12
 
 export default function PastEvents() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { favoriteIds, toggleFavorite } = useFavorites()
   const [events, setEvents] = useState([])
   const [categories, setCategories] = useState([])
@@ -71,9 +73,28 @@ export default function PastEvents() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Realizados
-      </Typography>
+      <Stack spacing={2} sx={{ mb: 2 }}>
+        <Typography variant="h4" component="h1">
+          Realizados
+        </Typography>
+
+        <TextField
+          label="Buscar realizados"
+          placeholder="Título ou descrição"
+          value={filters.q}
+          onChange={(e) => {
+            const next = new URLSearchParams(searchParams)
+            if (e.target.value) {
+              next.set(URL_PARAMS.SEARCH, e.target.value)
+            } else {
+              next.delete(URL_PARAMS.SEARCH)
+            }
+            setSearchParams(next)
+          }}
+          fullWidth
+          size="small"
+        />
+      </Stack>
 
       <EventFilters categories={categories} />
 

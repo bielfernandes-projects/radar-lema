@@ -93,7 +93,7 @@ export default function Categories() {
       .eq('id', category.id)
 
     if (deleteError) {
-      setError('Erro ao excluir categoria. Verifique se ela nao esta em uso.')
+      setError('Erro ao excluir categoria. Verifique se ela não está em uso.')
     } else {
       setCategories((prev) => prev.filter((c) => c.id !== category.id))
     }

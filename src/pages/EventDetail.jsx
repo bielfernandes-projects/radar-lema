@@ -65,7 +65,7 @@ export default function EventDetail() {
         .single()
 
       if (eventError || !eventData) {
-        setError('Evento nao encontrado.')
+        setError('Evento não encontrado.')
         setLoading(false)
         return
       }
@@ -285,7 +285,7 @@ export default function EventDetail() {
       <Divider sx={{ my: 3 }} />
 
       <Typography variant="h5" component="h2" gutterBottom>
-        Sessoes
+        Sessões
       </Typography>
 
       {sessions.length === 0 ? (

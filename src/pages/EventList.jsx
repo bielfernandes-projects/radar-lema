@@ -6,14 +6,12 @@ import {
   Grid,
   IconButton,
   Pagination,
-  Popover,
   Stack,
   TextField,
   Typography,
   CircularProgress,
   Alert
 } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
 import ClearAllIcon from '@mui/icons-material/ClearAll'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
@@ -32,7 +30,6 @@ export default function EventList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
-  const [searchAnchor, setSearchAnchor] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,47 +87,11 @@ export default function EventList() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1">
-          Eventos
-        </Typography>
-        <Stack direction="row" spacing={0.5}>
-          <IconButton
-            onClick={(e) => setSearchAnchor(e.currentTarget)}
-            color={filters.q ? 'primary' : 'default'}
-            aria-label="Buscar"
-          >
-            <SearchIcon />
-          </IconButton>
-          <Popover
-            open={Boolean(searchAnchor)}
-            anchorEl={searchAnchor}
-            onClose={() => setSearchAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <Box sx={{ p: 2, width: 280 }}>
-              <TextField
-                label="Buscar eventos"
-                placeholder="Titulo ou descricao"
-                value={filters.q}
-                onChange={(e) => {
-                  const next = new URLSearchParams(searchParams)
-                  if (e.target.value) {
-                    next.set('q', e.target.value)
-                  } else {
-                    next.delete('q')
-                  }
-                  setSearchParams(next)
-                }}
-                fullWidth
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setSearchAnchor(null)
-                }}
-              />
-            </Box>
-          </Popover>
+      <Stack spacing={2} sx={{ mb: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h4" component="h1">
+            Eventos
+          </Typography>
           <IconButton
             onClick={clearFilters}
             disabled={!hasFilters}
@@ -139,6 +100,23 @@ export default function EventList() {
             <ClearAllIcon />
           </IconButton>
         </Stack>
+
+        <TextField
+          label="Buscar eventos"
+          placeholder="Título ou descrição"
+          value={filters.q}
+          onChange={(e) => {
+            const next = new URLSearchParams(searchParams)
+            if (e.target.value) {
+              next.set(URL_PARAMS.SEARCH, e.target.value)
+            } else {
+              next.delete(URL_PARAMS.SEARCH)
+            }
+            setSearchParams(next)
+          }}
+          fullWidth
+          size="small"
+        />
       </Stack>
 
       <EventFilters categories={categories} />

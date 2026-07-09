@@ -35,7 +35,7 @@ export default function SessionEditor({ sessions = [], onChange }) {
   return (
     <Box>
       <Typography variant="subtitle1" gutterBottom>
-        Sessoes
+        Sessões
       </Typography>
 
       {sorted.length === 0 && (

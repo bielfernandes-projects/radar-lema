@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -14,6 +14,7 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  Snackbar,
   Stack,
   Typography
 } from '@mui/material'
@@ -26,10 +27,23 @@ import { formatDateRange, formatPrice } from '../utils/formatters'
 
 export default function ManageEvents() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState({ open: false, event: null })
+  const [successMessage, setSuccessMessage] = useState(
+    location.state?.saved ? 'Evento salvo com sucesso.' : ''
+  )
+  const [deleteSnackbar, setDeleteSnackbar] = useState(false)
+
+  useEffect(() => {
+    if (location.state?.saved) {
+      const timer = setTimeout(() => setSuccessMessage(''), 4000)
+      window.history.replaceState({}, '')
+      return () => clearTimeout(timer)
+    }
+  }, [location.state])
 
   const fetchEvents = async () => {
     setLoading(true)
@@ -66,6 +80,7 @@ export default function ManageEvents() {
       setError('Erro ao excluir evento.')
     } else {
       setEvents((prev) => prev.filter((e) => e.id !== event.id))
+      setDeleteSnackbar(true)
     }
 
     setDeleteDialog({ open: false, event: null })
@@ -95,7 +110,7 @@ export default function ManageEvents() {
         sx={{ mb: 3 }}
       >
         <Typography variant="h4" component="h1">
-          Gestao de eventos
+          Gestão de eventos
         </Typography>
         <Button
           variant="contained"
@@ -109,6 +124,12 @@ export default function ManageEvents() {
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
+          {successMessage}
         </Alert>
       )}
 
@@ -177,7 +198,7 @@ export default function ManageEvents() {
         <DialogContent>
           <DialogContentText>
             Tem certeza que deseja excluir {deleteDialog.event?.title}? Esta
-            acao nao pode ser desfeita.
+            ação não pode ser desfeita.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -189,6 +210,14 @@ export default function ManageEvents() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={deleteSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setDeleteSnackbar(false)}
+        message="Evento excluído com sucesso."
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Container>
   )
 }

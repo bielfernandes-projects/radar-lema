@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams, useBlocker } from 'react-router-dom'
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
   Container,
-  Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   Grid,
@@ -52,6 +56,21 @@ const EMPTY_FORM = {
   recurrence_until: ''
 }
 
+function SectionHeader({ title, description }) {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        {title}
+      </Typography>
+      {description && (
+        <Typography variant="body2" component="p" sx={{ color: 'text.secondary', mt: 0.5 }}>
+          {description}
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
 export default function EventFormPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
@@ -71,6 +90,65 @@ export default function EventFormPage() {
   const [photos, setPhotos] = useState([])
   const [removedPhotoIds, setRemovedPhotoIds] = useState([])
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false)
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [blockerDialogOpen, setBlockerDialogOpen] = useState(false)
+  const actionsRef = useRef(null)
+  const errorRef = useRef(null)
+  const formRef = useRef(null)
+  const initialFormRef = useRef(null)
+
+  const blocker = useBlocker(isDirty)
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setBlockerDialogOpen(true)
+    }
+  }, [blocker.state])
+
+  const handleBlockerConfirm = () => {
+    setBlockerDialogOpen(false)
+    setIsDirty(false)
+    blocker.proceed()
+  }
+
+  const handleBlockerCancel = () => {
+    setBlockerDialogOpen(false)
+    blocker.reset()
+  }
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty])
+
+  useEffect(() => {
+    if (!initialFormRef.current || loading) return
+    const current = JSON.stringify({ form, sessions })
+    setIsDirty(current !== initialFormRef.current)
+  }, [form, sessions, loading])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!actionsRef.current) return
+      const rect = actionsRef.current.getBoundingClientRect()
+      setShowStickyBar(rect.bottom < 0)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,7 +171,7 @@ export default function EventFormPage() {
         .single()
 
       if (eventError || !eventData) {
-        setError('Evento nao encontrado.')
+        setError('Evento não encontrado.')
         setLoading(false)
         return
       }
@@ -143,6 +221,11 @@ export default function EventFormPage() {
         setPhotos(photosData || [])
       }
 
+      initialFormRef.current = JSON.stringify({
+        form: nextForm,
+        sessions: loadedSessions
+      })
+
       setLoading(false)
     }
 
@@ -155,7 +238,7 @@ export default function EventFormPage() {
 
   const handleGenerateSessions = () => {
     if (!form.is_recurring || !form.recurrence_freq || !form.recurrence_until) {
-      setError('Preencha frequencia e data fim da recorrencia.')
+      setError('Preencha frequência e data fim da recorrência.')
       return
     }
 
@@ -239,7 +322,8 @@ export default function EventFormPage() {
         removedPhotoIds
       })
 
-      navigate('/gestao')
+      setIsDirty(false)
+      navigate('/gestao', { state: { saved: true } })
     } catch (err) {
       setError(err.message || 'Erro ao salvar evento.')
     } finally {
@@ -322,7 +406,7 @@ export default function EventFormPage() {
       </Stack>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert ref={errorRef} severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
@@ -333,180 +417,256 @@ export default function EventFormPage() {
         </Alert>
       )}
 
-      <Paper component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-        <Stack spacing={3}>
-          <TextField
-            label="Titulo"
-            fullWidth
-            required
-            value={form.title}
-            onChange={(e) => updateForm({ title: e.target.value })}
-          />
-
-          <TextField
-            label="Descricao"
-            fullWidth
-            required
-            multiline
-            rows={4}
-            value={form.description}
-            onChange={(e) => updateForm({ description: e.target.value })}
-          />
-
-          <FormControl fullWidth required>
-            <InputLabel id="category-label">Categoria</InputLabel>
-            <Select
-              labelId="category-label"
-              value={form.category_id}
-              label="Categoria"
-              onChange={(e) => updateForm({ category_id: e.target.value })}
-            >
-              {categories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth required>
-            <InputLabel id="modality-label">Modalidade</InputLabel>
-            <Select
-              labelId="modality-label"
-              value={form.modality}
-              label="Modalidade"
-              onChange={(e) => updateForm({ modality: e.target.value })}
-            >
-              {MODALITY_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {showAddressFields && (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  label="Cidade"
-                  fullWidth
-                  value={form.city}
-                  onChange={(e) => updateForm({ city: e.target.value })}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  label="UF"
-                  fullWidth
-                  inputProps={{ maxLength: 2 }}
-                  value={form.state}
-                  onChange={(e) => updateForm({ state: e.target.value })}
-                />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  label="Endereco"
-                  fullWidth
-                  required
-                  value={form.address}
-                  onChange={(e) => updateForm({ address: e.target.value })}
-                />
-              </Grid>
-            </Grid>
-          )}
-
-          <TextField
-            label="Link de inscricao"
-            fullWidth
-            required
-            type="url"
-            value={form.url}
-            onChange={(e) => updateForm({ url: e.target.value })}
-          />
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form.is_free}
-                onChange={(e) => updateForm({ is_free: e.target.checked })}
-              />
-            }
-            label="Gratuito"
-          />
-
-          {showPriceField && (
+      <Box ref={formRef} component="form" onSubmit={handleSubmit}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Identificação" description="Dados básicos do evento" />
+          <Stack spacing={2}>
             <TextField
-              label="Valor a partir de"
+              label="Título"
               fullWidth
               required
-              type="number"
-              inputProps={{ min: 0, step: '0.01' }}
-              value={form.price_from}
-              onChange={(e) => updateForm({ price_from: e.target.value })}
+              value={form.title}
+              onChange={(e) => updateForm({ title: e.target.value })}
             />
-          )}
 
-          <Divider />
+            <TextField
+              label="Descricao"
+              fullWidth
+              required
+              multiline
+              rows={4}
+              value={form.description}
+              onChange={(e) => updateForm({ description: e.target.value })}
+            />
 
-          <RecurrenceEditor
-            isRecurring={form.is_recurring}
-            frequency={form.recurrence_freq}
-            untilDate={form.recurrence_until}
-            onChange={({ isRecurring, frequency, untilDate }) =>
-              updateForm({
-                is_recurring: isRecurring,
-                recurrence_freq: frequency,
-                recurrence_until: untilDate
-              })
-            }
-          />
-
-          {form.is_recurring && (
-            <Button
-              variant="outlined"
-              onClick={handleGenerateSessions}
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              Gerar sessoes pela recorrencia
-            </Button>
-          )}
-
-          <Divider />
-
-          <SessionEditor sessions={sessions} onChange={setSessions} />
-
-          <Divider />
-
-          <PhotoUploader photos={photos} onChange={handlePhotosChange} />
-
-          <Divider />
-
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/gestao')}
-              disabled={saving}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={saving}
-              startIcon={saving && <CircularProgress size={16} />}
-            >
-              Salvar
-            </Button>
+            <FormControl fullWidth required>
+              <InputLabel id="category-label">Categoria</InputLabel>
+              <Select
+                labelId="category-label"
+                value={form.category_id}
+                label="Categoria"
+                onChange={(e) => updateForm({ category_id: e.target.value })}
+              >
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Stack>
+        </Paper>
+
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Modalidade e Local" description="Como e onde o evento acontece" />
+          <Stack spacing={2}>
+            <FormControl fullWidth required>
+              <InputLabel id="modality-label">Modalidade</InputLabel>
+              <Select
+                labelId="modality-label"
+                value={form.modality}
+                label="Modalidade"
+                onChange={(e) => updateForm({ modality: e.target.value })}
+              >
+                {MODALITY_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {showAddressFields && (
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Cidade"
+                    fullWidth
+                    value={form.city}
+                    onChange={(e) => updateForm({ city: e.target.value })}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="UF"
+                    fullWidth
+                    inputProps={{ maxLength: 2 }}
+                    value={form.state}
+                    onChange={(e) => updateForm({ state: e.target.value })}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    label="Endereco"
+                    fullWidth
+                    required
+                    value={form.address}
+                    onChange={(e) => updateForm({ address: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            )}
+          </Stack>
+        </Paper>
+
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Inscrição e Valor" />
+          <Stack spacing={2}>
+            <TextField
+              label="Link de inscrição"
+              fullWidth
+              required
+              type="url"
+              value={form.url}
+              onChange={(e) => updateForm({ url: e.target.value })}
+            />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={form.is_free}
+                  onChange={(e) => updateForm({ is_free: e.target.checked })}
+                />
+              }
+              label="Evento gratuito"
+            />
+
+            {showPriceField && (
+              <TextField
+                label="Valor a partir de (R$)"
+                fullWidth
+                required
+                type="number"
+                inputProps={{ min: 0, step: '0.01' }}
+                value={form.price_from}
+                onChange={(e) => updateForm({ price_from: e.target.value })}
+              />
+            )}
+          </Stack>
+        </Paper>
+
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Recorrência" description="Gere sessões repetidas automaticamente" />
+          <Stack spacing={2}>
+            <RecurrenceEditor
+              isRecurring={form.is_recurring}
+              frequency={form.recurrence_freq}
+              untilDate={form.recurrence_until}
+              onChange={({ isRecurring, frequency, untilDate }) =>
+                updateForm({
+                  is_recurring: isRecurring,
+                  recurrence_freq: frequency,
+                  recurrence_until: untilDate
+                })
+              }
+            />
+
+            {form.is_recurring && (
+              <Button
+                variant="outlined"
+                onClick={handleGenerateSessions}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Gerar sessões automaticamente
+              </Button>
+            )}
+          </Stack>
+        </Paper>
+
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Sessões" description="Datas e horários do evento" />
+          <SessionEditor sessions={sessions} onChange={setSessions} />
+        </Paper>
+
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
+          <SectionHeader title="Fotos" description="Ate 5 fotos. A primeira aparece na capa." />
+          <PhotoUploader photos={photos} onChange={handlePhotosChange} />
+        </Paper>
+
+        <Stack
+          direction="row"
+          spacing={2}
+          justifyContent="flex-end"
+          ref={actionsRef}
+          sx={{ py: 2 }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/gestao')}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={saving}
+            startIcon={saving && <CircularProgress size={16} />}
+          >
+            Salvar
+          </Button>
         </Stack>
-      </Paper>
+      </Box>
+
+      {showStickyBar && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            px: 2,
+            py: 1.5,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 1,
+            zIndex: 1200,
+            boxShadow: '0 -2px 8px rgba(0,0,0,0.08)'
+          }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/gestao')}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={saving}
+            startIcon={saving && <CircularProgress size={16} />}
+            onClick={() => {
+              if (formRef.current) formRef.current.requestSubmit()
+            }}
+          >
+            Salvar
+          </Button>
+        </Box>
+      )}
 
       <SessionScopeDialog
         open={scopeDialogOpen}
         onClose={() => setScopeDialogOpen(false)}
         onConfirm={handleConfirmScope}
       />
+
+      <Dialog open={blockerDialogOpen} onClose={handleBlockerCancel}>
+        <DialogTitle>Sair sem salvar?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Você tem alterações não salvas. Se sair agora, elas serão perdidas.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleBlockerCancel}>Continuar editando</Button>
+          <Button onClick={handleBlockerConfirm} color="error">
+            Sair mesmo assim
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

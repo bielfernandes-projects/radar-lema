@@ -460,3 +460,16 @@ no protótipo. Push real requer:
   `utils/filterEvents.js`, helper `utils/auth.js`, remoção de
   `user_type`/`role` do `AuthContext` (acesso via `profile`).
   Todas as páginas refatoradas para usar os novos serviços e utilitários.
+- **2026-07-09** — Impeccable crítica 1 + 5 correções: Product identity
+  (`PRODUCT.md`), EventFormPage em seções Paper com SectionHeader + sticky
+  save + scroll-to-error, useBlocker + beforeunload, busca persistente
+  TextField (substituiu Popover), feedback de sucesso via router state,
+  Dialog confirmação "Remover todos" no Settings.
+- **2026-07-09** — Impeccable crítica 2 + 4 correções: sticky bar useRef
+  (eliminou `document.querySelector`), Snackbar de exclusão em ManageEvents,
+  acentos em ~30 palavras em 12 arquivos + copy clara em recorrência,
+  Navbar active state com `startsWith` + underline + `fontWeight`, e
+  SectionHeader com `component="h2"` (acessibilidade).
+- **2026-07-09** — Logout mobile: ícone `LogoutIcon` na Navbar visível
+  apenas em breakpoint `xs`, com variante `LoginIcon` para usuários
+  não autenticados.

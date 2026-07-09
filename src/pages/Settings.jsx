@@ -10,6 +10,11 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   List,
   ListItem,
   ListItemText,
@@ -43,6 +48,7 @@ export default function Settings() {
   const [eventsMap, setEventsMap] = useState({})
   const [testResult, setTestResult] = useState('')
   const [editReminder, setEditReminder] = useState(null)
+  const [removeDialog, setRemoveDialog] = useState({ open: false, eventId: null, eventTitle: '' })
   const [pushEnabled, setPushEnabled] = useState(false)
   const [emailEnabled, setEmailEnabled] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState([])
@@ -107,7 +113,7 @@ export default function Settings() {
 
   const handleTestNotification = async () => {
     if (!('Notification' in window)) {
-      setTestResult('Seu navegador nao suporta notificacoes.')
+      setTestResult('Seu navegador não suporta notificações.')
       return
     }
 
@@ -120,16 +126,21 @@ export default function Settings() {
       setTestResult('')
     } else if (permission === 'denied') {
       setTestResult(
-        'Permissao negada. Ative nas configuracoes do navegador.'
+        'Permissão negada. Ative nas configurações do navegador.'
       )
     } else {
-      setTestResult('Permissao nao concedida.')
+      setTestResult('Permissão não concedida.')
     }
   }
 
   const handleRemoveAll = async (eventId) => {
     await removeReminders(eventId)
     await refreshReminders()
+    setRemoveDialog({ open: false, eventId: null, eventTitle: '' })
+  }
+
+  const openRemoveDialog = (eventId, eventTitle) => {
+    setRemoveDialog({ open: true, eventId, eventTitle })
   }
 
   const reminderEntries = useMemo(() => {
@@ -151,13 +162,13 @@ export default function Settings() {
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Configuracoes de Notificacoes
+        Configurações de Notificações
       </Typography>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Notificacoes push
+            Notificações push
           </Typography>
           <Stack spacing={2}>
             <Stack
@@ -215,15 +226,15 @@ export default function Settings() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Testar notificacao
+            Testar notificação
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            No prototipo, lembretes salvos nao disparam push automaticamente.
-            Esta e uma demonstracao do formato. Push real sera implementado em
+            No protótipo, lembretes salvos não disparam push automaticamente.
+            Esta é uma demonstração do formato. Push real será implementado em
             fase futura.
           </Typography>
           <Button variant="contained" onClick={handleTestNotification}>
-            Testar notificacao agora
+            Testar notificação agora
           </Button>
           {testResult && (
             <Alert severity="warning" sx={{ mt: 2 }}>
@@ -241,7 +252,7 @@ export default function Settings() {
 
           {reminderEntries.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
-              Voce ainda nao configurou lembretes. Favorite um evento para ser
+              Você ainda não configurou lembretes. Favorite um evento para ser
               avisado antes.
             </Typography>
           ) : (
@@ -302,7 +313,7 @@ export default function Settings() {
                       variant="outlined"
                       color="error"
                       startIcon={<DeleteIcon />}
-                      onClick={() => handleRemoveAll(eventId)}
+                      onClick={() => openRemoveDialog(eventId, event?.title || 'este evento')}
                     >
                       Remover todos
                     </Button>
@@ -313,6 +324,31 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={removeDialog.open}
+        onClose={() => setRemoveDialog({ open: false, eventId: null, eventTitle: '' })}
+      >
+        <DialogTitle>Remover todos os lembretes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Tem certeza que deseja remover todos os lembretes de "{removeDialog.eventTitle}"?
+            Esta ação não pode ser desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveDialog({ open: false, eventId: null, eventTitle: '' })}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => handleRemoveAll(removeDialog.eventId)}
+            color="error"
+            variant="contained"
+          >
+            Remover
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ReminderDialog
         open={!!editReminder}

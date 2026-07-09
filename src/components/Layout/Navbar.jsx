@@ -1,10 +1,17 @@
-import { AppBar, Box, Button, Toolbar, Typography } from '@mui/material'
+import { AppBar, Box, Button, IconButton, Toolbar, Typography } from '@mui/material'
+import LogoutIcon from '@mui/icons-material/Logout'
+import LoginIcon from '@mui/icons-material/Login'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { NAV_ITEMS } from '../../utils/constants'
 
 const NAV_LABEL_OVERRIDES = {
   '/configuracoes': 'Configurações'
+}
+
+const isActive = (pathname, itemPath) => {
+  if (itemPath === '/') return pathname === '/'
+  return pathname.startsWith(itemPath)
 }
 
 export default function Navbar() {
@@ -26,22 +33,51 @@ export default function Navbar() {
           Lema Discovery
         </Typography>
 
+        {user ? (
+          <IconButton
+            color="inherit"
+            sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+            onClick={async () => {
+              await signOut()
+              navigate('/login')
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
+        ) : (
+          <IconButton
+            color="inherit"
+            sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+            onClick={() => navigate('/login')}
+          >
+            <LoginIcon />
+          </IconButton>
+        )}
+
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
           {NAV_ITEMS
             .filter((item) => item.show(userWithType))
-            .map((item) => (
-              <Button
-                key={item.path}
-                color="inherit"
-                onClick={() => navigate(item.path)}
-                sx={{
-                  fontWeight:
-                    location.pathname === item.path ? 'bold' : 'normal'
-                }}
-              >
-                {NAV_LABEL_OVERRIDES[item.path] || item.label}
-              </Button>
-            ))}
+            .map((item) => {
+              const active = isActive(location.pathname, item.path)
+              return (
+                <Button
+                  key={item.path}
+                  color="inherit"
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    fontWeight: active ? 700 : 500,
+                    textDecoration: active ? 'underline' : 'none',
+                    textUnderlineOffset: 4,
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.12)',
+                      textDecoration: 'underline'
+                    }
+                  }}
+                >
+                  {NAV_LABEL_OVERRIDES[item.path] || item.label}
+                </Button>
+              )
+            })}
 
           {user ? (
             <Button

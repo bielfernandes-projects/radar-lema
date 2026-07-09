@@ -18,17 +18,17 @@ const SCOPE_OPTIONS = [
   {
     value: 'single',
     label: 'Só esta',
-    description: 'Altera apenas a sessao editada.'
+    description: 'Altera apenas a sessão editada.'
   },
   {
     value: 'following',
     label: 'Este e próximos',
-    description: 'Aplica o mesmo ajuste de horario desta sessao para ela e as seguintes.'
+    description: 'Aplica o mesmo ajuste de horário desta sessão para ela e as seguintes.'
   },
   {
     value: 'all',
     label: 'Todos',
-    description: 'Aplica o mesmo ajuste de horario para todas as sessoes do evento.'
+    description: 'Aplica o mesmo ajuste de horário para todas as sessões do evento.'
   }
 ]
 
@@ -37,10 +37,10 @@ export default function SessionScopeDialog({ open, onClose, onConfirm }) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Aplicar alteracao de sessao</DialogTitle>
+      <DialogTitle>Aplicar alteração de sessão</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>
-          Este evento e recorrente. Como deseja aplicar a alteracao de horario?
+          Este evento é recorrente. Como deseja aplicar a alteração de horário?
         </DialogContentText>
         <FormControl fullWidth>
           <RadioGroup

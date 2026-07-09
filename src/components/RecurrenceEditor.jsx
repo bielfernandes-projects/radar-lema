@@ -25,7 +25,7 @@ export default function RecurrenceEditor({
   return (
     <Box>
       <Typography variant="subtitle1" gutterBottom>
-        Recorrencia
+        Recorrência
       </Typography>
 
       <FormControlLabel
