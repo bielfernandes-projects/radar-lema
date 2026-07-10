@@ -69,7 +69,8 @@ lema-discovery/
 │   ├── lib/
 │   │   └── supabase.js
 │   ├── contexts/
-│   │   └── AuthContext.jsx
+│   │   ├── AuthContext.jsx
+│   │   └── ColorModeContext.jsx
 │   ├── hooks/
 │   │   ├── useUserData.js
 │   │   ├── useFavorites.js
@@ -196,6 +197,7 @@ Todas as tabelas têm RLS habilitado:
 | Componente | Responsabilidade | Onde usado |
 |---|---|---|
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
+| `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}` | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
 | `Navbar` | Navegação desktop com abas condicionais | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
@@ -366,6 +368,7 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Auth mockada no Supabase (ADR 0003): futuramente migra para leitura do banco do UNO.
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
+- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente.
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
 - Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns sempre visiveis; chips Este mes, Proximo mes, Gratuito, Pago como toggle. Autocomplete com `readOnly` para evitar teclado no celular. Filtro de cidade removido (só estado como dropdown).
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
@@ -493,3 +496,8 @@ no protótipo. Push real requer:
   placeholder cinza para evitar layout shift, upload paralelo de fotos,
   pré-loading de imagens adjacentes no carrossel, skeleton cards nas listas
   (EventList, PastEvents, Favorites).
+- **2026-07-10** — Dark mode: `ColorModeContext` com alternância sol/lua na
+  página de eventos. Preferência salva por usuário em `localStorage` com chave
+  `theme-mode:{email}`. Tema MUI dinâmico via `createAppTheme(mode)` com
+  fundo `#0f172a` em dark mode. Provider reorganizado: `AuthProvider` →
+  `ColorModeProvider` → `ThemeProvider`.
