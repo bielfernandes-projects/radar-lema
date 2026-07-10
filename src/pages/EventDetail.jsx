@@ -96,6 +96,17 @@ export default function EventDetail() {
     fetchEvent()
   }, [id])
 
+  useEffect(() => {
+    if (photos.length < 2) return
+    const indices = [activePhoto - 1, activePhoto + 1].filter(
+      (i) => i >= 0 && i < photos.length
+    )
+    indices.forEach((i) => {
+      const img = new Image()
+      img.src = photos[i].public_url
+    })
+  }, [activePhoto, photos])
+
   const handleShare = async () => {
     const url = window.location.href
     if (navigator.share) {
@@ -191,12 +202,13 @@ export default function EventDetail() {
         </Stack>
       </Stack>
 
-      <Paper elevation={2} sx={{ mb: 3, overflow: 'hidden' }}>
+      <Paper elevation={2} sx={{ mb: 3, overflow: 'hidden', bgcolor: 'grey.200' }}>
         <Box sx={{ position: 'relative' }}>
           <Box
             component="img"
             src={photos[activePhoto]?.public_url || '/placeholder-event.png'}
             alt={event.title}
+            loading="lazy"
             onClick={() => setLightboxOpen(true)}
             sx={{ width: '100%', height: { xs: 240, md: 360 }, objectFit: 'cover', cursor: 'pointer' }}
           />

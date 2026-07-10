@@ -372,6 +372,8 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
 - Navbar com `position: static` (sem Toolbar spacer). Espaçamento do conteúdo gerenciado pelo padding do `<main>` (`px: 2, pt: 1.5, pb: 2`).
 - Roteamento com Data Router (`createBrowserRouter`): necessário para o `useBlocker` (confirmação ao sair com alterações não salvas) no formulário de eventos. Rotas definidas como array de configuração em vez de JSX.
+- Redimensionamento de fotos no upload: imagens são redimensionadas para max 1200px (lado maior) e convertidas para JPEG 0.8 antes de enviar ao Supabase Storage, reduzindo de até 3MB para ~100-300KB.
+- Categorias de notificação com opção "Todas": valor `['*']` no banco representa "todas as categorias", incluindo futuras; se o cliente seleciona categorias específicas, apenas aquelas são salvas.
 
 ## Notificações (demo)
 
@@ -477,3 +479,17 @@ no protótipo. Push real requer:
 - **2026-07-09** — Correção de roteamento: migração de `<BrowserRouter>` para
   `createBrowserRouter` (Data Router) para suportar `useBlocker` no formulário
   de eventos. Rotas definidas como array de configuração em `App.jsx`.
+- **2026-07-09** — Duas correções no formulário de eventos: (1) falso aviso de
+  alterações não salvas após salvar (adicionado `setTimeout` no `navigate`);
+  (2) ordenação automática de sessões removida do `SessionEditor` para não
+  atrapalhar edição.
+- **2026-07-09** — Settings reformulado: "Avisos" → "Configurações" no mobile
+  com ícone de engrenagem; seção push desabilitada quando toggle off;
+  "Receber por email" substituído por "Notificar novos eventos"; botão
+  "Testar notificação" movido para dentro do card push; categorias com opção
+  "Todas" (exclusiva) e pré-selecionada por padrão.
+- **2026-07-09** — Performance: redimensionamento de fotos no upload (max
+  1200px, JPEG 0.8), `loading="lazy"` nas imagens de capa e carrossel,
+  placeholder cinza para evitar layout shift, upload paralelo de fotos,
+  pré-loading de imagens adjacentes no carrossel, skeleton cards nas listas
+  (EventList, PastEvents, Favorites).

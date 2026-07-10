@@ -5,10 +5,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { NAV_ITEMS } from '../../utils/constants'
 
-const NAV_LABEL_OVERRIDES = {
-  '/configuracoes': 'Configurações'
-}
-
 const isActive = (pathname, itemPath) => {
   if (itemPath === '/') return pathname === '/'
   return pathname.startsWith(itemPath)
@@ -74,7 +70,7 @@ export default function Navbar() {
                     }
                   }}
                 >
-                  {NAV_LABEL_OVERRIDES[item.path] || item.label}
+                  {item.label}
                 </Button>
               )
             })}

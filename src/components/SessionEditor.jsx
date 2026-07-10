@@ -11,25 +11,19 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { emptySession } from '../utils/eventForm'
 
 export default function SessionEditor({ sessions = [], onChange }) {
-  const sorted = [...sessions].sort(
-    (a, b) =>
-      new Date(`${a.start_date}T${a.start_time}`).getTime() -
-      new Date(`${b.start_date}T${b.start_time}`).getTime()
-  )
-
   const updateSession = (index, field, value) => {
-    const next = [...sorted]
+    const next = [...sessions]
     next[index] = { ...next[index], [field]: value }
     onChange(next)
   }
 
   const removeSession = (index) => {
-    const next = sorted.filter((_, i) => i !== index)
+    const next = sessions.filter((_, i) => i !== index)
     onChange(next)
   }
 
   const addSession = () => {
-    onChange([...sorted, emptySession()])
+    onChange([...sessions, emptySession()])
   }
 
   return (
@@ -38,14 +32,14 @@ export default function SessionEditor({ sessions = [], onChange }) {
         Sessões
       </Typography>
 
-      {sorted.length === 0 && (
+      {sessions.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Nenhuma sessao adicionada.
         </Typography>
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-        {sorted.map((session, index) => (
+        {sessions.map((session, index) => (
           <Paper key={session.id || index} variant="outlined" sx={{ p: 2 }}>
             <Grid container spacing={2} alignItems="center">
               <Grid size={{ xs: 12, sm: 3 }}>

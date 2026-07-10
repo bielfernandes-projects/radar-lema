@@ -64,12 +64,16 @@ export default function Settings() {
   }, [])
 
   useEffect(() => {
-    if (settings) {
+    if (settings && categories.length > 0) {
       setPushEnabled(settings.push_enabled)
       setEmailEnabled(settings.email_enabled)
-      setSelectedCategories(settings.categories_enabled || [])
+      setSelectedCategories(
+        settings.categories_enabled?.includes('*')
+          ? ['Todas']
+          : settings.categories_enabled || []
+      )
     }
-  }, [settings])
+  }, [settings, categories])
 
   useEffect(() => {
     const eventIds = Array.from(remindersByEvent.keys())
@@ -107,8 +111,13 @@ export default function Settings() {
   }
 
   const handleCategoriesChange = async (value) => {
-    setSelectedCategories(value)
-    await saveSettings({ categories_enabled: value })
+    if (value.includes('Todas')) {
+      setSelectedCategories(['Todas'])
+      await saveSettings({ categories_enabled: ['*'] })
+    } else {
+      setSelectedCategories(value)
+      await saveSettings({ categories_enabled: value })
+    }
   }
 
   const handleTestNotification = async () => {
@@ -188,59 +197,62 @@ export default function Settings() {
               />
             </Stack>
 
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
+            <Box
+              sx={{
+                opacity: pushEnabled ? 1 : 0.4,
+                pointerEvents: pushEnabled ? 'auto' : 'none',
+                transition: 'opacity 0.2s'
+              }}
             >
-              <Box>
-                <Typography>Receber por email</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Em breve. Voce sera avisado quando disponivel.
-                </Typography>
-              </Box>
-              <Switch
-                checked={emailEnabled}
-                onChange={(e) => handleEmailToggle(e.target.checked)}
-              />
-            </Stack>
+              <Stack spacing={2}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
+                  <Box>
+                    <Typography>Notificar novos eventos</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Receba avisos sobre novos eventos das categorias
+                      selecionadas.
+                    </Typography>
+                  </Box>
+                  <Switch
+                    checked={emailEnabled}
+                    onChange={(e) => handleEmailToggle(e.target.checked)}
+                  />
+                </Stack>
 
-            <Autocomplete
-              multiple
-              options={categories.map((c) => c.name)}
-              value={selectedCategories}
-              onChange={(e, newValue) => handleCategoriesChange(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Quais categorias notificar"
-                  helperText="Escolha os tipos de evento sobre os quais quer ser avisado."
-                  inputProps={{ ...params.inputProps, readOnly: true }}
+                <Autocomplete
+                  multiple
+                  disabled={!emailEnabled}
+                  options={['Todas', ...categories.map((c) => c.name)]}
+                  value={selectedCategories}
+                  onChange={(e, newValue) => handleCategoriesChange(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Quais categorias notificar"
+                      helperText="Selecione 'Todas' para receber de todas as categorias."
+                      inputProps={{ ...params.inputProps, readOnly: true }}
+                    />
+                  )}
                 />
-              )}
-            />
-          </Stack>
-        </CardContent>
-      </Card>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Testar notificação
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            No protótipo, lembretes salvos não disparam push automaticamente.
-            Esta é uma demonstração do formato. Push real será implementado em
-            fase futura.
-          </Typography>
-          <Button variant="contained" onClick={handleTestNotification}>
-            Testar notificação agora
-          </Button>
-          {testResult && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              {testResult}
-            </Alert>
-          )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleTestNotification}
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  Testar notificação
+                </Button>
+                {testResult && (
+                  <Alert severity="warning">{testResult}</Alert>
+                )}
+              </Stack>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
 

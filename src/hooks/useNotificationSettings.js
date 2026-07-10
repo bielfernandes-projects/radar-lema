@@ -5,7 +5,7 @@ import { useUserData } from './useUserData'
 const DEFAULTS = {
   push_enabled: false,
   email_enabled: false,
-  categories_enabled: []
+  categories_enabled: ['*']
 }
 
 export function useNotificationSettings() {
@@ -27,7 +27,9 @@ export function useNotificationSettings() {
       console.error('Erro ao carregar configuracoes:', error.message)
       setSettings({ ...DEFAULTS })
     } else {
-      setSettings(row ? { ...DEFAULTS, ...row } : { ...DEFAULTS })
+      const merged = row ? { ...DEFAULTS, ...row } : { ...DEFAULTS }
+      if (!merged.categories_enabled?.length) merged.categories_enabled = ['*']
+      setSettings(merged)
     }
   })
 

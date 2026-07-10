@@ -323,7 +323,7 @@ export default function EventFormPage() {
       })
 
       setIsDirty(false)
-      navigate('/gestao', { state: { saved: true } })
+      setTimeout(() => navigate('/gestao', { state: { saved: true } }), 0)
     } catch (err) {
       setError(err.message || 'Erro ao salvar evento.')
     } finally {

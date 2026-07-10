@@ -76,13 +76,16 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
         }}
       >
         <Box sx={{ position: 'relative' }}>
-          <CardMedia
-            component="img"
-            height="180"
-            image={event.cover_photo?.public_url || '/placeholder-event.png'}
-            alt={event.title}
-            sx={{ objectFit: 'cover' }}
-          />
+          <Box sx={{ bgcolor: 'grey.200', height: 180 }}>
+            <CardMedia
+              component="img"
+              height="180"
+              image={event.cover_photo?.public_url || '/placeholder-event.png'}
+              alt={event.title}
+              loading="lazy"
+              sx={{ objectFit: 'cover' }}
+            />
+          </Box>
           <Stack
             direction="row"
             spacing={1}

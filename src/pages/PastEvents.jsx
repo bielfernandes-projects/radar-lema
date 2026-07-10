@@ -6,10 +6,10 @@ import {
   Container,
   Grid,
   Pagination,
+  Skeleton,
   Stack,
   TextField,
-  Typography,
-  CircularProgress
+  Typography
 } from '@mui/material'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
@@ -99,9 +99,13 @@ export default function PastEvents() {
       <EventFilters categories={categories} />
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
+        <Grid container spacing={3}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
+              <Skeleton variant="rounded" height={380} />
+            </Grid>
+          ))}
+        </Grid>
       ) : error ? (
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}

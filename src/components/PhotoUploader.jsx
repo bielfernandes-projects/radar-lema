@@ -24,6 +24,45 @@ async function getImageDimensions(file) {
   }
 }
 
+async function resizeImage(file, maxDimension = 1200, quality = 0.8) {
+  const bitmap = await createImageBitmap(file)
+  let { width, height } = bitmap
+
+  if (width <= maxDimension && height <= maxDimension) {
+    bitmap.close()
+    return file
+  }
+
+  if (width > height) {
+    height = Math.round(height * (maxDimension / width))
+    width = maxDimension
+  } else {
+    width = Math.round(width * (maxDimension / height))
+    height = maxDimension
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        resolve(
+          new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
+            type: 'image/jpeg'
+          })
+        )
+      },
+      'image/jpeg',
+      quality
+    )
+  })
+}
+
 export default function PhotoUploader({ photos = [], onChange }) {
   const inputRef = useRef(null)
   const [error, setError] = useState('')
@@ -61,9 +100,10 @@ export default function PhotoUploader({ photos = [], onChange }) {
         return
       }
       const dimensions = await getImageDimensions(file)
+      const resized = await resizeImage(file)
       validFiles.push({
-        file,
-        preview: URL.createObjectURL(file),
+        file: resized,
+        preview: URL.createObjectURL(resized),
         sort_order: photos.length + validFiles.length,
         width: dimensions?.width || 0,
         height: dimensions?.height || 0

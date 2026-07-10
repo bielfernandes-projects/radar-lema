@@ -1,9 +1,12 @@
 import { supabase } from '../lib/supabase'
 
 export async function uploadPhotos(eventId, photos, removedPhotoIds) {
-  const newPhotos = []
-  for (const photo of photos) {
-    if (photo.file) {
+  const photoFiles = photos.filter((p) => p.file)
+
+  if (photoFiles.length === 0) return
+
+  const results = await Promise.all(
+    photoFiles.map(async (photo, i) => {
       const ext = photo.file.name.split('.').pop()
       const path = `events/${eventId}/${crypto.randomUUID()}.${ext}`
       const { error: uploadError } = await supabase.storage
@@ -18,21 +21,19 @@ export async function uploadPhotos(eventId, photos, removedPhotoIds) {
         data: { publicUrl }
       } = supabase.storage.from('event-photos').getPublicUrl(path)
 
-      newPhotos.push({
+      return {
         event_id: eventId,
         storage_path: path,
         public_url: publicUrl,
-        sort_order: newPhotos.length + photos.filter((p) => p.id).length
-      })
-    }
-  }
+        sort_order: i + photos.filter((p) => p.id).length
+      }
+    })
+  )
 
-  if (newPhotos.length > 0) {
-    const { error: insertError } = await supabase
-      .from('event_photos')
-      .insert(newPhotos)
-    if (insertError) throw insertError
-  }
+  const { error: insertError } = await supabase
+    .from('event_photos')
+    .insert(results)
+  if (insertError) throw insertError
 }
 
 export async function saveSessions(eventId, sessionsToSave) {
