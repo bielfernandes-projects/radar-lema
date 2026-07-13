@@ -4,7 +4,8 @@ export const URL_PARAMS = {
   MODALITIES: 'modalidade',
   PRICE: 'valor',
   STATE: 'uf',
-  DATE: 'data'
+  DATE: 'data',
+  LEMA_EDU: 'lema-edu'
 }
 
 export const MODALITY_LABELS = {

@@ -98,6 +98,7 @@ export async function persistEvent({
     description: form.description.trim(),
     modality: form.modality,
     category_id: form.category_id,
+    is_lema_edu: form.is_lema_edu,
     is_free: form.is_free,
     price_from: form.is_free ? null : Number(form.price_from),
     city: form.modality === 'online' ? null : form.city.trim() || null,

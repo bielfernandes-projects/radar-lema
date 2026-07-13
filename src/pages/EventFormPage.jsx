@@ -45,6 +45,7 @@ const EMPTY_FORM = {
   description: '',
   modality: 'presencial',
   category_id: '',
+  is_lema_edu: false,
   is_free: true,
   price_from: '',
   city: '',
@@ -194,6 +195,7 @@ export default function EventFormPage() {
         description: eventData.description || '',
         modality: eventData.modality || 'presencial',
         category_id: eventData.category_id || '',
+        is_lema_edu: eventData.is_lema_edu ?? false,
         is_free: eventData.is_free ?? true,
         price_from: eventData.price_from ?? '',
         city: eventData.city || '',
@@ -454,6 +456,16 @@ export default function EventFormPage() {
                 ))}
               </Select>
             </FormControl>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={form.is_lema_edu}
+                  onChange={(e) => updateForm({ is_lema_edu: e.target.checked })}
+                />
+              }
+              label="Evento Lema Edu"
+            />
           </Stack>
         </Paper>
 

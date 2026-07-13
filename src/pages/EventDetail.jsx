@@ -245,6 +245,7 @@ export default function EventDetail() {
       </Paper>
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+        {event.is_lema_edu && <Chip label="Lema Edu" color="info" size="small" />}
         {event.is_past && <Chip label="Realizado" color="default" size="small" />}
         {event.is_ongoing && <Chip label="Em andamento" color="secondary" size="small" />}
         {category && <Chip label={category.name} color="primary" size="small" />}

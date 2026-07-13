@@ -38,6 +38,10 @@ export function filterEvents(events, filters, categories, options = {}) {
     result = result.filter((event) => !event.is_free)
   }
 
+  if (filters.lemaEdu) {
+    result = result.filter((event) => event.is_lema_edu)
+  }
+
   if (filters.state) {
     result = result.filter((event) => event.state === filters.state)
   }

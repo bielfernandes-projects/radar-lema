@@ -21,7 +21,8 @@ export default function EventFilters({ categories }) {
     modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
-    datePresets: searchParams.getAll(URL_PARAMS.DATE)
+    datePresets: searchParams.getAll(URL_PARAMS.DATE),
+    lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
   const updateParam = (key, value) => {
@@ -131,6 +132,13 @@ export default function EventFilters({ categories }) {
         </Stack>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Chip
+            label="Lema Edu"
+            clickable
+            color={filters.lemaEdu ? 'secondary' : 'primary'}
+            variant={filters.lemaEdu ? 'outlined' : 'filled'}
+            onClick={() => toggleChip(URL_PARAMS.LEMA_EDU, filters.lemaEdu ? '' : 'true')}
+          />
           <Chip
             label="Este mes"
             clickable

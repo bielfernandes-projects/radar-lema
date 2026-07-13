@@ -91,6 +91,9 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
             spacing={1}
             sx={{ position: 'absolute', top: 8, left: 8 }}
           >
+            {event.is_lema_edu && (
+              <Chip label="Lema Edu" size="small" color="primary" />
+            )}
             {event.is_past && <Chip label="Realizado" size="small" color="default" />}
             {event.is_ongoing && (
               <Chip label="Em andamento" size="small" color="secondary" />
