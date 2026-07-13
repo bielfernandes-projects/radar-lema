@@ -135,19 +135,25 @@ export default function EventFilters({ categories }) {
           <Chip
             label="Lema Edu"
             clickable
-            color="primary"
             variant={filters.lemaEdu ? 'filled' : 'outlined'}
+            color={filters.lemaEdu ? 'primary' : undefined}
             sx={
               filters.lemaEdu
-                ? {
-                    animation: 'lemaEduGlow 2s ease-in-out infinite',
-                    '@keyframes lemaEduGlow': {
-                      '0%': { boxShadow: '0 0 4px rgba(25, 118, 210, 0.4)' },
-                      '50%': { boxShadow: '0 0 12px rgba(25, 118, 210, 0.7)' },
-                      '100%': { boxShadow: '0 0 4px rgba(25, 118, 210, 0.4)' }
+                ? { color: '#fff' }
+                : (theme) => ({
+                    color: theme.palette.mode === 'dark' ? '#fff' : theme.palette.text.primary,
+                    borderColor: 'primary.main',
+                    background:
+                      theme.palette.mode === 'dark'
+                        ? 'linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.20) 40%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.20) 60%, transparent 80%)'
+                        : 'linear-gradient(110deg, transparent 20%, rgba(25,118,210,0.08) 40%, rgba(25,118,210,0.18) 50%, rgba(25,118,210,0.08) 60%, transparent 80%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'chipShimmer 4s ease-in-out infinite',
+                    '@keyframes chipShimmer': {
+                      '0%': { backgroundPosition: '-200% 0' },
+                      '100%': { backgroundPosition: '200% 0' }
                     }
-                  }
-                : undefined
+                  })
             }
             onClick={() => toggleChip(URL_PARAMS.LEMA_EDU, filters.lemaEdu ? '' : 'true')}
           />

@@ -413,7 +413,7 @@ no protótipo. Push real requer:
 
 ## Histórico de mudanças
 
-- **2026-07-13** — Filtro e marcação "Lema Edu": nova coluna `is_lema_edu` na tabela `events` (migration), toggle no formulário de evento, chip destacado na página de listagem (primeiro na fila, com cores invertidas: inativo `filled` azul, ativo `outlined` secondary), filtro aplicado em `filterEvents.js`, e badge "Lema Edu" nos cards e na tela de detalhe. Views `v_past_events` e `v_ongoing_events` recriadas para expor a nova coluna.
+- **2026-07-13** — Filtro e marcação "Lema Edu": nova coluna `is_lema_edu` na tabela `events` (migration aplicada via Supabase CLI), toggle no formulário de evento, chip destacado na página de listagem (primeiro na fila, com borda azul, shimmer adaptado ao tema e texto branco no dark / preto no light), filtro aplicado em `filterEvents.js` e repassado pelo `EventList`, e badge "Lema Edu" nos cards e na tela de detalhe. Views `v_past_events` e `v_ongoing_events` recriadas para expor a nova coluna.
 
 - **2026-07-13** — Ajustes na navegação mobile: label "Configurações" encurtado para "Config" na `BottomNav`; ícone de "Gestão" alterado de `Settings` para `ManageAccounts` para diferenciar de "Config"; ordem dos itens de staff reorganizada para `Eventos | Favoritos | Realizados | Config | Categorias | Gestão`.
 

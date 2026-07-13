@@ -56,7 +56,8 @@ export default function EventList() {
     modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
-    datePresets: searchParams.getAll(URL_PARAMS.DATE)
+    datePresets: searchParams.getAll(URL_PARAMS.DATE),
+    lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
   const hasFilters =
@@ -65,7 +66,8 @@ export default function EventList() {
     filters.modalities.length > 0 ||
     filters.price ||
     filters.state ||
-    filters.datePresets.length > 0
+    filters.datePresets.length > 0 ||
+    filters.lemaEdu
 
   const clearFilters = () => {
     setSearchParams({})
