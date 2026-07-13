@@ -1,8 +1,11 @@
 import { AppBar, Box, Button, IconButton, Toolbar, Typography } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import LightModeIcon from '@mui/icons-material/LightMode'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useColorMode } from '../../contexts/ColorModeContext'
 import { NAV_ITEMS } from '../../utils/constants'
 
 const isActive = (pathname, itemPath) => {
@@ -14,6 +17,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
+  const { mode, toggleColorMode } = useColorMode()
 
   const userWithType = user ? { ...user, user_type: profile?.user_type } : null
 
@@ -28,6 +32,14 @@ export default function Navbar() {
         >
           Lema Discovery
         </Typography>
+
+        <IconButton
+          color="inherit"
+          onClick={toggleColorMode}
+          aria-label="Alternar tema"
+        >
+          {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
 
         {user ? (
           <IconButton

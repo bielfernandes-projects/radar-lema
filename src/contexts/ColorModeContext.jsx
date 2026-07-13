@@ -3,17 +3,51 @@ import { useAuth } from './AuthContext'
 
 const ColorModeContext = createContext({ mode: 'light', toggleColorMode: () => {} })
 
+function getStoredMode(storageKey) {
+  const stored = localStorage.getItem(storageKey)
+  if (stored === 'dark' || stored === 'light') return stored
+  return null
+}
+
+function getInitialMode(storageKey) {
+  const stored = getStoredMode(storageKey)
+  if (stored) return stored
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark'
+  }
+  return 'light'
+}
+
 export function ColorModeProvider({ children }) {
   const { profile } = useAuth()
   const email = profile?.email || 'anonymous'
   const storageKey = `theme-mode:${email}`
 
-  const [mode, setMode] = useState(
-    () => localStorage.getItem(storageKey) || 'light'
-  )
+  const [mode, setMode] = useState(() => getInitialMode(storageKey))
 
   useEffect(() => {
-    setMode(localStorage.getItem(storageKey) || 'light')
+    setMode(getInitialMode(storageKey))
+  }, [storageKey])
+
+  useEffect(() => {
+    if (mode === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+  }, [mode])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event) => {
+      const stored = getStoredMode(storageKey)
+      if (!stored) {
+        setMode(event.matches ? 'dark' : 'light')
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
   }, [storageKey])
 
   const value = useMemo(

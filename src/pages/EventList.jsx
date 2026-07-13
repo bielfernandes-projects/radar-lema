@@ -13,13 +13,10 @@ import {
   Alert
 } from '@mui/material'
 import ClearAllIcon from '@mui/icons-material/ClearAll'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import LightModeIcon from '@mui/icons-material/LightMode'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchAllEventsWithMeta } from '../services/eventData'
 import { URL_PARAMS } from '../utils/constants'
-import { useColorMode } from '../contexts/ColorModeContext'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 
@@ -28,7 +25,6 @@ const PAGE_SIZE = 12
 export default function EventList() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { favoriteIds, toggleFavorite } = useFavorites()
-  const { mode, toggleColorMode } = useColorMode()
   const [events, setEvents] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -96,21 +92,13 @@ export default function EventList() {
           <Typography variant="h4" component="h1">
             Eventos
           </Typography>
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              onClick={toggleColorMode}
-              aria-label="Alternar tema"
-            >
-              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
-            <IconButton
-              onClick={clearFilters}
-              disabled={!hasFilters}
-              aria-label="Limpar filtros"
-            >
-              <ClearAllIcon />
-            </IconButton>
-          </Stack>
+          <IconButton
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            aria-label="Limpar filtros"
+          >
+            <ClearAllIcon />
+          </IconButton>
         </Stack>
 
         <TextField

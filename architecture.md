@@ -197,12 +197,12 @@ Todas as tabelas têm RLS habilitado:
 | Componente | Responsabilidade | Onde usado |
 |---|---|---|
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
-| `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}` | Dentro de `AuthProvider`, envolve `ThemeProvider` |
+| `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
-| `Navbar` | Navegação desktop com abas condicionais | `App.jsx` |
+| `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile) | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
 | `Login` | Formulário de login | Rota `/login` |
-| `EventList` | Lista de eventos com filtros e paginacao; botoes busca (lupa) e limpar filtros no cabecalho | Rota `/` |
+| `EventList` | Lista de eventos com filtros e paginacao; botao limpar filtros no cabecalho | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges | `EventList`, `Favorites`, `PastEvents` |
 | `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle para Este mes, Proximo mes, Gratuito e Pago | `EventList` |
 | `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen) | Rota `/evento/:id` |
@@ -368,7 +368,7 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Auth mockada no Supabase (ADR 0003): futuramente migra para leitura do banco do UNO.
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
-- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente.
+- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O CSS customizado em `index.css` reage ao atributo `[data-theme='dark']` no `<html>` (não à media query do SO), garantindo que componentes não-MUI acompanhem o estado controlado pelo app.
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
 - Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns sempre visiveis; chips Este mes, Proximo mes, Gratuito, Pago como toggle. Autocomplete com `readOnly` para evitar teclado no celular. Filtro de cidade removido (só estado como dropdown).
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
@@ -412,6 +412,8 @@ no protótipo. Push real requer:
 - Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
+
+- **2026-07-13** — Dark mode no mobile: toggle de tema movido do `EventList` para o `Navbar`, visível em todas as páginas e breakpoints. `ColorModeContext` passa a detectar `prefers-color-scheme` na inicialização e a sincronizar o atributo `data-theme` no `<html>`. `index.css` passa a usar `[data-theme='dark']` em vez de `prefers-color-scheme`, unificando a aparência de componentes MUI e CSS puro no mobile e desktop.
 
 - **2026-07-09** — Fase 1 — Setup e Auth concluída: scaffold Vite + React 18,
   dependências, ESLint, Prettier, tema UNO, Supabase CLI linkado, migrations
