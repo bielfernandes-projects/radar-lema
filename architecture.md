@@ -413,6 +413,8 @@ no protótipo. Push real requer:
 
 ## Histórico de mudanças
 
+- **2026-07-13** — Ajustes na navegação mobile: label "Configurações" encurtado para "Config" na `BottomNav`; ícone de "Gestão" alterado de `Settings` para `ManageAccounts` para diferenciar de "Config"; ordem dos itens de staff reorganizada para `Eventos | Favoritos | Realizados | Config | Categorias | Gestão`.
+
 - **2026-07-13** — Dark mode no mobile: toggle de tema movido do `EventList` para o `Navbar`, visível em todas as páginas e breakpoints. `ColorModeContext` passa a detectar `prefers-color-scheme` na inicialização e a sincronizar o atributo `data-theme` no `<html>`. `index.css` passa a usar `[data-theme='dark']` em vez de `prefers-color-scheme`, unificando a aparência de componentes MUI e CSS puro no mobile e desktop.
 
 - **2026-07-09** — Fase 1 — Setup e Auth concluída: scaffold Vite + React 18,
