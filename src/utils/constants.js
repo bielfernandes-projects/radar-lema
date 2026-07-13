@@ -33,7 +33,7 @@ export const NAV_ITEMS = [
   { label: 'Eventos', path: '/', icon: 'CalendarMonth', show: () => true },
   { label: 'Favoritos', path: '/favoritos', icon: 'Favorite', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
-  { label: 'Configurações', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
-  { label: 'Gestão', path: '/gestao', icon: 'Settings', show: (user) => user?.user_type === 'staff' },
+  { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
+  { label: 'Gestão', path: '/gestao', icon: 'ManageAccounts', show: (user) => user?.user_type === 'staff' },
   { label: 'Categorias', path: '/categorias', icon: 'Category', show: (user) => user?.user_type === 'staff' }
 ]

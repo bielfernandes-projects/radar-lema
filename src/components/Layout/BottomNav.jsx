@@ -5,7 +5,8 @@ import {
   History,
   Notifications,
   Settings,
-  Category
+  Category,
+  ManageAccounts
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -17,7 +18,8 @@ const ICONS = {
   History: <History />,
   Notifications: <Notifications />,
   Settings: <Settings />,
-  Category: <Category />
+  Category: <Category />,
+  ManageAccounts: <ManageAccounts />
 }
 
 export default function BottomNav() {
