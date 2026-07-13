@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -10,6 +10,9 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+import createAppTheme from '../theme/theme'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
@@ -46,70 +49,75 @@ export default function Login() {
     }
   }
 
+  const lightTheme = useMemo(() => createAppTheme('light'), [])
+
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={2} sx={{ p: 4 }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" component="h1" color="primary" gutterBottom>
-            Lema Discovery
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Descubra o seu proximo evento para RPPS
-          </Typography>
-        </Box>
+    <ThemeProvider theme={lightTheme}>
+      <CssBaseline />
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Paper elevation={2} sx={{ p: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" component="h1" color="primary" gutterBottom>
+              Lema Discovery
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Descubra o seu proximo evento para RPPS
+            </Typography>
+          </Box>
 
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-          <TextField
-            label="E-mail"
-            type="email"
-            fullWidth
-            margin="normal"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            autoComplete="email"
-            autoFocus
-          />
+            <TextField
+              label="E-mail"
+              type="email"
+              fullWidth
+              margin="normal"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+              autoFocus
+            />
 
-          <TextField
-            label="Senha"
-            type="password"
-            fullWidth
-            margin="normal"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            autoComplete="current-password"
-          />
+            <TextField
+              label="Senha"
+              type="password"
+              fullWidth
+              margin="normal"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              autoComplete="current-password"
+            />
 
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            align="center"
-            sx={{ display: 'block', mt: 1 }}
-          >
-            Utilize suas credenciais de acesso ao UNO.
-          </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              align="center"
+              sx={{ display: 'block', mt: 1 }}
+            >
+              Utilize suas credenciais de acesso ao UNO.
+            </Typography>
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            size="large"
-            sx={{ mt: 3 }}
-            disabled={submitting}
-          >
-            {submitting ? <CircularProgress size={24} /> : 'Entrar'}
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              size="large"
+              sx={{ mt: 3 }}
+              disabled={submitting}
+            >
+              {submitting ? <CircularProgress size={24} /> : 'Entrar'}
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    </ThemeProvider>
   )
 }
 
