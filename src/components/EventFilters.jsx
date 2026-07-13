@@ -135,8 +135,20 @@ export default function EventFilters({ categories }) {
           <Chip
             label="Lema Edu"
             clickable
-            color={filters.lemaEdu ? 'secondary' : 'primary'}
-            variant={filters.lemaEdu ? 'outlined' : 'filled'}
+            color="primary"
+            variant={filters.lemaEdu ? 'filled' : 'outlined'}
+            sx={
+              filters.lemaEdu
+                ? {
+                    animation: 'lemaEduGlow 2s ease-in-out infinite',
+                    '@keyframes lemaEduGlow': {
+                      '0%': { boxShadow: '0 0 4px rgba(25, 118, 210, 0.4)' },
+                      '50%': { boxShadow: '0 0 12px rgba(25, 118, 210, 0.7)' },
+                      '100%': { boxShadow: '0 0 4px rgba(25, 118, 210, 0.4)' }
+                    }
+                  }
+                : undefined
+            }
             onClick={() => toggleChip(URL_PARAMS.LEMA_EDU, filters.lemaEdu ? '' : 'true')}
           />
           <Chip
