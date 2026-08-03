@@ -91,6 +91,7 @@ radar-lema/
 │   │   │   └── BottomNav.jsx
 │   │   ├── EventCard.jsx
 │   │   ├── EventFilters.jsx
+│   │   ├── ClearFiltersButton.jsx
 │   │   ├── MapEmbed.jsx
 │   │   ├── ReminderDialog.jsx
 │   │   ├── ProtectedRoute.jsx
@@ -220,15 +221,16 @@ Todas as tabelas têm RLS habilitado:
 | `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile) | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
 | `Login` | Formulário de login | Rota `/login` |
-| `EventList` | Lista de eventos com filtros e paginacao; botao limpar filtros no cabecalho | Rota `/` |
-| `EventCard` | Card de evento com capa, titulo, datas, valor e badges | `EventList`, `Favorites`, `PastEvents` |
+| `EventList` | Lista de eventos com filtros e paginacao; botao "Limpar Filtros" no cabecalho | Rota `/` |
+| `EventCard` | Card de evento com capa, titulo, datas, valor e badges. Toast de favorito com 3s e botao fechar | `EventList`, `Favorites`, `PastEvents` |
 | `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle para Este mes, Proximo mes, Gratuito e Pago | `EventList` |
+| `ClearFiltersButton` | Botao compacto "Limpar Filtros" compartilhado (fonte 0.75rem, padding reduzido, icon 16px). `disabled` quando nao ha filtros | `EventList`, `Favorites`, `PastEvents` |
 | `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen). Exibe as categorias do evento como chips múltiplos | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
 | `Favorites` | Lista de eventos favoritados pelo usuario logado, com botao "Limpar Filtros" | Rota `/favoritos` |
 | `PastEvents` | Lista de eventos realizados (`v_past_events`), com botao "Limpar Filtros" | Rota `/realizados` |
 | `useFavorites` | Hook para carregar e alternar favoritos via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventList`, `EventDetail`, `Favorites`, `PastEvents` |
-| `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir e categorias de cada evento | Rota `/gestao` |
+| `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir e categorias de cada evento. Toast de exclusão com 3s e botao fechar | Rota `/gestao` |
 | `EventFormPage` | Formulário de criar/editar/duplicar evento. Seleção de múltiplas categorias via Autocomplete multiple. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
 | `Categories` | CRUD de categorias | Rota `/categorias` |
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
@@ -236,7 +238,7 @@ Todas as tabelas têm RLS habilitado:
 | `PhotoUploader` | Upload/remove de fotos com limite 5 fotos/3MB | `EventFormPage` |
 | `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Trabalha com entradas `{ offset_minutes, channel }` e upsert com `ignoreDuplicates` (mesmo offset pode existir em push e email). Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
-| `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email) | `EventCard`, `EventDetail`, `Settings` |
+| `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
 | `Settings` | Pagina de configuracao de notificacoes, teste de notificacao e lista de lembretes | Rota `/configuracoes` |
 
 ## Rotas
@@ -437,6 +439,14 @@ no protótipo. Push real requer:
 - Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
+
+- **2026-08-03** — Botão "Limpar Filtros" compacto e toasts de 3s:
+  - Novo componente compartilhado `ClearFiltersButton` (fonte 0.75rem, padding
+    reduzido, ícone 16px, `minWidth: auto`) substituindo os botões duplicados
+    em `EventList`, `Favorites` e `PastEvents`.
+  - Todos os Snackbars (`ReminderDialog`, `EventCard`, `ManageEvents`)
+    padronizados em `autoHideDuration={3000}` com botão de fechar ("x" via
+    `CloseIcon`) para descartar sem esperar o timer.
 
 - **2026-08-03** — Melhorias de filtros, categorias e lembretes:
   - **Multi-categoria**: tabela `event_categories` (M-N) via migration 0017

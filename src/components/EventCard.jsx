@@ -16,6 +16,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import PlaceIcon from '@mui/icons-material/Place'
 import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
 import Favorite from '@mui/icons-material/Favorite'
+import CloseIcon from '@mui/icons-material/Close'
 import {
   formatDateRange,
   formatModality,
@@ -147,9 +148,19 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={2500}
+        autoHideDuration={3000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         message={snackbar.message}
+        action={
+          <IconButton
+            size="small"
+            color="inherit"
+            aria-label="Fechar"
+            onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
       />
 
       <ReminderDialog

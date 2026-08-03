@@ -22,6 +22,7 @@ import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteIcon from '@mui/icons-material/Delete'
+import CloseIcon from '@mui/icons-material/Close'
 import { supabase } from '../lib/supabase'
 import { formatDateRange, formatPrice } from '../utils/formatters'
 
@@ -219,10 +220,20 @@ export default function ManageEvents() {
 
       <Snackbar
         open={deleteSnackbar}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setDeleteSnackbar(false)}
         message="Evento excluído com sucesso."
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        action={
+          <IconButton
+            size="small"
+            color="inherit"
+            aria-label="Fechar"
+            onClick={() => setDeleteSnackbar(false)}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
       />
     </Container>
   )

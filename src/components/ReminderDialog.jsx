@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  IconButton,
   Radio,
   RadioGroup,
   Snackbar,
@@ -15,6 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import { useReminders } from '../hooks/useReminders'
 import { REMINDER_UNITS, REMINDER_CHANNELS } from '../utils/constants'
 import { formatReminder, formatReminderMinutes } from '../utils/formatters'
@@ -200,9 +202,19 @@ export default function ReminderDialog({
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         message={snackbar.message}
+        action={
+          <IconButton
+            size="small"
+            color="inherit"
+            aria-label="Fechar"
+            onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
       />
     </>
   )

@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Container,
   Grid,
   Pagination,
@@ -12,13 +11,13 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import ClearAllIcon from '@mui/icons-material/ClearAll'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchPastEventsWithMeta } from '../services/eventData'
 import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
+import ClearFiltersButton from '../components/ClearFiltersButton'
 
 const PAGE_SIZE = 12
 
@@ -92,14 +91,7 @@ export default function PastEvents() {
           <Typography variant="h4" component="h1">
             Realizados
           </Typography>
-          <Button
-            onClick={clearFilters}
-            disabled={!hasFilters}
-            variant="outlined"
-            startIcon={<ClearAllIcon />}
-          >
-            Limpar Filtros
-          </Button>
+          <ClearFiltersButton disabled={!hasFilters} onClick={clearFilters} />
         </Stack>
 
         <TextField
