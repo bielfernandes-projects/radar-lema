@@ -1,4 +1,4 @@
--- Seed do Lema Discovery.
+-- Seed do Radar Lema.
 -- Orquestra inserts iniciais: categorias, usuarios mock e eventos de exemplo.
 -- Nota: na pratica estes inserts tambem estao versionados nas migrations 0011-0013
 -- para garantir reproducibilidade via `supabase db reset`.

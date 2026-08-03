@@ -30,7 +30,7 @@ export default function Navbar() {
           sx={{ flexGrow: 1, cursor: 'pointer' }}
           onClick={() => navigate('/')}
         >
-          Lema Discovery
+          Radar Lema
         </Typography>
 
         <IconButton

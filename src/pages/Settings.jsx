@@ -128,7 +128,7 @@ export default function Settings() {
 
     const permission = await Notification.requestPermission()
     if (permission === 'granted') {
-      new Notification('Lema Discovery', {
+      new Notification('Radar Lema', {
         body: 'Assim apareceriam seus lembretes antes dos eventos.',
         icon: '/icons/icon-192x192.png'
       })

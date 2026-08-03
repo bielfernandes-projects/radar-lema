@@ -1,5 +1,5 @@
 /**
- * Formatadores de apresentacao usados na UI do Lema Discovery.
+ * Formatadores de apresentacao usados na UI do Radar Lema.
  */
 
 export function formatCurrency(value) {

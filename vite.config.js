@@ -21,8 +21,8 @@ export default defineConfig({
         'robots.txt'
       ],
       manifest: {
-        name: 'Lema Discovery',
-        short_name: 'Lema',
+        name: 'Radar Lema',
+        short_name: 'Radar Lema',
         description: 'Centralizador de eventos para RPPS',
         theme_color: '#1976d2',
         background_color: '#ffffff',

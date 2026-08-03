@@ -58,7 +58,7 @@ export default function Login() {
         <Paper elevation={2} sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography variant="h4" component="h1" color="primary" gutterBottom>
-              Lema Discovery
+              Radar Lema
             </Typography>
             <Typography variant="body1" color="text.secondary">
               Descubra o seu proximo evento para RPPS
