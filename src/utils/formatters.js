@@ -2,6 +2,8 @@
  * Formatadores de apresentacao usados na UI do Radar Lema.
  */
 
+import { REMINDER_UNITS, REMINDER_CHANNELS } from './constants'
+
 export function formatCurrency(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return null
@@ -86,4 +88,29 @@ export function formatSessionTime(startDate, startTime, endDate, endTime) {
   const start = startTime.slice(0, 5)
   const end = endTime.slice(0, 5)
   return `${datePart}, ${start} - ${end}`
+}
+
+export function formatReminderUnit(value, unit) {
+  const unitConfig = REMINDER_UNITS.find((u) => u.value === unit)
+  if (!unitConfig) return `${value}`
+  return value === 1 ? unitConfig.label : unitConfig.plural
+}
+
+export function formatReminder(value, unit, channel) {
+  const unitName = formatReminderUnit(value, unit)
+  const channelLabel = REMINDER_CHANNELS.find((c) => c.value === channel)?.label || channel
+  const base = `${value} ${unitName} antes`
+  return channel ? `${base} • ${channelLabel}` : base
+}
+
+export function formatReminderMinutes(offsetMinutes, channel) {
+  const { value, unit } = minutesToReminder(offsetMinutes)
+  return formatReminder(value, unit, channel)
+}
+
+export function minutesToReminder(offsetMinutes) {
+  const value = Number(offsetMinutes)
+  const order = [...REMINDER_UNITS].sort((a, b) => b.minutes - a.minutes)
+  const unitConfig = order.find((u) => value % u.minutes === 0) || REMINDER_UNITS[0]
+  return { value: value / unitConfig.minutes, unit: unitConfig.value }
 }

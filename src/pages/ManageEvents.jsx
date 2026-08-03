@@ -51,7 +51,7 @@ export default function ManageEvents() {
 
     const { data, error: fetchError } = await supabase
       .from('events')
-      .select('*, categories(name), event_sessions(start_date, end_date)')
+      .select('*, event_categories(categories(name)), event_sessions(start_date, end_date)')
       .order('created_at', { ascending: false })
 
     if (fetchError) {
@@ -84,6 +84,12 @@ export default function ManageEvents() {
     }
 
     setDeleteDialog({ open: false, event: null })
+  }
+
+  const getEventCategories = (event) => {
+    const names =
+      event.event_categories?.map((c) => c.categories?.name).filter(Boolean) || []
+    return names.join(', ')
   }
 
   const getEventDates = (event) => {
@@ -151,7 +157,7 @@ export default function ManageEvents() {
                   <Box>
                     <Typography variant="h6">{event.title}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {event.categories?.name} • {getEventDates(event)}
+                      {getEventCategories(event)} • {getEventDates(event)}
                     </Typography>
                     <Typography variant="body2" color="primary">
                       {formatPrice(event)}

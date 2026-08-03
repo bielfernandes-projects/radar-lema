@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, useBlocker } from 'react-router-dom'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Container,
   Dialog,
@@ -44,7 +46,7 @@ const EMPTY_FORM = {
   title: '',
   description: '',
   modality: 'presencial',
-  category_id: '',
+  category_ids: [],
   is_lema_edu: false,
   is_free: true,
   price_from: '',
@@ -177,7 +179,11 @@ export default function EventFormPage() {
         return
       }
 
-      const [{ data: sessionsData }, { data: photosData }] = await Promise.all([
+      const [
+        { data: sessionsData },
+        { data: photosData },
+        { data: eventCategoriesData }
+      ] = await Promise.all([
         supabase
           .from('event_sessions')
           .select('*')
@@ -187,14 +193,19 @@ export default function EventFormPage() {
           .from('event_photos')
           .select('*')
           .eq('event_id', id)
-          .order('sort_order', { ascending: true })
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('event_categories')
+          .select('category_id')
+          .eq('event_id', id)
       ])
 
       const nextForm = {
         title: eventData.title || '',
         description: eventData.description || '',
         modality: eventData.modality || 'presencial',
-        category_id: eventData.category_id || '',
+        category_ids:
+          eventCategoriesData?.map((c) => c.category_id) || [],
         is_lema_edu: eventData.is_lema_edu ?? false,
         is_free: eventData.is_free ?? true,
         price_from: eventData.price_from ?? '',
@@ -441,21 +452,40 @@ export default function EventFormPage() {
               onChange={(e) => updateForm({ description: e.target.value })}
             />
 
-            <FormControl fullWidth required>
-              <InputLabel id="category-label">Categoria</InputLabel>
-              <Select
-                labelId="category-label"
-                value={form.category_id}
-                label="Categoria"
-                onChange={(e) => updateForm({ category_id: e.target.value })}
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              multiple
+              options={categories.map((c) => c.id)}
+              getOptionLabel={(categoryId) =>
+                categories.find((c) => c.id === categoryId)?.name || categoryId
+              }
+              value={form.category_ids}
+              onChange={(e, value) => updateForm({ category_ids: value })}
+              renderTags={(value, getTagProps) =>
+                value.map((categoryId, index) => {
+                  const name =
+                    categories.find((c) => c.id === categoryId)?.name || categoryId
+                  return (
+                    <Chip
+                      variant="outlined"
+                      label={name}
+                      size="small"
+                      {...getTagProps({ index })}
+                      key={categoryId}
+                    />
+                  )
+                })
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Categorias"
+                  required
+                  helperText="Selecione uma ou mais categorias do evento."
+                  inputProps={{ ...params.inputProps, readOnly: true }}
+                />
+              )}
+              fullWidth
+            />
 
             <FormControlLabel
               control={

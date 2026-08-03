@@ -1,27 +1,28 @@
 import { useEffect, useState } from 'react'
 import {
+  Box,
   Button,
-  Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  Radio,
+  RadioGroup,
   Snackbar,
+  Stack,
+  TextField,
   Typography
 } from '@mui/material'
 import { useReminders } from '../hooks/useReminders'
-import { OFFSET_LABELS, OFFSET_ORDER } from '../utils/constants'
+import { REMINDER_UNITS, REMINDER_CHANNELS } from '../utils/constants'
+import { formatReminder, formatReminderMinutes } from '../utils/formatters'
 
-function formatOffsets(offsets) {
-  const labels = offsets
-    .slice()
-    .sort((a, b) => b - a)
-    .map((o) => OFFSET_LABELS[o])
-  if (labels.length === 1) return labels[0]
-  if (labels.length === 2) return labels.join(' e ')
-  const first = labels.slice(0, -1).join(', ')
-  return `${first} e ${labels[labels.length - 1]}`
+function unitLabel(unit, value, selected) {
+  const base = value > 1 ? unit.plural : unit.label
+  const capitalized = base.charAt(0).toUpperCase() + base.slice(1)
+  return selected ? `${value} ${base} antes` : capitalized
 }
 
 export default function ReminderDialog({
@@ -29,31 +30,55 @@ export default function ReminderDialog({
   event,
   onClose,
   onSaved,
-  initialOffsets
+  initialEntries
 }) {
   const { saveReminders } = useReminders()
-  const [selected, setSelected] = useState(initialOffsets || [])
+  const [entries, setEntries] = useState([])
+  const [draftValue, setDraftValue] = useState('1')
+  const [draftUnit, setDraftUnit] = useState('hour')
+  const [draftChannel, setDraftChannel] = useState('push')
   const [saving, setSaving] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '' })
 
   useEffect(() => {
     if (open) {
-      setSelected(initialOffsets || [])
+      setEntries(initialEntries || [])
+      setDraftValue('1')
+      setDraftUnit('hour')
+      setDraftChannel('push')
     }
-  }, [open, initialOffsets])
+  }, [open, initialEntries])
 
-  const handleToggle = (offset) => {
-    setSelected((prev) =>
-      prev.includes(offset)
-        ? prev.filter((o) => o !== offset)
-        : [...prev, offset]
+  const parsedValue = Math.max(1, Number(draftValue) || 1)
+
+  const addEntry = () => {
+    const exists = entries.some(
+      (e) => e.value === parsedValue && e.unit === draftUnit && e.channel === draftChannel
     )
+    if (exists) return
+    setEntries((prev) => [
+      ...prev,
+      { value: parsedValue, unit: draftUnit, channel: draftChannel }
+    ])
+  }
+
+  const removeEntry = (index) => {
+    setEntries((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSave = async () => {
-    if (selected.length === 0) return
+    if (entries.length === 0) return
     setSaving(true)
-    const { error } = await saveReminders(event.id, selected)
+
+    const payload = entries.map((entry) => {
+      const unit = REMINDER_UNITS.find((u) => u.value === entry.unit)
+      return {
+        offset_minutes: entry.value * unit.minutes,
+        channel: entry.channel
+      }
+    })
+
+    const { error } = await saveReminders(event.id, payload)
     setSaving(false)
 
     if (error) {
@@ -61,7 +86,9 @@ export default function ReminderDialog({
       return
     }
 
-    const label = formatOffsets(selected)
+    const label = payload
+      .map((p) => formatReminderMinutes(p.offset_minutes, p.channel))
+      .join(' e ')
     setSnackbar({
       open: true,
       message: `Lembrete salvo. Voce seria avisado ${label} antes do evento.`
@@ -81,18 +108,81 @@ export default function ReminderDialog({
             {event.title}
           </Typography>
 
-          {OFFSET_ORDER.map((offset) => (
-            <FormControlLabel
-              key={offset}
-              control={
-                <Checkbox
-                  checked={selected.includes(offset)}
-                  onChange={() => handleToggle(offset)}
-                />
-              }
-              label={OFFSET_LABELS[offset]}
-            />
-          ))}
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Antecedência
+              </Typography>
+              <TextField
+                type="number"
+                inputProps={{ min: 1 }}
+                value={draftValue}
+                onChange={(e) => setDraftValue(e.target.value)}
+                label="Quantidade"
+                size="small"
+                fullWidth
+              />
+            </Box>
+
+            <RadioGroup
+              value={draftUnit}
+              onChange={(e) => setDraftUnit(e.target.value)}
+            >
+              <Stack spacing={0.5}>
+                {REMINDER_UNITS.map((unit) => (
+                  <FormControlLabel
+                    key={unit.value}
+                    value={unit.value}
+                    control={<Radio size="small" />}
+                    label={unitLabel(unit, parsedValue, draftUnit === unit.value)}
+                  />
+                ))}
+              </Stack>
+            </RadioGroup>
+
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Como avisar
+              </Typography>
+              <RadioGroup
+                row
+                value={draftChannel}
+                onChange={(e) => setDraftChannel(e.target.value)}
+              >
+                {REMINDER_CHANNELS.map((channel) => (
+                  <FormControlLabel
+                    key={channel.value}
+                    value={channel.value}
+                    control={<Radio size="small" />}
+                    label={channel.label}
+                  />
+                ))}
+              </RadioGroup>
+            </Box>
+
+            <Button
+              variant="outlined"
+              onClick={addEntry}
+              disabled={!draftValue || Number(draftValue) < 1}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              Adicionar
+            </Button>
+
+            {entries.length > 0 && (
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {entries.map((entry, index) => (
+                  <Chip
+                    key={`${entry.value}-${entry.unit}-${entry.channel}-${index}`}
+                    label={formatReminder(entry.value, entry.unit, entry.channel)}
+                    onDelete={() => removeEntry(index)}
+                    size="small"
+                    variant="outlined"
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} color="secondary">
@@ -101,7 +191,7 @@ export default function ReminderDialog({
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={selected.length === 0 || saving}
+            disabled={entries.length === 0 || saving}
           >
             Salvar
           </Button>

@@ -13,8 +13,8 @@ para clientes e staff da Lema.
 **Evento**:
 Agregado principal do domínio. Representa uma ocorrência (encontro, live,
 palestra, congresso, etc.) voltada para RPPS, organizada pela Lema ou por
-terceiros. Tem título, descrição, modalidade, categoria, valor, endereço,
-link externo de inscrição, fotos e múltiplas sessões.
+terceiros. Tem título, descrição, modalidade, categorias (uma ou mais),
+valor, endereço, link externo de inscrição, fotos e múltiplas sessões.
 _Avoid_: Atividade, compromisso, agenda
 
 **Sessão**:
@@ -35,7 +35,9 @@ _Avoid_: Repetição, _recurrence_ (anglicismo)
 Tipo do evento (Comitê, Workshop, Live/Webinar, Palestra, Congresso,
 Seminário, Curso, Encontro). Lista fixa gerenciável pelo staff Lema em
 tela própria. Sem opção "Outro" — novas categorias são adicionadas pelo
-gestão de categorias.
+gestão de categorias. Um evento pertence a **uma ou mais** categorias
+(relação muitos-para-muitos); o filtro casa se o evento tiver qualquer
+uma das categorias selecionadas. Não há categoria principal.
 _Avoid_: Tipo, tag
 
 **Modalidade**:
@@ -98,9 +100,18 @@ Evento marcado pelo cliente RPPS para acompanhar. Aparece na aba
 "Favoritos". Funciona como salvamento para referência futura.
 _Avoid_: Saved, bookmark, marcado
 
+**Lembrete**:
+Aviso configurado pelo cliente para um evento favoritado, com antecedência
+livre (qualquer valor em Minutos, Horas, Dias, Semanas ou Meses — 1 mês =
+30 dias) e canal de envio por lembrete: Notificação (push) ou E-mail.
+O mesmo horário pode existir nos dois canais. O Radar não dispara os avisos
+no protótipo — apenas salva a configuração.
+_Avoid_: Alerta, aviso, notificação
+
 **Realizado**:
-Evento cujas todas as sessões já passaram. Transição automática da
-listagem principal para a página "Realizados", sem intervenção do staff.
+Evento cujas todas as sessões já passaram — ou que não possui nenhuma
+sessão cadastrada. Transição automática da listagem principal para a
+página "Realizados", sem intervenção do staff.
 _Avoid_: Passado, histórico, arquivado
 
 **Em andamento**:

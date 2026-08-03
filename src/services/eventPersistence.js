@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 
-export async function uploadPhotos(eventId, photos, removedPhotoIds) {
+export async function uploadPhotos(eventId, photos) {
   const photoFiles = photos.filter((p) => p.file)
 
   if (photoFiles.length === 0) return
@@ -83,6 +83,18 @@ export async function saveSessions(eventId, sessionsToSave) {
   }
 }
 
+export async function saveCategories(eventId, categoryIds) {
+  const ids = categoryIds || []
+
+  await supabase.from('event_categories').delete().eq('event_id', eventId)
+
+  if (ids.length === 0) return
+
+  const rows = ids.map((categoryId) => ({ event_id: eventId, category_id: categoryId }))
+  const { error } = await supabase.from('event_categories').insert(rows)
+  if (error) throw error
+}
+
 export async function persistEvent({
   form,
   sessionsToSave,
@@ -97,7 +109,6 @@ export async function persistEvent({
     title: form.title.trim(),
     description: form.description.trim(),
     modality: form.modality,
-    category_id: form.category_id,
     is_lema_edu: form.is_lema_edu,
     is_free: form.is_free,
     price_from: form.is_free ? null : Number(form.price_from),
@@ -143,7 +154,8 @@ export async function persistEvent({
     }
   }
 
-  await uploadPhotos(savedEventId, photos, removedPhotoIds)
+  await uploadPhotos(savedEventId, photos)
+  await saveCategories(savedEventId, form.category_ids)
   await saveSessions(savedEventId, sessionsToSave)
 
   return savedEventId

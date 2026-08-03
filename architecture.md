@@ -48,7 +48,13 @@ radar-lema/
 │   │   ├── 0010_storage_bucket.sql
 │   │   ├── 0011_seed_categories.sql
 │   │   ├── 0012_seed_mock_users.sql
-│   │   └── 0013_seed_sample_events.sql
+│   │   ├── 0013_seed_sample_events.sql
+│   │   ├── 0014_rename_order_to_sort_order.sql
+│   │   ├── 20260709162156_event_reminders_and_settings.sql
+│   │   ├── 20260713150000_add_is_lema_edu.sql
+│   │   ├── 20260803000001_multi_category.sql
+│   │   ├── 20260803000002_reminders_channel.sql
+│   │   └── 20260803000003_fix_past_views.sql
 │   └── seed.sql
 ├── scripts/
 │   └── seed-mock-users.mjs
@@ -130,12 +136,18 @@ O schema segue o `PLAN.md`:
 - `profiles`: espelha `auth.users` com `user_type` (staff/client) e `role` do UNO.
 - `categories`: tipos de evento (lista fixa gerenciável).
 - `events`: agregado principal com modalidade, valor, endereço, recorrência etc.
+- `event_categories`: relacionamento muitos-para-muitos entre eventos e
+  categorias (`PRIMARY KEY (event_id, category_id)`). Um evento pode pertencer
+  a várias categorias; não há mais `category_id` único em `events`.
 - `event_sessions`: datas/horários de cada evento.
 - `event_photos`: fotos de capa/carrossel com URL pública estática.
 - `favorites`: eventos salvos por usuário (`UNIQUE(user_id, event_id)`).
-- `event_reminders`: lembretes configurados por evento favoritado, com offsets de 1440/60/30/10/5 minutos (`UNIQUE(user_id, event_id, offset_minutes)`).
+- `event_reminders`: lembretes configurados por evento favoritado, com offset
+  livre em minutos (qualquer antecedência) e canal (`push`/`email`). O mesmo
+  offset pode existir nos dois canais (`UNIQUE(user_id, event_id, offset_minutes, channel)`).
 - `notification_settings`: configuração global de notificações por usuário (`push_enabled`, `email_enabled`, `categories_enabled`).
-- Views `v_past_events` e `v_ongoing_events`.
+- Views `v_past_events` e `v_ongoing_events` (comparadas por timestamp
+  completo de fim de sessão; eventos sem sessões contam como Realizados).
 - Bucket `event-photos` público para leitura.
 
 Detalhes completos estão nas migrations em `supabase/migrations/`.
@@ -159,6 +171,10 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0013 | `0013_seed_sample_events.sql` | 6 eventos + sessões + fotos |
 | 0014 | `0014_rename_order_to_sort_order.sql` | Renomeia coluna `order` para `sort_order` em `event_photos` |
 | 0015 | `20260709162156_event_reminders_and_settings.sql` | Tabelas `event_reminders` e `notification_settings` + RLS + índice |
+| 0016 | `20260713150000_add_is_lema_edu.sql` | Coluna `is_lema_edu` em `events` + recria views |
+| 0017 | `20260803000001_multi_category.sql` | Tabela `event_categories` (M-N), backfill de `events.category_id`, drop da coluna + índice antigos, recria views (0018) |
+| 0018 | `20260803000002_reminders_channel.sql` | Lembrete com offset livre (`CHECK offset_minutes > 0`) e coluna `channel` (`push`/`email`) + UNIQUE com canal |
+| 0019 | `20260803000003_fix_past_views.sql` | Views `v_past_events`/`v_ongoing_events` por timestamp completo de sessão (inclui eventos sem sessões como Realizados) |
 
 ## RLS
 
@@ -167,6 +183,8 @@ Todas as tabelas têm RLS habilitado:
 - `profiles`: usuário lê próprio perfil; staff (`ROLE_SUPER_ADMIN`) lê todos.
 - `categories`, `events`, `event_sessions`, `event_photos`: leitura pública;
   escrita apenas `ROLE_SUPER_ADMIN`.
+- `event_categories`: leitura pública; escrita apenas super admin
+  (política `event_categories_write` via `public.is_super_admin()`).
 - `favorites`: isolado por `user_id = auth.uid()`.
 - `event_reminders`: isolado por `user_id = auth.uid()` (política `reminders_owner`).
 - `notification_settings`: isolado por `user_id = auth.uid()` (política `settings_owner`).
@@ -189,8 +207,8 @@ Todas as tabelas têm RLS habilitado:
 
 | Arquivo | Funções | Responsabilidade |
 |---|---|---|
-| `services/eventData.js` | `fetchMetadata`, `fetchCategories`, `fetchAllEventsWithMeta`, `fetchFavoriteEventsWithMeta`, `fetchPastEventsWithMeta` | Todas aceitam `deps = { supabase }` (seam para testes). Encapsulam queries de eventos + metadados + categorias em chamadas únicas. |
-| `services/eventPersistence.js` | `uploadPhotos`, `saveSessions`, `persistEvent` | Extraído do `EventFormPage`. Gerencia o salvamento completo de um evento (dados, fotos, sessões) em transação lógica. |
+| `services/eventData.js` | `fetchMetadata`, `fetchCategories`, `fetchAllEventsWithMeta`, `fetchFavoriteEventsWithMeta`, `fetchPastEventsWithMeta` | Todas aceitam `deps = { supabase }` (seam para testes). `fetchMetadata` também busca `event_categories` e cada fetcher enriquece os eventos com `category_ids` (multi-categoria). |
+| `services/eventPersistence.js` | `uploadPhotos`, `saveSessions`, `persistEvent`, `saveCategories` | Extraído do `EventFormPage`. Gerencia o salvamento completo de um evento (dados, fotos, sessões) em transação lógica; `saveCategories` grava os vínculos em `event_categories` (replica por evento). |
 
 ## Componentes
 
@@ -205,20 +223,20 @@ Todas as tabelas têm RLS habilitado:
 | `EventList` | Lista de eventos com filtros e paginacao; botao limpar filtros no cabecalho | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges | `EventList`, `Favorites`, `PastEvents` |
 | `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle para Este mes, Proximo mes, Gratuito e Pago | `EventList` |
-| `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen) | Rota `/evento/:id` |
+| `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen). Exibe as categorias do evento como chips múltiplos | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
-| `Favorites` | Lista de eventos favoritados pelo usuario logado | Rota `/favoritos` |
-| `PastEvents` | Lista de eventos realizados (`v_past_events`) | Rota `/realizados` |
+| `Favorites` | Lista de eventos favoritados pelo usuario logado, com botao "Limpar Filtros" | Rota `/favoritos` |
+| `PastEvents` | Lista de eventos realizados (`v_past_events`), com botao "Limpar Filtros" | Rota `/realizados` |
 | `useFavorites` | Hook para carregar e alternar favoritos via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventList`, `EventDetail`, `Favorites`, `PastEvents` |
-| `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir | Rota `/gestao` |
-| `EventFormPage` | Formulário de criar/editar/duplicar evento. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
+| `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir e categorias de cada evento | Rota `/gestao` |
+| `EventFormPage` | Formulário de criar/editar/duplicar evento. Seleção de múltiplas categorias via Autocomplete multiple. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
 | `Categories` | CRUD de categorias | Rota `/categorias` |
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
 | `RecurrenceEditor` | Toggle, frequência e data fim da recorrência | `EventFormPage` |
 | `PhotoUploader` | Upload/remove de fotos com limite 5 fotos/3MB | `EventFormPage` |
-| `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
+| `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Trabalha com entradas `{ offset_minutes, channel }` e upsert com `ignoreDuplicates` (mesmo offset pode existir em push e email). Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
-| `ReminderDialog` | Dialog com checkboxes de offsets ao favoritar evento pela primeira vez | `EventCard`, `EventDetail`, `Settings` |
+| `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email) | `EventCard`, `EventDetail`, `Settings` |
 | `Settings` | Pagina de configuracao de notificacoes, teste de notificacao e lista de lembretes | Rota `/configuracoes` |
 
 ## Rotas
@@ -316,11 +334,11 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 | Arquivo | Funcoes | Uso |
 |---|---|---|---|
 | `utils/auth.js` | `getUserId` | Extrai `user.id` da sessão atual |
-| `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `OFFSET_LABELS`, `OFFSET_ORDER`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels e dados estáticos compartilhados entre páginas |
-| `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime` | Cards, detalhe, sessoes e testes |
-| `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos |
-| `utils/eventForm.js` | `parseDateTime`, `formatDateTime`, `calculateDelta`, `applyDelta`, `emptySession`, `validate` | Parsing/format de data/hora, cálculo de delta entre sessões, sessão vazia padrão, validação do formulário |
-| `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias, modalidade, preço, estado, presets de data) |
+| `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `REMINDER_UNITS`, `REMINDER_CHANNELS`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels, unidades de lembrete (minute/hour/day/week/month em minutos), canais (push/email) e dados estáticos compartilhados |
+| `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime`, `formatReminder`, `formatReminderUnit`, `formatReminderMinutes`, `minutesToReminder` | Cards, detalhe, sessoes, lembretes e testes |
+| `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos; recebe `eventCategories` para popular `category_ids` |
+| `utils/eventForm.js` | `parseDateTime`, `formatDateTime`, `calculateDelta`, `applyDelta`, `emptySession`, `validate` | Parsing/format de data/hora, cálculo de delta entre sessões, sessão vazia padrão, validação do formulário (exige ao menos uma categoria) |
+| `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias via `category_ids`, modalidade, preço, estado, presets de data) |
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
 | `hooks/useUserData.js` | `refresh`, `loading` | Hook genérico: escuta `onAuthStateChange`, chama `fetchFn(userId)` sempre que o auth muda |
 | `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS (usa `useUserData`) |
@@ -370,6 +388,9 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
 - Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O CSS customizado em `index.css` reage ao atributo `[data-theme='dark']` no `<html>` (não à media query do SO), garantindo que componentes não-MUI acompanhem o estado controlado pelo app.
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
+- Multi-categoria: eventos pertencem a várias categorias via tabela `event_categories` (M-N), sem categoria principal. Filtro de categoria casa se o evento tiver **qualquer** uma das selecionadas (`category_ids` incluído no enrich). Filtro por mais de uma categoria usa OR (não AND).
+- Lembretes com offset livre e canal: o usuário digita qualquer antecedência (unidades Minuto, Hora, Dia, Semana, Mês; 1 mês = 30 dias = 43.200 min) e escolhe o canal por lembrete (Notificação push ou E-mail). O mesmo offset pode existir nos dois canais — o UNIQUE é `(user_id, event_id, offset_minutes, channel)`.
+- Eventos Realizados por timestamp completo: `v_past_events`/`v_ongoing_events` comparam `(end_date + end_time) AT TIME ZONE 'America/Sao_Paulo'` com `now()`, não apenas a data. Eventos **sem nenhuma sessão** contam como Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
 - Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns sempre visiveis; chips Este mes, Proximo mes, Gratuito, Pago como toggle. Autocomplete com `readOnly` para evitar teclado no celular. Filtro de cidade removido (só estado como dropdown).
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
 - Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
@@ -385,10 +406,13 @@ funcionam, mas **não há push automático**. O fluxo atual:
 
 1. **Favoritar evento**: ao favoritar um evento pela primeira vez (sem
    lembretes salvos ainda), o `ReminderDialog` abre perguntando com quanta
-   antecedência o usuário quer ser avisado (1 dia, 1 hora, 30 min, 10 min
-   e/ou 5 min antes).
-2. **Persistência**: os offsets selecionados são salvos em `event_reminders`
-   via Supabase SDK respeitando RLS (`user_id = auth.uid()`).
+   antecedência o usuário quer ser avisado. O usuário digita um valor
+   numérico e escolhe a unidade (Minuto, Hora, Dia, Semana ou Mês — 1 mês =
+   30 dias) e o canal (Notificação ou E-mail). O mesmo horário pode ser
+   adicionado nos dois canais.
+2. **Persistência**: cada lembrete é salvo como `{ offset_minutes, channel }`
+   em `event_reminders` via Supabase SDK respeitando RLS (`user_id = auth.uid()`).
+   Duplicatas (`user_id, event_id, offset_minutes, channel`) são ignoradas no upsert.
 3. **Desfavoritar**: ao desfavoritar, os lembretes **não são removidos** —
    permanecem no banco para quando o usuário refavoritar.
 4. **Configurações**: a tela `/configuracoes` permite:
@@ -396,7 +420,8 @@ funcionam, mas **não há push automático**. O fluxo atual:
    - Ativar/desativar notificação por email (placeholder, `email_enabled`).
    - Selecionar categorias de interesse (`categories_enabled` como `TEXT[]`).
    - Testar notificação local com `new Notification()`.
-   - Visualizar, editar e remover lembretes ativos agrupados por evento.
+   - Visualizar, editar e remover lembretes ativos agrupados por evento
+     (cada lembrete mostra offset formatado, ex. "3 dias antes · E-mail").
 5. **Teste de notificação**: o botão "Testar notificação agora" solicita
    permissão via `Notification.requestPermission()` e, se concedida, dispara
    uma `Notification` local real. Permissão só funciona em HTTPS ou localhost.
@@ -412,6 +437,31 @@ no protótipo. Push real requer:
 - Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
+
+- **2026-08-03** — Melhorias de filtros, categorias e lembretes:
+  - **Multi-categoria**: tabela `event_categories` (M-N) via migration 0017
+    (`20260803000001_multi_category.sql`), backfill das categorias existentes e
+    remoção de `events.category_id`. `enrichEvents` passou a popular
+    `category_ids`; formulário usa Autocomplete multiple (validação "Selecione
+    pelo menos uma categoria."); detalhe e gestão exibem chips; filtro casa por
+    `category_ids` (OR entre categorias). `saveCategories` em
+    `services/eventPersistence.js`.
+  - **Limpar Filtros**: botão com rótulo "Limpar Filtros" + ícone e
+    `disabled={!hasFilters}` nas páginas Eventos, Favoritos e Realizados
+    (substituiu o IconButton sem rótulo).
+  - **Lembretes com offset livre + canal** (migration 0018):
+    `event_reminders` agora aceita qualquer `offset_minutes > 0` e tem coluna
+    `channel` (`push`/`email`); UNIQUE passou a `(user_id, event_id, offset_minutes, channel)`.
+    `ReminderDialog` reescrito com input numérico, unidades (Minuto/Hora/Dia/
+    Semana/Mês, 1 mês = 30 dias) com pluralização e sufixo "antes", e canal por
+    lembrete. `useReminders` trabalha com `{ offset_minutes, channel }` e
+    `ignoreDuplicates`; `Settings` lista/edita lembretes com offset formatado.
+  - **Eventos Realizados por timestamp** (migration 0019): `v_past_events`/
+    `v_ongoing_events` comparam `(end_date + end_time) AT TIME ZONE
+    'America/Sao_Paulo'` com `now()`; eventos sem sessões contam como
+    Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
+  - Testes `tests/events.test.js` ampliados; 39 testes passando; lint e build
+    limpos. Migrations aplicadas no Supabase (projeto `zkgmcgpfgvscjnstshoo`).
 
 - **2026-07-13** — Login sempre em light mode: página `Login.jsx` envolvida por `ThemeProvider` local com `createAppTheme('light')` e `CssBaseline`, ignorando o tema global salvo pelo usuário.
 

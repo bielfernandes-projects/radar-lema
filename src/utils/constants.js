@@ -14,15 +14,18 @@ export const MODALITY_LABELS = {
   Híbrido: 'hibrido'
 }
 
-export const OFFSET_LABELS = {
-  1440: '1 dia antes',
-  60: '1 hora antes',
-  30: '30 min antes',
-  10: '10 min antes',
-  5: '5 min antes'
-}
+export const REMINDER_UNITS = [
+  { value: 'minute', label: 'minuto', plural: 'minutos', minutes: 1 },
+  { value: 'hour', label: 'hora', plural: 'horas', minutes: 60 },
+  { value: 'day', label: 'dia', plural: 'dias', minutes: 1440 },
+  { value: 'week', label: 'semana', plural: 'semanas', minutes: 10080 },
+  { value: 'month', label: 'mês', plural: 'meses', minutes: 43200 }
+]
 
-export const OFFSET_ORDER = [1440, 60, 30, 10, 5]
+export const REMINDER_CHANNELS = [
+  { value: 'push', label: 'Notificação' },
+  { value: 'email', label: 'E-mail' }
+]
 
 export const UFs = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',

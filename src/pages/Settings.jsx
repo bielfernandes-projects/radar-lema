@@ -29,7 +29,7 @@ import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
-import { OFFSET_LABELS } from '../utils/constants'
+import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -153,9 +153,11 @@ export default function Settings() {
   }
 
   const reminderEntries = useMemo(() => {
-    return Array.from(remindersByEvent.entries()).map(([eventId, offsets]) => ({
+    return Array.from(remindersByEvent.entries()).map(([eventId, entries]) => ({
       eventId,
-      offsets: offsets.slice().sort((a, b) => b - a),
+      entries: entries
+        .slice()
+        .sort((a, b) => b.offset_minutes - a.offset_minutes),
       event: eventsMap[eventId]
     }))
   }, [remindersByEvent, eventsMap])
@@ -269,7 +271,7 @@ export default function Settings() {
             </Typography>
           ) : (
             <List disablePadding>
-              {reminderEntries.map(({ eventId, offsets, event }) => (
+              {reminderEntries.map(({ eventId, entries, event }) => (
                 <ListItem
                   key={eventId}
                   sx={{
@@ -298,10 +300,13 @@ export default function Settings() {
                     }
                     secondary={
                       <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }} flexWrap="wrap">
-                        {offsets.map((offset) => (
+                        {entries.map((reminder) => (
                           <Chip
-                            key={offset}
-                            label={OFFSET_LABELS[offset]}
+                            key={`${reminder.offset_minutes}-${reminder.channel}`}
+                            label={formatReminderMinutes(
+                              reminder.offset_minutes,
+                              reminder.channel
+                            )}
                             size="small"
                             variant="outlined"
                           />
@@ -315,7 +320,14 @@ export default function Settings() {
                       variant="outlined"
                       startIcon={<EditIcon />}
                       onClick={() =>
-                        setEditReminder({ eventId, offsets, event })
+                        setEditReminder({
+                          eventId,
+                          entries: entries.map((reminder) => ({
+                            ...minutesToReminder(reminder.offset_minutes),
+                            channel: reminder.channel
+                          })),
+                          event
+                        })
                       }
                     >
                       Editar
@@ -344,8 +356,8 @@ export default function Settings() {
         <DialogTitle>Remover todos os lembretes?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Tem certeza que deseja remover todos os lembretes de "{removeDialog.eventTitle}"?
-            Esta ação não pode ser desfeita.
+            Tem certeza que deseja remover todos os lembretes de &quot;
+            {removeDialog.eventTitle}&quot;? Esta ação não pode ser desfeita.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -365,7 +377,7 @@ export default function Settings() {
       <ReminderDialog
         open={!!editReminder}
         event={editReminder?.event || { id: '', title: '' }}
-        initialOffsets={editReminder?.offsets || []}
+        initialEntries={editReminder?.entries || []}
         onClose={() => setEditReminder(null)}
         onSaved={() => {
           setEditReminder(null)

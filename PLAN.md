@@ -134,7 +134,6 @@ Espelha o usuário autenticado do Supabase Auth com metadados.
 | `title` | TEXT NOT NULL | |
 | `description` | TEXT NOT NULL | |
 | `modality` | TEXT NOT NULL | `'presencial'`, `'online'`, `'hibrido'` |
-| `category_id` | UUID FK → categories | |
 | `is_free` | BOOLEAN DEFAULT true | toggle gratuito |
 | `price_from` | NUMERIC(10,2) | NULL se gratuito; "a partir de" |
 | `city` | TEXT | NULL se online |
@@ -153,6 +152,17 @@ Espelha o usuário autenticado do Supabase Auth com metadados.
 - `recurrence_freq IN ('semanal', 'quinzenal', 'mensal')`
 - `is_recurring = true` ⇒ `recurrence_freq IS NOT NULL AND recurrence_until IS NOT NULL`
 - `is_free = true` ⇒ `price_from IS NULL`
+
+### Tabela `event_categories`
+
+Relacionamento muitos-para-muitos entre eventos e categorias (um evento
+pode pertencer a várias categorias; não há categoria principal).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `event_id` | UUID FK → events | ON DELETE CASCADE |
+| `category_id` | UUID FK → categories | ON DELETE CASCADE |
+| | PRIMARY KEY(event_id, category_id) | |
 
 ### Tabela `event_sessions`
 
@@ -198,7 +208,7 @@ Espelha o usuário autenticado do Supabase Auth com metadados.
 events 1───∞ event_sessions
 events 1───∞ event_photos
 events 1───∞ favorites
-events ∞───1 categories
+events ∞───∞ categories   (via event_categories)
 profiles 1───∞ events (created_by)
 profiles 1───∞ favorites
 ```
@@ -212,15 +222,19 @@ URL pública: `https://<project>.supabase.co/storage/v1/object/public/event-phot
 
 ### View `v_past_events`
 
-Evento é "Realizado" quando `MAX(event_sessions.end_date) < CURRENT_DATE`.
+Evento é "Realizado" quando todas as sessões já terminaram — ou quando não
+possui nenhuma sessão. A comparação usa o **timestamp completo** de fim
+(`end_date + end_time`) no fuso `America/Sao_Paulo`, não apenas a data.
 
 ```sql
-CREATE OR REPLACE VIEW v_past_events AS
-SELECT e.*, MAX(s.end_date) AS last_end_date
-FROM events e
-JOIN event_sessions s ON s.event_id = e.id
+DROP VIEW IF EXISTS public.v_past_events CASCADE;
+CREATE VIEW public.v_past_events AS
+SELECT e.*
+FROM public.events e
+LEFT JOIN public.event_sessions s ON s.event_id = e.id
 GROUP BY e.id
-HAVING MAX(s.end_date) < CURRENT_DATE;
+HAVING MAX((s.end_date + s.end_time) AT TIME ZONE 'America/Sao_Paulo') < now()
+    OR COUNT(s.id) = 0;
 ```
 
 ### View `v_ongoing_events`
@@ -228,20 +242,21 @@ HAVING MAX(s.end_date) < CURRENT_DATE;
 Evento "Em andamento": ao menos uma sessão passada E ao menos uma futura.
 
 ```sql
-CREATE OR REPLACE VIEW v_ongoing_events AS
+DROP VIEW IF EXISTS public.v_ongoing_events CASCADE;
+CREATE VIEW public.v_ongoing_events AS
 SELECT e.*
-FROM events e
-JOIN event_sessions s ON s.event_id = e.id
+FROM public.events e
+JOIN public.event_sessions s ON s.event_id = e.id
 GROUP BY e.id
-HAVING BOOL_OR(s.end_date < CURRENT_DATE)
-   AND BOOL_OR(s.end_date >= CURRENT_DATE);
+HAVING BOOL_OR((s.end_date + s.end_time) AT TIME ZONE 'America/Sao_Paulo' < now())
+   AND BOOL_OR((s.end_date + s.end_time) AT TIME ZONE 'America/Sao_Paulo' >= now());
 ```
 
 ### Índices
 
 ```sql
-CREATE INDEX idx_events_category        ON events(category_id);
 CREATE INDEX idx_events_created_at      ON events(created_at DESC);
+CREATE INDEX idx_event_categories_category ON event_categories(category_id);
 CREATE INDEX idx_sessions_event         ON event_sessions(event_id);
 CREATE INDEX idx_sessions_event_date    ON event_sessions(event_id, start_date);
 CREATE INDEX idx_photos_event           ON event_photos(event_id);
@@ -260,6 +275,10 @@ Todas as tabelas têm RLS habilitado. Políticas:
 **`categories`**
 - SELECT: público (anon + authenticated).
 - INSERT/UPDATE/DELETE: `role = 'ROLE_SUPER_ADMIN'`.
+
+**`event_categories`**
+- SELECT: público (anon + authenticated).
+- INSERT/UPDATE/DELETE: super admin (via `public.is_super_admin()`).
 
 **`events`**
 - SELECT: público.
@@ -372,6 +391,12 @@ Substitui "SQL via Dashboard" do plano original. Migrations vivem em
 | 0011 | `0011_seed_categories.sql` | 8 categorias iniciais |
 | 0012 | `0012_seed_mock_users.sql` | 2 usuários em `auth.users` + `profiles` |
 | 0013 | `0013_seed_sample_events.sql` | 6 eventos de exemplo + sessões + fotos |
+| 0014 | `0014_rename_order_to_sort_order.sql` | renomeia `order` → `sort_order` em `event_photos` |
+| 0015 | `20260709162156_event_reminders_and_settings.sql` | tabelas `event_reminders` e `notification_settings` |
+| 0016 | `20260713150000_add_is_lema_edu.sql` | coluna `is_lema_edu` em `events` |
+| 0017 | `20260803000001_multi_category.sql` | `event_categories` (M-N) + backfill + drop de `events.category_id` |
+| 0018 | `20260803000002_reminders_channel.sql` | offset livre + canal em `event_reminders` |
+| 0019 | `20260803000003_fix_past_views.sql` | views por timestamp completo (eventos sem sessão = Realizados) |
 
 `supabase/seed.sql` orquestra a chamada dos seeds (0011..0013) para que
 `supabase db reset` reproduza o banco inteiro do zero.
@@ -548,7 +573,7 @@ Comitê, Workshop, Live/Webinar, Palestra, Congresso, Seminário, Curso, Encontr
 ## Restrições e limites do protótipo
 
 - **Não mexer no código do UNO** — zero arquivos alterados no codebase do UNO
-- **Sem notificações** — push/fcm/onesignal fica para fase 2
+- **Sem push automático** — lembretes são salvos no banco, mas o disparo (push/FCM) fica para fase 2
 - **Sem suporte offline de dados** — só o shell do PWA funciona offline
 - **Sem autocomplete de endereço** — mapa via Google Maps embed com texto livre
 - **Sem tela de auditoria** — `created_by` é salvo mas não há UI para consultar

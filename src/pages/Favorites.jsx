@@ -12,6 +12,7 @@ import {
   Typography,
   Skeleton
 } from '@mui/material'
+import ClearAllIcon from '@mui/icons-material/ClearAll'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchFavoriteEventsWithMeta } from '../services/eventData'
@@ -66,6 +67,18 @@ export default function Favorites() {
     datePresets: searchParams.getAll(URL_PARAMS.DATE)
   }), [searchParams])
 
+  const hasFilters =
+    filters.q.trim() ||
+    filters.categories.length > 0 ||
+    filters.modalities.length > 0 ||
+    (filters.price && filters.price !== 'all') ||
+    filters.state ||
+    filters.datePresets.length > 0
+
+  const clearFilters = () => {
+    setSearchParams({})
+  }
+
   const filteredEvents = useMemo(() =>
     filterEvents(events, filters, categories),
   [events, filters, categories])
@@ -91,9 +104,19 @@ export default function Favorites() {
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <Stack spacing={2} sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1">
-          Favoritos
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h4" component="h1">
+            Favoritos
+          </Typography>
+          <Button
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            variant="outlined"
+            startIcon={<ClearAllIcon />}
+          >
+            Limpar Filtros
+          </Button>
+        </Stack>
 
         <TextField
           label="Buscar favoritos"

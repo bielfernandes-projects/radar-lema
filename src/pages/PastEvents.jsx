@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Box,
+  Button,
   Container,
   Grid,
   Pagination,
@@ -11,6 +12,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import ClearAllIcon from '@mui/icons-material/ClearAll'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchPastEventsWithMeta } from '../services/eventData'
@@ -57,6 +59,18 @@ export default function PastEvents() {
     datePresets: searchParams.getAll(URL_PARAMS.DATE)
   }), [searchParams])
 
+  const hasFilters =
+    filters.q.trim() ||
+    filters.categories.length > 0 ||
+    filters.modalities.length > 0 ||
+    (filters.price && filters.price !== 'all') ||
+    filters.state ||
+    filters.datePresets.length > 0
+
+  const clearFilters = () => {
+    setSearchParams({})
+  }
+
   const filteredEvents = useMemo(() =>
     filterEvents(events, filters, categories, { sortBy: 'max_date', sortDir: 'desc' }),
   [events, filters, categories])
@@ -74,9 +88,19 @@ export default function PastEvents() {
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <Stack spacing={2} sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1">
-          Realizados
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h4" component="h1">
+            Realizados
+          </Typography>
+          <Button
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            variant="outlined"
+            startIcon={<ClearAllIcon />}
+          >
+            Limpar Filtros
+          </Button>
+        </Stack>
 
         <TextField
           label="Buscar realizados"

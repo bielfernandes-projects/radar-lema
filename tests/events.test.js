@@ -18,8 +18,8 @@ describe('normalizeDate', () => {
 
 describe('enrichEvents', () => {
   const events = [
-    { id: 'e1', title: 'Evento 1', category_id: 'c1' },
-    { id: 'e2', title: 'Evento 2', category_id: 'c2' }
+    { id: 'e1', title: 'Evento 1' },
+    { id: 'e2', title: 'Evento 2' }
   ]
 
   const photos = [
@@ -32,6 +32,12 @@ describe('enrichEvents', () => {
     { event_id: 'e2', start_date: '2025-01-10', end_date: '2025-01-10', start_time: '09:00', end_time: '12:00' }
   ]
 
+  const eventCategories = [
+    { event_id: 'e1', category_id: 'c1' },
+    { event_id: 'e1', category_id: 'c2' },
+    { event_id: 'e2', category_id: 'c1' }
+  ]
+
   const pastIds = new Set(['e2'])
   const ongoingIds = new Set([])
 
@@ -39,6 +45,17 @@ describe('enrichEvents', () => {
     const result = enrichEvents(events, photos, sessions, pastIds, ongoingIds)
     expect(result[0].cover_photo).toEqual(photos[0])
     expect(result[1].cover_photo).toBeUndefined()
+  })
+
+  it('adiciona category_ids a partir do relacionamento', () => {
+    const result = enrichEvents(events, photos, sessions, pastIds, ongoingIds, eventCategories)
+    expect(result[0].category_ids).toEqual(['c1', 'c2'])
+    expect(result[1].category_ids).toEqual(['c1'])
+  })
+
+  it('retorna category_ids vazio quando nao ha relacionamento', () => {
+    const result = enrichEvents(events, photos, sessions, pastIds, ongoingIds)
+    expect(result[0].category_ids).toEqual([])
   })
 
   it('calcula min_date e max_date a partir das sessoes', () => {
@@ -75,9 +92,9 @@ describe('filterEvents', () => {
   ]
 
   const events = [
-    { id: 'e1', title: 'Congresso RPPS', description: 'Evento nacional', category_id: 'c1', modality: 'presencial', is_free: false, state: 'SP', min_date: '2026-09-15', max_date: '2026-09-16', next_date: '2026-09-15', is_past: false },
-    { id: 'e2', title: 'Curso Online', description: 'Curso de previdencia', category_id: 'c2', modality: 'online', is_free: true, state: null, min_date: '2026-10-01', max_date: '2026-10-01', next_date: '2026-10-01', is_past: false },
-    { id: 'e3', title: 'Evento Passado', description: 'Ja realizado', category_id: 'c1', modality: 'presencial', is_free: false, state: 'RJ', min_date: '2025-01-10', max_date: '2025-01-10', next_date: '2025-01-10', is_past: true }
+    { id: 'e1', title: 'Congresso RPPS', description: 'Evento nacional', category_ids: ['c1'], modality: 'presencial', is_free: false, state: 'SP', min_date: '2026-09-15', max_date: '2026-09-16', next_date: '2026-09-15', is_past: false },
+    { id: 'e2', title: 'Curso Online', description: 'Curso de previdencia', category_ids: ['c2'], modality: 'online', is_free: true, state: null, min_date: '2026-10-01', max_date: '2026-10-01', next_date: '2026-10-01', is_past: false },
+    { id: 'e3', title: 'Evento Passado', description: 'Ja realizado', category_ids: ['c1'], modality: 'presencial', is_free: false, state: 'RJ', min_date: '2025-01-10', max_date: '2025-01-10', next_date: '2025-01-10', is_past: true }
   ]
 
   it('retorna todos os eventos sem filtros', () => {
@@ -107,6 +124,15 @@ describe('filterEvents', () => {
     const result = filterEvents(events, { categories: ['Curso'] }, categories)
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('e2')
+  })
+
+  it('filtra por multi-categoria (evento em varias categorias)', () => {
+    const multi = [
+      { ...events[0], id: 'e4', category_ids: ['c1', 'c2'] }
+    ]
+    const result = filterEvents(multi, { categories: ['Curso'] }, categories)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('e4')
   })
 
   it('filtra por modalidades', () => {

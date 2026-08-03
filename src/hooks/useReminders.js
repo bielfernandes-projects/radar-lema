@@ -13,7 +13,7 @@ export function useReminders() {
 
     const { data: reminders, error } = await supabase
       .from('event_reminders')
-      .select('event_id, offset_minutes')
+      .select('event_id, offset_minutes, channel')
       .eq('user_id', userId)
 
     if (error) {
@@ -23,8 +23,14 @@ export function useReminders() {
       const map = new Map()
       for (const r of reminders) {
         const existing = map.get(r.event_id) || []
-        existing.push(r.offset_minutes)
-        map.set(r.event_id, existing.sort((a, b) => b - a))
+        existing.push({
+          offset_minutes: r.offset_minutes,
+          channel: r.channel
+        })
+        map.set(
+          r.event_id,
+          existing.sort((a, b) => b.offset_minutes - a.offset_minutes)
+        )
       }
       setRemindersByEvent(map)
     }
@@ -38,7 +44,7 @@ export function useReminders() {
   )
 
   const saveReminders = useCallback(
-    async (eventId, offsets) => {
+    async (eventId, entries) => {
       const { data } = await supabase.auth.getSession()
       const userId = data.session?.user?.id
 
@@ -46,16 +52,17 @@ export function useReminders() {
         return { error: new Error('Usuario nao autenticado') }
       }
 
-      const inserts = offsets.map((offset) => ({
+      const inserts = entries.map((entry) => ({
         user_id: userId,
         event_id: eventId,
-        offset_minutes: offset
+        offset_minutes: entry.offset_minutes,
+        channel: entry.channel
       }))
 
       const { error } = await supabase
         .from('event_reminders')
         .upsert(inserts, {
-          onConflict: 'user_id, event_id, offset_minutes',
+          onConflict: 'user_id, event_id, offset_minutes, channel',
           ignoreDuplicates: true
         })
 
@@ -66,7 +73,12 @@ export function useReminders() {
 
       setRemindersByEvent((prev) => {
         const next = new Map(prev)
-        next.set(eventId, offsets.sort((a, b) => b - a))
+        next.set(
+          eventId,
+          entries
+            .slice()
+            .sort((a, b) => b.offset_minutes - a.offset_minutes)
+        )
         return next
       })
 
@@ -107,7 +119,7 @@ export function useReminders() {
   )
 
   const removeOneReminder = useCallback(
-    async (eventId, offset) => {
+    async (eventId, offsetMin, channel) => {
       const { data } = await supabase.auth.getSession()
       const userId = data.session?.user?.id
 
@@ -120,7 +132,8 @@ export function useReminders() {
         .delete()
         .eq('user_id', userId)
         .eq('event_id', eventId)
-        .eq('offset_minutes', offset)
+        .eq('offset_minutes', offsetMin)
+        .eq('channel', channel)
 
       if (error) {
         console.error('Erro ao remover lembrete:', error.message)
@@ -130,7 +143,9 @@ export function useReminders() {
       setRemindersByEvent((prev) => {
         const next = new Map(prev)
         const existing = next.get(eventId) || []
-        const updated = existing.filter((o) => o !== offset)
+        const updated = existing.filter(
+          (e) => !(e.offset_minutes === offsetMin && e.channel === channel)
+        )
         if (updated.length === 0) {
           next.delete(eventId)
         } else {

@@ -45,7 +45,7 @@ export default function EventDetail() {
   const [event, setEvent] = useState(null)
   const [photos, setPhotos] = useState([])
   const [sessions, setSessions] = useState([])
-  const [category, setCategory] = useState(null)
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activePhoto, setActivePhoto] = useState(0)
@@ -70,13 +70,11 @@ export default function EventDetail() {
         return
       }
 
-      const [{ data: photosData }, { data: sessionsData }, { data: categoryData }, { data: pastEvents }, { data: ongoingEvents }] =
+      const [{ data: photosData }, { data: sessionsData }, { data: categoriesData }, { data: pastEvents }, { data: ongoingEvents }] =
         await Promise.all([
           supabase.from('event_photos').select('*').eq('event_id', id).order('sort_order', { ascending: true }),
           supabase.from('event_sessions').select('*').eq('event_id', id).order('start_date', { ascending: true }),
-          eventData.category_id
-            ? supabase.from('categories').select('*').eq('id', eventData.category_id).single()
-            : Promise.resolve({ data: null }),
+          supabase.from('event_categories').select('categories(id, name)').eq('event_id', id),
           supabase.from('v_past_events').select('id').eq('id', id).single(),
           supabase.from('v_ongoing_events').select('id').eq('id', id).single()
         ])
@@ -88,7 +86,7 @@ export default function EventDetail() {
       })
       setPhotos(photosData || [])
       setSessions(sessionsData || [])
-      setCategory(categoryData)
+      setCategories((categoriesData || []).map((c) => c.categories).filter(Boolean))
       setActivePhoto(0)
       setLoading(false)
     }
@@ -248,7 +246,9 @@ export default function EventDetail() {
         {event.is_lema_edu && <Chip label="Lema Edu" color="info" size="small" />}
         {event.is_past && <Chip label="Realizado" color="default" size="small" />}
         {event.is_ongoing && <Chip label="Em andamento" color="secondary" size="small" />}
-        {category && <Chip label={category.name} color="primary" size="small" />}
+        {categories.map((c) => (
+          <Chip key={c.id} label={c.name} color="primary" size="small" />
+        ))}
       </Stack>
 
       <Typography variant="h4" component="h1" gutterBottom>

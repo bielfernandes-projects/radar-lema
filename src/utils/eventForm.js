@@ -57,7 +57,7 @@ export function validate(form, sessions) {
   if (!form.title.trim()) return 'Título é obrigatório.'
   if (!form.description.trim()) return 'Descrição é obrigatória.'
   if (!form.url.trim()) return 'Link de inscrição é obrigatório.'
-  if (!form.category_id) return 'Categoria é obrigatória.'
+  if (!form.category_ids?.length) return 'Selecione pelo menos uma categoria.'
   if (form.modality !== 'online' && !form.address.trim()) {
     return 'Endereço é obrigatório para eventos presenciais ou híbridos.'
   }

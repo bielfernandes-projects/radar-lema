@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Box,
+  Button,
   Container,
   Grid,
-  IconButton,
   Pagination,
   Skeleton,
   Stack,
@@ -94,13 +94,14 @@ export default function EventList() {
           <Typography variant="h4" component="h1">
             Eventos
           </Typography>
-          <IconButton
+          <Button
             onClick={clearFilters}
             disabled={!hasFilters}
-            aria-label="Limpar filtros"
+            variant="outlined"
+            startIcon={<ClearAllIcon />}
           >
-            <ClearAllIcon />
-          </IconButton>
+            Limpar Filtros
+          </Button>
         </Stack>
 
         <TextField

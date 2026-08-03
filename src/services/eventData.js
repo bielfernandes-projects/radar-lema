@@ -3,22 +3,24 @@ import { enrichEvents } from '../utils/events'
 
 export async function fetchMetadata(eventIds, { supabase } = { supabase: _supabase }) {
   if (!eventIds.length) {
-    return { photos: [], sessions: [], pastIds: new Set(), ongoingIds: new Set() }
+    return { photos: [], sessions: [], pastIds: new Set(), ongoingIds: new Set(), eventCategories: [] }
   }
 
-  const [{ data: photos }, { data: sessions }, { data: pastEvents }, { data: ongoingEvents }] =
+  const [{ data: photos }, { data: sessions }, { data: pastEvents }, { data: ongoingEvents }, { data: eventCategories }] =
     await Promise.all([
       supabase.from('event_photos').select('*').eq('sort_order', 0).in('event_id', eventIds),
       supabase.from('event_sessions').select('*').in('event_id', eventIds),
       supabase.from('v_past_events').select('id').in('id', eventIds),
-      supabase.from('v_ongoing_events').select('id').in('id', eventIds)
+      supabase.from('v_ongoing_events').select('id').in('id', eventIds),
+      supabase.from('event_categories').select('event_id, category_id').in('event_id', eventIds)
     ])
 
   return {
     photos: photos || [],
     sessions: sessions || [],
     pastIds: new Set(pastEvents?.map((e) => e.id) || []),
-    ongoingIds: new Set(ongoingEvents?.map((e) => e.id) || [])
+    ongoingIds: new Set(ongoingEvents?.map((e) => e.id) || []),
+    eventCategories: eventCategories || []
   }
 }
 
@@ -39,7 +41,7 @@ export async function fetchAllEventsWithMeta({ supabase } = { supabase: _supabas
   const meta = await fetchMetadata(eventIds, { supabase })
 
   return {
-    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, meta.pastIds, meta.ongoingIds),
+    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, meta.pastIds, meta.ongoingIds, meta.eventCategories),
     categories: await fetchCategories({ supabase })
   }
 }
@@ -66,7 +68,7 @@ export async function fetchFavoriteEventsWithMeta(userId, { supabase } = { supab
   const meta = await fetchMetadata(favoriteEventIds, { supabase })
 
   return {
-    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, meta.pastIds, meta.ongoingIds),
+    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, meta.pastIds, meta.ongoingIds, meta.eventCategories),
     categories: await fetchCategories({ supabase })
   }
 }
@@ -95,7 +97,7 @@ export async function fetchPastEventsWithMeta({ supabase } = { supabase: _supaba
   const allPastIds = new Set(eventIds)
 
   return {
-    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, allPastIds, new Set()),
+    events: enrichEvents(eventsData || [], meta.photos, meta.sessions, allPastIds, new Set(), meta.eventCategories),
     categories: await fetchCategories({ supabase })
   }
 }

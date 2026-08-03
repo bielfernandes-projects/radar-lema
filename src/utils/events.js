@@ -1,8 +1,10 @@
-export function enrichEvents(events, photos, sessions, pastIds, ongoingIds) {
+export function enrichEvents(events, photos, sessions, pastIds, ongoingIds, eventCategories) {
   return events.map((event) => {
     const eventSessions = sessions?.filter((s) => s.event_id === event.id) || []
     const dates = eventSessions.map((s) => s.start_date).filter(Boolean).sort()
     const cover = photos?.find((p) => p.event_id === event.id)
+    const category_ids =
+      eventCategories?.filter((c) => c.event_id === event.id).map((c) => c.category_id) || []
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -24,6 +26,7 @@ export function enrichEvents(events, photos, sessions, pastIds, ongoingIds) {
           )[0]?.start_date || dates[0] || null,
       is_past: pastIds?.has(event.id) || false,
       is_ongoing: ongoingIds?.has(event.id) || false,
+      category_ids,
       sessions: eventSessions
     }
   })

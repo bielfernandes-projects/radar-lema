@@ -22,7 +22,7 @@ export function filterEvents(events, filters, categories, options = {}) {
     const categoryNames = new Set(filters.categories)
     result = result.filter((event) =>
       categories.some(
-        (c) => c.id === event.category_id && categoryNames.has(c.name)
+        (c) => event.category_ids?.includes(c.id) && categoryNames.has(c.name)
       )
     )
   }

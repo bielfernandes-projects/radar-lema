@@ -23,6 +23,8 @@ export default function Login() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const lightTheme = useMemo(() => createAppTheme('light'), [])
+
   useEffect(() => {
     if (!loading && user) {
       navigate('/')
@@ -48,8 +50,6 @@ export default function Login() {
       navigate('/')
     }
   }
-
-  const lightTheme = useMemo(() => createAppTheme('light'), [])
 
   return (
     <ThemeProvider theme={lightTheme}>
