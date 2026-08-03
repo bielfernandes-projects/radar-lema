@@ -140,7 +140,7 @@ INSERT INTO public.event_sessions (event_id, start_date, start_time, end_date, e
   ('cc70fea6-d24b-4309-984a-f1fd506ed008', '2026-09-15', '19:00', '2026-09-15', '21:00', false);
 
 -- Fotos placeholder publicas (apenas URLs estaticas, sem upload nesta fase).
-INSERT INTO public.event_photos (event_id, public_url, sort_order) VALUES
+INSERT INTO public.event_photos (event_id, public_url, "order") VALUES
   ('2ef68360-303c-48a8-958d-493bd90f8e17', 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80', 0),
   ('53d095e2-8b94-4516-9239-c5c48842dce3', 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80', 0),
   ('881d7bee-af7c-4d7b-bf95-b72f2bd96373', 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&q=80', 0),
