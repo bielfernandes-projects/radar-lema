@@ -1,4 +1,4 @@
-# Plano de Implementação — Lema Discovery
+# Plano de Implementação — Radar Lema
 
 > **Status:** Pronto para desenvolvimento  
 > **Data:** 2026-07-08  
@@ -26,7 +26,7 @@
 ## Estrutura de pastas (frontend)
 
 ```
-lema-discovery/
+radar-lema/
 ├── CONTEXT.md
 ├── PLAN.md
 ├── architecture.md               ← documento vivo, atualizado toda fase
@@ -302,7 +302,7 @@ Todas as tabelas têm RLS habilitado. Políticas:
 - Edge Function recebe email + senha.
 - Conecta ao PostgreSQL do UNO, valida `users.email` + `users.password` (bcrypt).
 - Checa `plan_id` (Básico, Intermediário, Plus) e `role`.
-- Emite JWT próprio do Discovery com `user_id`, `role`, `consulting_id`.
+- Emite JWT próprio do Radar com `user_id`, `role`, `consulting_id`.
 
 ---
 
@@ -312,8 +312,8 @@ Toda manipulação do Supabase via `supabase` CLI. Nada é feito via Dashboard w
 
 **Setup inicial (uma vez):**
 ```bash
-supabase login          # usa SUPABASE_CLI_TOKEN (já no .env.local)
-supabase link --project-ref puqirnuxmrrvwtkqrneh
+supabase login          # usa SUPABASE_ACCESS_TOKEN (já no .env.local)
+supabase link --project-ref zkgmcgpfgvscjnstshoo
 ```
 
 **Fluxo de migrations:**
@@ -423,7 +423,7 @@ decisão técnica, adicionar dependência.
 
 **Template inicial:**
 ```markdown
-# Architecture — Lema Discovery
+# Architecture — Radar Lema
 
 ## Visão geral
 [1 parágrafo: o que é, para quem, stack]
@@ -474,7 +474,7 @@ decisão técnica, adicionar dependência.
 2. Configurar `.env.local` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (já existem)
 3. Configurar ESLint (`.eslintrc.cjs`) + Prettier (`.prettierrc`) + scripts `lint`/`format` no `package.json`
 4. Criar `theme.js` alinhado ao UNO (cores, Manrope/Roboto)
-5. `supabase login` + `supabase link --project-ref puqirnuxmrrvwtkqrneh`
+5. `supabase login` + `supabase link --project-ref zkgmcgpfgvscjnstshoo`
 6. Criar migrations 0001..0010 via `supabase migration new` e aplicar com `supabase migration up`
 7. Criar `supabase/seed.sql` + migrations 0011..0013 (categorias, 2 usuários mock, 6 eventos exemplo) + `supabase db reset`
 8. Tela de Login (Supabase Auth) — `pages/Login.jsx`
@@ -563,7 +563,7 @@ Comitê, Workshop, Live/Webinar, Palestra, Congresso, Seminário, Curso, Encontr
 1. **Auth**: trocar usuários mockados por leitura do banco do UNO (`users.email` + `users.password` + `users.role` + `users.plan_id`)
 2. **Banco**: decidir entre manter no Supabase ou migrar para o PostgreSQL do UNO (novas tabelas `events`, `event_sessions`, etc.)
 3. **Storage**: avaliar migração de fotos do Supabase Storage para AWS S3 (UNO já usa `@aws-sdk/client-s3`)
-4. **Permissões**: implementar RBAC granular no Discovery usando as 8 roles do UNO
+4. **Permissões**: implementar RBAC granular no Radar usando as 8 roles do UNO
 5. **Notificações**: implementar push notifications (PWA + service worker + FCM/OneSignal)
 6. **Compartilhamento**: avaliar landing page pública para links compartilhados externamente
-7. **Integração**: adicionar Discovery como item de menu no UNO ou manter como sub-app com iframe/link
+7. **Integração**: adicionar Radar Lema como item de menu no UNO ou manter como sub-app com iframe/link

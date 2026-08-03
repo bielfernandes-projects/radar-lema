@@ -23,7 +23,7 @@ Job principal: "manter o calendário atualizado e preciso para os clientes."
 
 Centralizar todos os eventos do ecossistema RPPS em um único ponto de
 descoberta. Hoje os eventos estão espalhados (emails, WhatsApp, planilhas).
-O Discovery resolve isso com uma listagem filtrável, detalhe rico com
+O Radar resolve isso com uma listagem filtrável, detalhe rico com
 fotos/mapa/sessões, e gestão simplificada para o staff.
 
 Sucesso = cliente encontra o evento relevante em < 30 segundos; staff

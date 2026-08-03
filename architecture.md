@@ -1,8 +1,8 @@
-# Architecture — Lema Discovery
+# Architecture — Radar Lema
 
 ## Visão geral
 
-O Lema Discovery é um PWA standalone para centralizar eventos do ecossistema RPPS
+O Radar Lema é um PWA standalone para centralizar eventos do ecossistema RPPS
 (comitês, workshops, lives, palestras, congressos etc.). Nesta fase, o protótipo
 conta com autenticação mockada no Supabase, navegação condicional por tipo de
 usuário (staff Lema vs. cliente RPPS) e estrutura base para listagem, detalhe,
@@ -25,7 +25,7 @@ favoritos, eventos realizados e gestão de eventos/categorias.
 ## Estrutura de pastas
 
 ```
-lema-discovery/
+radar-lema/
 ├── CONTEXT.md
 ├── PLAN.md
 ├── architecture.md
@@ -240,7 +240,7 @@ Todas as tabelas têm RLS habilitado:
 
 O `vite-plugin-pwa` gera o manifest e o service worker no build:
 
-- **Manifest**: `manifest.webmanifest` com `name: "Lema Discovery"`, `short_name: "Lema"`,
+- **Manifest**: `manifest.webmanifest` com `name: "Radar Lema"`, `short_name: "Radar Lema"`,
   `theme_color: #1976d2`, `background_color: #ffffff`, `display: standalone`,
   `start_url: /` e icones 192/512px (com versoes `maskable`).
 - **Icones**: gerados em `public/icons/` a partir da letra "L" sobre fundo azul
@@ -270,7 +270,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 
 ### Como fazer deploy manual pelo dashboard Vercel
 
-1. Faca push do repo para `https://github.com/bielfernandes-projects/lema-discovery`.
+1. Faca push do repo para `https://github.com/bielfernandes-projects/radar-lema`.
 2. Acesse [vercel.com](https://vercel.com) > "Add New Project" > importe o repo.
 3. Framework preset: **Vite**.
 4. Build command: `npm run build`.
@@ -289,7 +289,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
    `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_CLI_TOKEN`
    e, opcionalmente, `VITE_GOOGLE_MAPS_API_KEY` para exibir o mapa embed.
 3. `supabase login`
-4. `supabase link --project-ref puqirnuxmrrvwtkqrneh`
+4. `supabase link --project-ref zkgmcgpfgvscjnstshoo`
 5. `supabase db push` (aplica migrations no remoto)
 6. `node scripts/seed-mock-users.mjs` (cria usuarios mock no Supabase cloud)
 7. `npm run dev` (abre http://localhost:5173)

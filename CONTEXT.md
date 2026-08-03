@@ -1,8 +1,12 @@
-# Lema Discovery
+# Radar Lema
 
 Centralizador de eventos para RPPS — um PWA standalone que reúne todos os
 eventos do ecossistema (comitês, workshops, lives, palestras, congressos, etc.)
 para clientes e staff da Lema.
+
+> Nota: o app foi rebranded de "Lema Discovery" para "Radar Lema". Pasta,
+> pacote (`package.json`/`package-lock.json`) e repo do GitHub foram renomeados
+> para `radar-lema`, bem como o projeto no Supabase e na Vercel.
 
 ## Language
 
@@ -52,7 +56,7 @@ Híbrido.
 _Avoid_: Geolocalização, GPS
 
 **Link de inscrição**:
-URL externa para onde o botão "Inscrever-se" direciona. O Discovery não
+URL externa para onde o botão "Inscrever-se" direciona. O Radar não
 processa inscrições — só redireciona. Campo obrigatório.
 _Avoid_: URL, botão
 
