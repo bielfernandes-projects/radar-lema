@@ -57,10 +57,12 @@ export default function Login() {
       <Container maxWidth="sm" sx={{ mt: 8 }}>
         <Paper elevation={2} sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h4" component="h1" color="primary" gutterBottom>
-              Radar Lema
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <img
+              src="/logo.png"
+              alt="Radar Lema"
+              style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
+            />
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
               Descubra o seu proximo evento para RPPS
             </Typography>
           </Box>
