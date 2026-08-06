@@ -56,6 +56,8 @@ export default function EventList() {
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
     datePresets: searchParams.getAll(URL_PARAMS.DATE),
+    dateFrom: searchParams.get(URL_PARAMS.DATE_FROM) || '',
+    dateTo: searchParams.get(URL_PARAMS.DATE_TO) || '',
     lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
@@ -66,6 +68,8 @@ export default function EventList() {
     filters.price ||
     filters.state ||
     filters.datePresets.length > 0 ||
+    filters.dateFrom ||
+    filters.dateTo ||
     filters.lemaEdu
 
   const clearFilters = () => {
@@ -114,7 +118,7 @@ export default function EventList() {
         />
       </Stack>
 
-      <EventFilters categories={categories} />
+      <EventFilters categories={categories} showCustomDateFilter />
 
       {loading ? (
         <Grid container spacing={3}>

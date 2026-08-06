@@ -1,4 +1,4 @@
-import { eventMatchesDatePresets, normalizeDate } from './dateFilters'
+import { eventMatchesDatePresets, normalizeDate, eventMatchesDateRange } from './dateFilters'
 import { MODALITY_LABELS } from './constants'
 
 export { normalizeDate }
@@ -49,6 +49,12 @@ export function filterEvents(events, filters, categories, options = {}) {
   if (filters.datePresets?.length > 0) {
     result = result.filter((event) =>
       eventMatchesDatePresets(event.min_date, event.max_date, filters.datePresets)
+    )
+  }
+
+  if (filters.dateFrom || filters.dateTo) {
+    result = result.filter((event) =>
+      eventMatchesDateRange(event.min_date, event.max_date, filters.dateFrom, filters.dateTo)
     )
   }
 

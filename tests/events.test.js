@@ -186,4 +186,27 @@ describe('filterEvents', () => {
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('e1')
   })
+
+  it('filtra por intervalo de datas completo', () => {
+    const result = filterEvents(events, { dateFrom: '2026-09-20', dateTo: '2026-10-05' }, categories)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('e2')
+  })
+
+  it('filtra por apenas data inicio (a partir desta data)', () => {
+    const result = filterEvents(events, { dateFrom: '2026-09-20' }, categories)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('e2')
+  })
+
+  it('filtra por apenas data fim (ate esta data)', () => {
+    const result = filterEvents(events, { dateTo: '2026-09-20' }, categories)
+    expect(result).toHaveLength(2)
+    expect(result.map((e) => e.id)).toEqual(['e3', 'e1'])
+  })
+
+  it('filtro de data com inicio e fim sem overlap exclui evento', () => {
+    const result = filterEvents(events, { dateFrom: '2025-02-01', dateTo: '2025-03-01' }, categories)
+    expect(result).toHaveLength(0)
+  })
 })

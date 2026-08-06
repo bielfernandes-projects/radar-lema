@@ -24,14 +24,15 @@ export default function Navbar() {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{ flexGrow: 1, cursor: 'pointer' }}
+        <Box
+          sx={{ flexGrow: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }}
           onClick={() => navigate('/')}
         >
-          Radar Lema
-        </Typography>
+          <img src="/favicon-32x32.png" alt="" style={{ width: 32, height: 32, display: 'block' }} />
+          <Typography variant="h6" component="div">
+            Radar Lema
+          </Typography>
+        </Box>
 
         <IconButton
           color="inherit"

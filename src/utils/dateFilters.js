@@ -48,3 +48,18 @@ export function eventMatchesDatePresets(eventMinDate, eventMaxDate, presets = []
     return true
   })
 }
+
+export function eventMatchesDateRange(eventMinDate, eventMaxDate, from, to) {
+  const min = normalizeDate(eventMinDate)
+  const max = normalizeDate(eventMaxDate)
+  if (!min && !max) return false
+  if (from) {
+    const rangeFrom = normalizeDate(from)
+    if (!rangeFrom || !max || max < rangeFrom) return false
+  }
+  if (to) {
+    const rangeTo = normalizeDate(to)
+    if (!rangeTo || !min || min > rangeTo) return false
+  }
+  return true
+}

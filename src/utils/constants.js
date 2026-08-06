@@ -5,6 +5,8 @@ export const URL_PARAMS = {
   PRICE: 'valor',
   STATE: 'uf',
   DATE: 'data',
+  DATE_FROM: 'data-inicio',
+  DATE_TO: 'data-fim',
   LEMA_EDU: 'lema-edu'
 }
 

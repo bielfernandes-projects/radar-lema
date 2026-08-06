@@ -1,20 +1,25 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Autocomplete,
   Box,
+  Button,
   Chip,
   FormControl,
   InputLabel,
   MenuItem,
+  Popover,
   Select,
   Stack,
   TextField
 } from '@mui/material'
 import { URL_PARAMS, UFs } from '../utils/constants'
 
-export default function EventFilters({ categories }) {
+export default function EventFilters({ categories, showCustomDateFilter = false }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [rangeAnchor, setRangeAnchor] = useState(null)
+  const [draftFrom, setDraftFrom] = useState('')
+  const [draftTo, setDraftTo] = useState('')
 
   const filters = useMemo(() => ({
     categories: searchParams.getAll(URL_PARAMS.CATEGORIES),
@@ -22,6 +27,8 @@ export default function EventFilters({ categories }) {
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
     datePresets: searchParams.getAll(URL_PARAMS.DATE),
+    dateFrom: searchParams.get(URL_PARAMS.DATE_FROM) || '',
+    dateTo: searchParams.get(URL_PARAMS.DATE_TO) || '',
     lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
@@ -60,6 +67,30 @@ export default function EventFilters({ categories }) {
     }
     setSearchParams(next)
   }
+
+  const openRangePopover = (event) => {
+    setDraftFrom(filters.dateFrom)
+    setDraftTo(filters.dateTo)
+    setRangeAnchor(event.currentTarget)
+  }
+
+  const closeRangePopover = () => {
+    setDraftFrom('')
+    setDraftTo('')
+    setRangeAnchor(null)
+  }
+
+  const confirmRange = () => {
+    const next = new URLSearchParams(searchParams)
+    if (draftFrom) next.set(URL_PARAMS.DATE_FROM, draftFrom)
+    else next.delete(URL_PARAMS.DATE_FROM)
+    if (draftTo) next.set(URL_PARAMS.DATE_TO, draftTo)
+    else next.delete(URL_PARAMS.DATE_TO)
+    setSearchParams(next)
+    closeRangePopover()
+  }
+
+  const rangeActive = Boolean(filters.dateFrom || filters.dateTo)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -158,20 +189,6 @@ export default function EventFilters({ categories }) {
             onClick={() => toggleChip(URL_PARAMS.LEMA_EDU, filters.lemaEdu ? '' : 'true')}
           />
           <Chip
-            label="Este mes"
-            clickable
-            color={filters.datePresets.includes('this-month') ? 'primary' : 'default'}
-            variant={filters.datePresets.includes('this-month') ? 'filled' : 'outlined'}
-            onClick={() => toggleDatePreset('this-month')}
-          />
-          <Chip
-            label="Proximo mes"
-            clickable
-            color={filters.datePresets.includes('next-month') ? 'primary' : 'default'}
-            variant={filters.datePresets.includes('next-month') ? 'filled' : 'outlined'}
-            onClick={() => toggleDatePreset('next-month')}
-          />
-          <Chip
             label="Gratuito"
             clickable
             color={filters.price === 'free' ? 'primary' : 'default'}
@@ -185,7 +202,65 @@ export default function EventFilters({ categories }) {
             variant={filters.price === 'paid' ? 'filled' : 'outlined'}
             onClick={() => toggleChip(URL_PARAMS.PRICE, 'paid')}
           />
+          <Chip
+            label="Este mes"
+            clickable
+            color={filters.datePresets.includes('this-month') ? 'primary' : 'default'}
+            variant={filters.datePresets.includes('this-month') ? 'filled' : 'outlined'}
+            onClick={() => toggleDatePreset('this-month')}
+          />
+          <Chip
+            label="Proximo mes"
+            clickable
+            color={filters.datePresets.includes('next-month') ? 'primary' : 'default'}
+            variant={filters.datePresets.includes('next-month') ? 'filled' : 'outlined'}
+            onClick={() => toggleDatePreset('next-month')}
+          />
+          {showCustomDateFilter && (
+            <Chip
+              label="Data Personalizada"
+              clickable
+              color={rangeActive ? 'primary' : 'default'}
+              variant={rangeActive ? 'filled' : 'outlined'}
+              onClick={openRangePopover}
+            />
+          )}
         </Stack>
+
+        <Popover
+          open={Boolean(rangeAnchor)}
+          anchorEl={rangeAnchor}
+          onClose={closeRangePopover}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        >
+          <Stack spacing={2} sx={{ p: 2, width: 260 }}>
+            <TextField
+              label="Data início"
+              type="date"
+              value={draftFrom}
+              onChange={(e) => setDraftFrom(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              fullWidth
+            />
+            <TextField
+              label="Data fim"
+              type="date"
+              value={draftTo}
+              onChange={(e) => setDraftTo(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              fullWidth
+            />
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button size="small" onClick={closeRangePopover}>
+                Cancelar
+              </Button>
+              <Button size="small" variant="contained" onClick={confirmRange}>
+                Confirmar
+              </Button>
+            </Stack>
+          </Stack>
+        </Popover>
       </Stack>
     </Box>
   )
