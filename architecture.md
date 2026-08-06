@@ -284,15 +284,18 @@ O `vite-plugin-pwa` gera o manifest e o service worker no build:
 
 - **Manifest**: `manifest.webmanifest` com `name: "Radar Lema"`, `short_name: "Radar Lema"`,
   `theme_color: #1976d2`, `background_color: #ffffff`, `display: standalone`,
-  `start_url: /` e icones 192/512px (com versoes `maskable`).
-- **Icones**: gerados em `public/icons/` a partir da letra "L" sobre fundo azul
-  institucional (#1976d2).
+  `start_url: /`, `id: /`, `lang: pt-BR` e icones 192/512px (`purpose: any`).
+- **Icones**: o manifest usa o conjunto `public/android-chrome-192x192.png` e
+  `public/android-chrome-512x512.png` (mesma arte do favicon oficial).
 - **Workbox**:
-  - Precache do shell: `**/*.{js,css,html,svg,png,woff2}`.
+  - Precache do shell: `**/*.{js,css,html,svg,png,woff2}`, com exceção de
+    `public/placeholder-event.png` (`globIgnores`) para que trocas do arquivo
+    reflitam sem depender de atualizacao do service worker.
   - `navigateFallback: 'index.html'` para SPA fallback offline.
   - `runtimeCaching`:
     - Fontes do Google (stylesheets + webfonts): `CacheFirst`.
-    - Imagens locais da aplicacao: `StaleWhileRevalidate`.
+    - Imagens locais da aplicacao: `StaleWhileRevalidate`, excluindo
+      `placeholder-event.png` (negative lookahead no regex).
     - **Nao ha cache para chamadas do Supabase nem fotos externas** — dados
       continuam exigindo rede, conforme restricao do prototipo.
 - **Testes**: em `localhost` (ou HTTPS), o Chrome exibe o botao "Instalar".
@@ -469,6 +472,18 @@ no protótipo. Push real requer:
 - Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
+
+- **2026-08-06** — Ícone do PWA, placeholder de eventos e manifest:
+  - Migration `20260806000002_events_show_placeholder.sql`: `event_photos`
+    limpo para que **todos** os eventos exibam o novo `public/placeholder-event.png`.
+  - Cache-buster `?v=2` nas URLs de fallback (`EventCard`, `EventDetail`,
+    `PhotoUploader`); placeholder excluído do precache e do cache de imagens
+    do service worker (troca futura do arquivo reflete sem limpar cache).
+  - Manifest do PWA apontado para o ícone oficial
+    `public/android-chrome-192x192.png` e `public/android-chrome-512x512.png`
+    (`purpose: any`); pasta órfã `public/icons/*` e `public/site.webmanifest`
+    removidos; manifest ganhou `id: "/"` e `lang: "pt-BR"`; link
+    `<apple-touch-icon>` adicionado no `index.html`.
 
 - **2026-08-06** — Filtro de data personalizada, logo na navbar e Criar Conta:
   - **Filtro de data personalizada** na seção Eventos: chip "Data Personalizada"

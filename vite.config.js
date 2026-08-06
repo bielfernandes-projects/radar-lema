@@ -19,8 +19,7 @@ export default defineConfig({
         'favicon-16x16.png',
         'favicon-32x32.png',
         'apple-touch-icon.png',
-        'icons.svg',
-        'icons/*.png'
+        'icons.svg'
       ],
       manifest: {
         name: 'Radar Lema',
@@ -35,28 +34,16 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: '/icons/icon-192x192.png',
+            src: '/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/icons/icon-512x512.png',
+            src: '/android-chrome-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
-          },
-          {
-            src: '/icons/icon-192x192-maskable.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
-            src: '/icons/icon-512x512-maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
           }
         ]
       },
