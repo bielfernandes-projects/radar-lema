@@ -66,19 +66,29 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const { url, eventId } = event.notification.data || {}
-  const target = eventId ? `/evento/${eventId}` : url || '/'
+  const target = new URL(eventId ? `/evento/${eventId}` : url || '/', self.location.origin).href
 
   event.waitUntil(
-    clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        for (const client of windowClients) {
-          if ('focus' in client) {
-            client.navigate(target)
-            return client.focus()
-          }
-        }
-        return clients.openWindow(target)
+    (async () => {
+      const windowClients = await clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
       })
+
+      const focused = windowClients.find((c) => c.focused)
+      const visible = windowClients.find((c) => c.visibilityState === 'visible')
+      const candidates = [focused, visible, ...windowClients].filter(Boolean)
+
+      for (const client of candidates) {
+        try {
+          await client.navigate(target)
+          return await client.focus()
+        } catch {
+          // tenta o proximo client da janela antes de abrir uma nova aba
+        }
+      }
+
+      return clients.openWindow(target)
+    })()
   )
 })

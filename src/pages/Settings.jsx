@@ -52,7 +52,7 @@ export default function Settings() {
   const [editReminder, setEditReminder] = useState(null)
   const [removeDialog, setRemoveDialog] = useState({ open: false, eventId: null, eventTitle: '' })
   const [pushEnabled, setPushEnabled] = useState(false)
-  const [emailEnabled, setEmailEnabled] = useState(false)
+  const [newEventsEnabled, setNewEventsEnabled] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState([])
   const { enable: enablePush, disable: disablePush } = usePushNotifications()
 
@@ -69,7 +69,7 @@ export default function Settings() {
   useEffect(() => {
     if (settings && categories.length > 0) {
       setPushEnabled(settings.push_enabled)
-      setEmailEnabled(settings.email_enabled)
+      setNewEventsEnabled((settings.categories_enabled || []).length > 0)
       setSelectedCategories(
         settings.categories_enabled?.includes('*')
           ? ['Todas']
@@ -119,9 +119,21 @@ export default function Settings() {
     }
   }
 
-  const handleEmailToggle = async (value) => {
-    setEmailEnabled(value)
-    await saveSettings({ email_enabled: value })
+  const handleNewEventsToggle = async (value) => {
+    if (value) {
+      const selection = selectedCategories.length
+        ? selectedCategories
+        : ['Todas']
+      setNewEventsEnabled(true)
+      setSelectedCategories(selection)
+      await saveSettings({
+        categories_enabled: selection.includes('Todas') ? ['*'] : selection
+      })
+    } else {
+      setNewEventsEnabled(false)
+      setSelectedCategories([])
+      await saveSettings({ categories_enabled: [] })
+    }
   }
 
   const handleCategoriesChange = async (value) => {
@@ -247,14 +259,14 @@ export default function Settings() {
                     </Typography>
                   </Box>
                   <Switch
-                    checked={emailEnabled}
-                    onChange={(e) => handleEmailToggle(e.target.checked)}
+                    checked={newEventsEnabled}
+                    onChange={(e) => handleNewEventsToggle(e.target.checked)}
                   />
                 </Stack>
 
                 <Autocomplete
                   multiple
-                  disabled={!emailEnabled}
+                  disabled={!newEventsEnabled}
                   options={['Todas', ...categories.map((c) => c.name)]}
                   value={selectedCategories}
                   onChange={(e, newValue) => handleCategoriesChange(newValue)}

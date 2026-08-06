@@ -149,7 +149,16 @@ export default function ReminderDialog({
               <RadioGroup
                 row
                 value={draftChannel}
-                onChange={(e) => setDraftChannel(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value === 'email') {
+                    setSnackbar({
+                      open: true,
+                      message: 'Notificação por e-mail chega em breve.'
+                    })
+                    return
+                  }
+                  setDraftChannel(e.target.value)
+                }}
               >
                 {REMINDER_CHANNELS.map((channel) => (
                   <FormControlLabel
@@ -157,6 +166,11 @@ export default function ReminderDialog({
                     value={channel.value}
                     control={<Radio size="small" />}
                     label={channel.label}
+                    sx={
+                      channel.value === 'email'
+                        ? { color: 'text.disabled' }
+                        : undefined
+                    }
                   />
                 ))}
               </RadioGroup>

@@ -74,16 +74,12 @@ export function usePushNotifications() {
     const userId = await getUserId()
     if (!userId) throw new Error('Usuario nao autenticado.')
 
-    const { error } = await supabase.from('push_subscriptions').upsert(
-      {
-        user_id: userId,
-        endpoint: subJson.endpoint,
-        p256dh: subJson.keys.p256dh,
-        auth: subJson.keys.auth,
-        user_agent: navigator.userAgent
-      },
-      { onConflict: 'endpoint' }
-    )
+    const { error } = await supabase.rpc('upsert_my_push_subscription', {
+      p_endpoint: subJson.endpoint,
+      p_p256dh: subJson.keys.p256dh,
+      p_auth: subJson.keys.auth,
+      p_user_agent: navigator.userAgent
+    })
 
     if (error) throw error
     setSubscribed(true)
