@@ -33,7 +33,8 @@ radar-lema/
 │   └── adr/
 │       ├── 0001-app-standalone-vs-modulo-uno.md
 │       ├── 0002-supabase-como-backend-do-prototipo.md
-│       └── 0003-auth-supabase-mockada-vs-banco-uno.md
+│       ├── 0003-auth-supabase-mockada-vs-banco-uno.md
+│       └── 0004-evento-nao-definido.md
 ├── supabase/
 │   ├── migrations/
 │   │   ├── 0001_profiles.sql
@@ -54,7 +55,8 @@ radar-lema/
 │   │   ├── 20260713150000_add_is_lema_edu.sql
 │   │   ├── 20260803000001_multi_category.sql
 │   │   ├── 20260803000002_reminders_channel.sql
-│   │   └── 20260803000003_fix_past_views.sql
+│   │   ├── 20260803000003_fix_past_views.sql
+│   │   └── 20260806000001_add_is_confirmed.sql
 │   └── seed.sql
 ├── scripts/
 │   └── seed-mock-users.mjs
@@ -136,7 +138,9 @@ O schema segue o `PLAN.md`:
 
 - `profiles`: espelha `auth.users` com `user_type` (staff/client) e `role` do UNO.
 - `categories`: tipos de evento (lista fixa gerenciável).
-- `events`: agregado principal com modalidade, valor, endereço, recorrência etc.
+- `events`: agregado principal com modalidade, valor, endereço, recorrência
+  e `is_confirmed` (evento "Não definido": `false` = visível apenas para
+  staff; default `true`).
 - `event_categories`: relacionamento muitos-para-muitos entre eventos e
   categorias (`PRIMARY KEY (event_id, category_id)`). Um evento pode pertencer
   a várias categorias; não há mais `category_id` único em `events`.
@@ -176,6 +180,7 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0017 | `20260803000001_multi_category.sql` | Tabela `event_categories` (M-N), backfill de `events.category_id`, drop da coluna + índice antigos, recria views (0018) |
 | 0018 | `20260803000002_reminders_channel.sql` | Lembrete com offset livre (`CHECK offset_minutes > 0`) e coluna `channel` (`push`/`email`) + UNIQUE com canal |
 | 0019 | `20260803000003_fix_past_views.sql` | Views `v_past_events`/`v_ongoing_events` por timestamp completo de sessão (inclui eventos sem sessões como Realizados) |
+| 0020 | `20260806000001_add_is_confirmed.sql` | Coluna `events.is_confirmed` (default true), helper `is_staff()` e política `events_select` restrita a `is_confirmed = true OR is_staff()` |
 
 ## RLS
 
@@ -183,7 +188,10 @@ Todas as tabelas têm RLS habilitado:
 
 - `profiles`: usuário lê próprio perfil; staff (`ROLE_SUPER_ADMIN`) lê todos.
 - `categories`, `events`, `event_sessions`, `event_photos`: leitura pública;
-  escrita apenas `ROLE_SUPER_ADMIN`.
+  escrita apenas `ROLE_SUPER_ADMIN`. Eventos não confirmados (`is_confirmed =
+  false`) são legíveis apenas por staff (`is_staff()` — qualquer
+  `user_type = 'staff'`); as views `v_past_events`/`v_ongoing_events`
+  herdam a restrição por serem `SECURITY INVOKER`.
 - `event_categories`: leitura pública; escrita apenas super admin
   (política `event_categories_write` via `public.is_super_admin()`).
 - `favorites`: isolado por `user_id = auth.uid()`.
@@ -309,7 +317,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
    `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_CLI_TOKEN`
    e, opcionalmente, `VITE_GOOGLE_MAPS_API_KEY` para exibir o mapa embed.
 3. `supabase login`
-4. `supabase link --project-ref zkgmcgpfgvscjnstshoo`
+4. `supabase link --project-ref vrvyfgneawtceebyagak`
 5. `supabase db push` (aplica migrations no remoto)
 6. `node scripts/seed-mock-users.mjs` (cria usuarios mock no Supabase cloud)
 7. `npm run dev` (abre http://localhost:5173)
@@ -389,6 +397,13 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
 - Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O CSS customizado em `index.css` reage ao atributo `[data-theme='dark']` no `<html>` (não à media query do SO), garantindo que componentes não-MUI acompanhem o estado controlado pelo app.
+- Eventos "Não definido" (`is_confirmed`): eventos cadastrados mas não
+  confirmados ficam visíveis apenas para staff, em todas as listagens, com
+  badge "A definir" e banner no detalhe. A visibilidade é garantida no banco
+  via RLS (`is_staff()`), não só no frontend — clientes não leem por listagem,
+  view ou URL direta. Formulário tem switch "A definir" com dialog de
+  confirmação ao desconfirmar um evento já publicado; Gestão ganhou abas
+  Confirmados/A definir. (ADR 0004.)
 - Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
 - Multi-categoria: eventos pertencem a várias categorias via tabela `event_categories` (M-N), sem categoria principal. Filtro de categoria casa se o evento tiver **qualquer** uma das selecionadas (`category_ids` incluído no enrich). Filtro por mais de uma categoria usa OR (não AND).
 - Lembretes com offset livre e canal: o usuário digita qualquer antecedência (unidades Minuto, Hora, Dia, Semana, Mês; 1 mês = 30 dias = 43.200 min) e escolhe o canal por lembrete (Notificação push ou E-mail). O mesmo offset pode existir nos dois canais — o UNIQUE é `(user_id, event_id, offset_minutes, channel)`.
@@ -440,6 +455,25 @@ no protótipo. Push real requer:
 
 ## Histórico de mudanças
 
+- **2026-08-06** — Feature "Não definido" (ADR 0004):
+  - Migration `20260806000001_add_is_confirmed.sql`: coluna `events.is_confirmed`
+    (`NOT NULL DEFAULT true`), helper `public.is_staff()` (qualquer
+    `user_type = 'staff'`) e política `events_select` → `USING (is_confirmed = true
+    OR public.is_staff())`. Views herdam por `SECURITY INVOKER`.
+  - Formulário: `Switch` "A definir" (default desmarcado) na seção Identificação;
+    dialog de confirmação ao marcar num evento já confirmado (não na duplicação).
+    `eventPersistence` salva `is_confirmed: !form.is_tentative`.
+  - Campos obrigatórios relaxados quando "A definir": apenas título (e
+    recorrência, se ativa) são exigidos; atributos `required` do formulário
+    condicionais a `!form.is_tentative`. Ao confirmar, a validação volta a
+    exigir todos os campos.
+  - Gestão: abas "Confirmados"/"A definir" com badge de contagem e chip no card.
+  - Badge "A definir" (cor warning) no `EventCard`; banner no topo do `EventDetail`
+    para staff.
+  - Testes: `tests/eventPersistence.test.js` (mapeamento `is_confirmed`),
+    `tests/eventForm.test.js` (validação com `is_tentative`) e passthrough em
+    `tests/events.test.js`. 53 testes passando; lint e build limpos.
+
 - **2026-08-03** — Botão "Limpar Filtros" compacto e toasts de 3s:
   - Novo componente compartilhado `ClearFiltersButton` (fonte 0.75rem, padding
     reduzido, ícone 16px, `minWidth: auto`) substituindo os botões duplicados
@@ -471,7 +505,7 @@ no protótipo. Push real requer:
     'America/Sao_Paulo'` com `now()`; eventos sem sessões contam como
     Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
   - Testes `tests/events.test.js` ampliados; 39 testes passando; lint e build
-    limpos. Migrations aplicadas no Supabase (projeto `zkgmcgpfgvscjnstshoo`).
+    limpos. Migrations aplicadas no Supabase (projeto `vrvyfgneawtceebyagak`).
 
 - **2026-07-13** — Login sempre em light mode: página `Login.jsx` envolvida por `ThemeProvider` local com `createAppTheme('light')` e `CssBaseline`, ignorando o tema global salvo pelo usuário.
 

@@ -55,6 +55,16 @@ export function emptySession() {
 
 export function validate(form, sessions) {
   if (!form.title.trim()) return 'Título é obrigatório.'
+
+  if (form.is_recurring && (!form.recurrence_freq || !form.recurrence_until)) {
+    return 'Preencha frequência e data fim para eventos recorrentes.'
+  }
+  if (form.is_recurring && form.recurrence_until < new Date().toISOString().slice(0, 10)) {
+    return 'Datas no passado. Ajuste a data fim da recorrência antes de salvar.'
+  }
+
+  if (form.is_tentative) return ''
+
   if (!form.description.trim()) return 'Descrição é obrigatória.'
   if (!form.url.trim()) return 'Link de inscrição é obrigatório.'
   if (!form.category_ids?.length) return 'Selecione pelo menos uma categoria.'
@@ -63,12 +73,6 @@ export function validate(form, sessions) {
   }
   if (!form.is_free && !form.price_from) return 'Informe o valor a partir de.'
   if (sessions.length === 0) return 'Adicione pelo menos uma sessão.'
-  if (form.is_recurring && (!form.recurrence_freq || !form.recurrence_until)) {
-    return 'Preencha frequência e data fim para eventos recorrentes.'
-  }
-  if (form.is_recurring && form.recurrence_until < new Date().toISOString().slice(0, 10)) {
-    return 'Datas no passado. Ajuste a data fim da recorrência antes de salvar.'
-  }
 
   for (const session of sessions) {
     if (!session.start_date || !session.start_time || !session.end_date || !session.end_time) {

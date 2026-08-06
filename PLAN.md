@@ -332,7 +332,7 @@ Toda manipulação do Supabase via `supabase` CLI. Nada é feito via Dashboard w
 **Setup inicial (uma vez):**
 ```bash
 supabase login          # usa SUPABASE_ACCESS_TOKEN (já no .env.local)
-supabase link --project-ref zkgmcgpfgvscjnstshoo
+supabase link --project-ref vrvyfgneawtceebyagak
 ```
 
 **Fluxo de migrations:**
@@ -499,7 +499,7 @@ decisão técnica, adicionar dependência.
 2. Configurar `.env.local` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (já existem)
 3. Configurar ESLint (`.eslintrc.cjs`) + Prettier (`.prettierrc`) + scripts `lint`/`format` no `package.json`
 4. Criar `theme.js` alinhado ao UNO (cores, Manrope/Roboto)
-5. `supabase login` + `supabase link --project-ref zkgmcgpfgvscjnstshoo`
+5. `supabase login` + `supabase link --project-ref vrvyfgneawtceebyagak`
 6. Criar migrations 0001..0010 via `supabase migration new` e aplicar com `supabase migration up`
 7. Criar `supabase/seed.sql` + migrations 0011..0013 (categorias, 2 usuários mock, 6 eventos exemplo) + `supabase db reset`
 8. Tela de Login (Supabase Auth) — `pages/Login.jsx`

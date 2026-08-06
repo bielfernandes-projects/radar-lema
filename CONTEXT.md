@@ -119,6 +119,15 @@ Evento com ao menos uma sessão passada e ao menos uma sessão futura.
 Permanece na listagem principal. Mostra badge "Em andamento" no card.
 _Avoid_: Em curso, atual, corrente
 
+**Não definido**:
+Evento cadastrado porém não confirmado para divulgação. Coluna
+`is_confirmed = false` no banco; aparece na UI como "A definir". Visível
+**apenas para staff** (com badge "A definir" no card e banner no detalhe),
+em todas as listagens; clientes RPPS não conseguem ler em lugar nenhum —
+nem por URL direta (RLS). Quando o staff completa as informações, desmarca
+o switch e o evento passa a ser confirmado/visível para todos. Novos eventos
+nascem confirmados. _Avoid_: Stand-by, rascunho, não publicado, pendente
+
 **Duplicação**:
 Ação do staff que cria um novo evento copiando todos os campos de um
 existente — incluindo datas/sessões e o modelo de recorrência com seu

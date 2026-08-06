@@ -95,6 +95,9 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
             {event.is_lema_edu && (
               <Chip label="Lema Edu" size="small" color="primary" />
             )}
+            {event.is_confirmed === false && (
+              <Chip label="A definir" size="small" color="warning" />
+            )}
             {event.is_past && <Chip label="Realizado" size="small" color="default" />}
             {event.is_ongoing && (
               <Chip label="Em andamento" size="small" color="secondary" />

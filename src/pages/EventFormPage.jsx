@@ -48,6 +48,7 @@ const EMPTY_FORM = {
   modality: 'presencial',
   category_ids: [],
   is_lema_edu: false,
+  is_tentative: false,
   is_free: true,
   price_from: '',
   city: '',
@@ -93,6 +94,8 @@ export default function EventFormPage() {
   const [photos, setPhotos] = useState([])
   const [removedPhotoIds, setRemovedPhotoIds] = useState([])
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false)
+  const [confirmTentativeDialog, setConfirmTentativeDialog] = useState(false)
+  const [originallyConfirmed, setOriginallyConfirmed] = useState(true)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [blockerDialogOpen, setBlockerDialogOpen] = useState(false)
@@ -179,6 +182,8 @@ export default function EventFormPage() {
         return
       }
 
+      setOriginallyConfirmed(eventData.is_confirmed ?? true)
+
       const [
         { data: sessionsData },
         { data: photosData },
@@ -207,6 +212,7 @@ export default function EventFormPage() {
         category_ids:
           eventCategoriesData?.map((c) => c.category_id) || [],
         is_lema_edu: eventData.is_lema_edu ?? false,
+        is_tentative: !(eventData.is_confirmed ?? true),
         is_free: eventData.is_free ?? true,
         price_from: eventData.price_from ?? '',
         city: eventData.city || '',
@@ -247,6 +253,18 @@ export default function EventFormPage() {
 
   const updateForm = (fields) => {
     setForm((prev) => ({ ...prev, ...fields }))
+  }
+
+  const handleTentativeToggle = (checked) => {
+    const isDeconfirming =
+      checked && isEdit && !isDuplicate && originallyConfirmed
+
+    if (isDeconfirming) {
+      setConfirmTentativeDialog(true)
+      return
+    }
+
+    updateForm({ is_tentative: checked })
   }
 
   const handleGenerateSessions = () => {
@@ -445,7 +463,7 @@ export default function EventFormPage() {
             <TextField
               label="Descricao"
               fullWidth
-              required
+              required={!form.is_tentative}
               multiline
               rows={4}
               value={form.description}
@@ -479,7 +497,7 @@ export default function EventFormPage() {
                 <TextField
                   {...params}
                   label="Categorias"
-                  required
+                  required={!form.is_tentative}
                   helperText="Selecione uma ou mais categorias do evento."
                   inputProps={{ ...params.inputProps, readOnly: true }}
                 />
@@ -495,6 +513,33 @@ export default function EventFormPage() {
                 />
               }
               label="Evento Lema Edu"
+            />
+
+            <FormControlLabel
+              sx={{
+                alignItems: 'flex-start',
+                '& .MuiFormControlLabel-label': { mt: '7px' },
+              }}
+              control={
+                <Switch
+                  checked={form.is_tentative}
+                  onChange={(e) => handleTentativeToggle(e.target.checked)}
+                />
+              }
+              label={
+                <Box>
+                  <Box component="span" sx={{ display: 'block' }}>
+                    A definir
+                  </Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.25 }}
+                  >
+                    O evento não aparecerá para clientes até ser confirmado.
+                  </Typography>
+                </Box>
+              }
             />
           </Stack>
         </Paper>
@@ -541,7 +586,7 @@ export default function EventFormPage() {
                   <TextField
                     label="Endereco"
                     fullWidth
-                    required
+                    required={!form.is_tentative}
                     value={form.address}
                     onChange={(e) => updateForm({ address: e.target.value })}
                   />
@@ -557,7 +602,7 @@ export default function EventFormPage() {
             <TextField
               label="Link de inscrição"
               fullWidth
-              required
+              required={!form.is_tentative}
               type="url"
               value={form.url}
               onChange={(e) => updateForm({ url: e.target.value })}
@@ -577,7 +622,7 @@ export default function EventFormPage() {
               <TextField
                 label="Valor a partir de (R$)"
                 fullWidth
-                required
+                required={!form.is_tentative}
                 type="number"
                 inputProps={{ min: 0, step: '0.01' }}
                 value={form.price_from}
@@ -706,6 +751,34 @@ export default function EventFormPage() {
           <Button onClick={handleBlockerCancel}>Continuar editando</Button>
           <Button onClick={handleBlockerConfirm} color="error">
             Sair mesmo assim
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={confirmTentativeDialog}
+        onClose={() => setConfirmTentativeDialog(false)}
+      >
+        <DialogTitle>Marcar como &quot;A definir&quot;?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Este evento deixará de aparecer para os clientes até ser
+            confirmado.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmTentativeDialog(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              setConfirmTentativeDialog(false)
+              updateForm({ is_tentative: true })
+            }}
+            color="warning"
+            variant="contained"
+          >
+            Marcar como a definir
           </Button>
         </DialogActions>
       </Dialog>

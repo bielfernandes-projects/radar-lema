@@ -73,6 +73,16 @@ describe('enrichEvents', () => {
     expect(result[0].is_ongoing).toBe(false)
   })
 
+  it('preserva is_confirmed no evento enriquecido', () => {
+    const withFlag = [
+      { id: 'e1', title: 'Evento 1', is_confirmed: false },
+      { id: 'e2', title: 'Evento 2', is_confirmed: true }
+    ]
+    const result = enrichEvents(withFlag, photos, sessions, pastIds, ongoingIds)
+    expect(result[0].is_confirmed).toBe(false)
+    expect(result[1].is_confirmed).toBe(true)
+  })
+
   it('adiciona sessions array a cada evento', () => {
     const result = enrichEvents(events, photos, sessions, pastIds, ongoingIds)
     expect(result[0].sessions).toHaveLength(2)

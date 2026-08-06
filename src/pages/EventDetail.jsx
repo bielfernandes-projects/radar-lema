@@ -159,6 +159,12 @@ export default function EventDetail() {
         </Alert>
       )}
 
+      {event.is_confirmed === false && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Este evento está a definir e não é visível para clientes.
+        </Alert>
+      )}
+
       <Stack
         direction="row"
         alignItems="center"
