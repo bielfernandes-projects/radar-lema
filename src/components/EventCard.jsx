@@ -81,7 +81,7 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
             <CardMedia
               component="img"
               height="180"
-              image={event.cover_photo?.public_url || '/placeholder-event.png'}
+              image={event.cover_photo?.public_url || '/placeholder-event.png?v=2'}
               alt={event.title}
               loading="lazy"
               sx={{ objectFit: 'cover' }}

@@ -151,7 +151,7 @@ export default function PhotoUploader({ photos = [], onChange }) {
           >
             <Box
               component="img"
-              src={photo.preview || photo.public_url || '/placeholder-event.png'}
+              src={photo.preview || photo.public_url || '/placeholder-event.png?v=2'}
               alt={`Foto ${index + 1}`}
               sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />

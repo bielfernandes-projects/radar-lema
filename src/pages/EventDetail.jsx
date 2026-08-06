@@ -210,7 +210,7 @@ export default function EventDetail() {
         <Box sx={{ position: 'relative' }}>
           <Box
             component="img"
-            src={photos[activePhoto]?.public_url || '/placeholder-event.png'}
+            src={photos[activePhoto]?.public_url || '/placeholder-event.png?v=2'}
             alt={event.title}
             loading="lazy"
             onClick={() => setLightboxOpen(true)}
@@ -386,7 +386,7 @@ export default function EventDetail() {
 
           <Box
             component="img"
-            src={photos[activePhoto]?.public_url || '/placeholder-event.png'}
+            src={photos[activePhoto]?.public_url || '/placeholder-event.png?v=2'}
             alt={event.title}
             sx={{
               maxWidth: '100%',

@@ -60,6 +60,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globIgnores: ['**/placeholder-event.png'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/storage/],
         runtimeCaching: [
@@ -89,7 +90,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+            urlPattern: /^(?!.*placeholder-event).*\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'app-images',
