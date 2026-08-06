@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -103,7 +103,7 @@ export default function Login() {
               align="center"
               sx={{ display: 'block', mt: 1 }}
             >
-              Utilize suas credenciais de acesso ao UNO.
+              Ambientes de teste interno utilizam o cadastro abaixo.
             </Typography>
 
             <Button
@@ -115,6 +115,17 @@ export default function Login() {
               disabled={submitting}
             >
               {submitting ? <CircularProgress size={24} /> : 'Entrar'}
+            </Button>
+
+            <Button
+              component={Link}
+              to="/criar-conta"
+              variant="outlined"
+              fullWidth
+              size="large"
+              sx={{ mt: 1 }}
+            >
+              Criar Conta
             </Button>
           </Box>
         </Paper>

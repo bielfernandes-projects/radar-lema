@@ -4,6 +4,7 @@ import Navbar from './components/Layout/Navbar'
 import BottomNav from './components/Layout/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import SignUp from './pages/SignUp'
 import EventList from './pages/EventList'
 import EventDetail from './pages/EventDetail'
 import Favorites from './pages/Favorites'
@@ -29,6 +30,10 @@ export const routes = [
   {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '/criar-conta',
+    element: <SignUp />
   },
   {
     element: <Layout />,

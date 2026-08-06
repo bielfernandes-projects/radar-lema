@@ -102,6 +102,7 @@ radar-lema/
 │   │   └── PhotoUploader.jsx
 │   ├── pages/
 │   │   ├── Login.jsx
+│   │   ├── SignUp.jsx
 │   │   ├── EventList.jsx
 │   │   ├── EventDetail.jsx
 │   │   ├── Favorites.jsx
@@ -113,6 +114,7 @@ radar-lema/
 │   └── utils/
 │       ├── auth.js
 │       ├── constants.js
+│       ├── dateFilters.js
 │       ├── events.js
 │       ├── eventForm.js
 │       ├── filterEvents.js
@@ -208,9 +210,19 @@ Todas as tabelas têm RLS habilitado:
   `auth.identities` e `profiles` (funciona em `supabase db reset` local).
 - No Supabase cloud, o insert direto em `auth.users` não é suficiente para o
   GoTruth; use `node scripts/seed-mock-users.mjs` após o push.
-- Frontend usa `supabase.auth.signInWithPassword`.
-- `AuthContext` expõe `{ user, profile, user_type, role, loading, signIn, signOut }`
-  e carrega o perfil de `profiles` após login.
+- **Criar Conta** (rota `/criar-conta`): colaboradores testam o protótipo
+  criando conta própria. O formulário pede nome, e-mail e senha; o
+  `AuthContext` chama `supabase.auth.signUp` com metadados
+  `user_type: 'client'`, `role: 'ROLE_DIRIGENTE'` — o trigger
+  `on_auth_user_created` cria o `profiles` automaticamente. Contas novas
+  nascem como `client` (menor privilégio); para virar `staff`, o PO altera
+  `profiles.user_type` (e `role`, se desejar) manualmente no Supabase.
+  Com a confirmação de e-mail desativada no Supabase, o cadastro já loga na
+  hora; se ativa, a tela orienta a verificar o e-mail antes do login.
+- Frontend usa `supabase.auth.signInWithPassword` (login) e
+  `supabase.auth.signUp` (cadastro).
+- `AuthContext` expõe `{ user, profile, user_type, role, loading, signIn, signOut, signUp }`
+  e carrega o perfil de `profiles` após login/cadastro.
 
 ## Serviços
 
@@ -226,12 +238,13 @@ Todas as tabelas têm RLS habilitado:
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
 | `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
-| `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile) | `App.jsx` |
+| `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile). Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
-| `Login` | Formulário de login | Rota `/login` |
+| `Login` | Formulário de login com botão "Criar Conta" (link para `/criar-conta`) | Rota `/login` |
+| `SignUp` | Formulário de cadastro (nome, e-mail, senha, confirmar senha); cria conta `client` via `signUp` e tela de confirmação de e-mail como fallback | Rota `/criar-conta` |
 | `EventList` | Lista de eventos com filtros e paginacao; botao "Limpar Filtros" no cabecalho | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges. Toast de favorito com 3s e botao fechar | `EventList`, `Favorites`, `PastEvents` |
-| `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle para Este mes, Proximo mes, Gratuito e Pago | `EventList` |
+| `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle na ordem Lema Edu, Gratuito, Pago, Este mes, Proximo mes e Data Personalizada (popover com Data inicio/Data fim + Confirmar/Cancelar). Filtro de data aceita range completo ou parcial | `EventList` |
 | `ClearFiltersButton` | Botao compacto "Limpar Filtros" compartilhado (fonte 0.75rem, padding reduzido, icon 16px). `disabled` quando nao ha filtros | `EventList`, `Favorites`, `PastEvents` |
 | `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen). Exibe as categorias do evento como chips múltiplos | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
@@ -254,6 +267,7 @@ Todas as tabelas têm RLS habilitado:
 | Path | Componente | Permissão |
 |---|---|---|
 | `/login` | `Login` | Pública; usuarios logados sao redirecionados para `/` |
+| `/criar-conta` | `SignUp` | Pública; usuarios logados sao redirecionados para `/` |
 | `/` | `EventList` | Autenticado; aceita query params para filtros |
 | `/evento/:id` | `EventDetail` | Autenticado |
 | `/favoritos` | `Favorites` | Autenticado |
@@ -348,7 +362,8 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 | `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime`, `formatReminder`, `formatReminderUnit`, `formatReminderMinutes`, `minutesToReminder` | Cards, detalhe, sessoes, lembretes e testes |
 | `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos; recebe `eventCategories` para popular `category_ids` |
 | `utils/eventForm.js` | `parseDateTime`, `formatDateTime`, `calculateDelta`, `applyDelta`, `emptySession`, `validate` | Parsing/format de data/hora, cálculo de delta entre sessões, sessão vazia padrão, validação do formulário (exige ao menos uma categoria) |
-| `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias via `category_ids`, modalidade, preço, estado, presets de data) |
+| `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias via `category_ids`, modalidade, preço, estado, presets de data e range personalizado `dateFrom`/`dateTo` com overlap — aceita só início, só fim ou ambos) |
+| `utils/dateFilters.js` | `getMonthRange`, `applyDatePresets`, `normalizeDate`, `eventMatchesDatePresets`, `eventMatchesDateRange` | Presets de data (este/próximo mês) e overlap de intervalo de datas (com suporte a filtro parcial) |
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
 | `hooks/useUserData.js` | `refresh`, `loading` | Hook genérico: escuta `onAuthStateChange`, chama `fetchFn(userId)` sempre que o auth muda |
 | `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS (usa `useUserData`) |
@@ -454,6 +469,26 @@ no protótipo. Push real requer:
 - Implementação futura (fora do escopo deste protótipo).
 
 ## Histórico de mudanças
+
+- **2026-08-06** — Filtro de data personalizada, logo na navbar e Criar Conta:
+  - **Filtro de data personalizada** na seção Eventos: chip "Data Personalizada"
+    (último da fileira, após Próximo mês) abre um `Popover` com Data início /
+    Data fim e botões Confirmar/Cancelar. As datas só vão para a URL ao
+    confirmar (`?data-inicio=...&data-fim=...`); cancelar descarta. O chip
+    destaca quando um intervalo está aplicado. Filtro aceita range completo
+    ou **parcial** (só início = "a partir desta data"; só fim = "até esta
+    data") via `utils/dateFilters.js` (`eventMatchesDateRange`) e
+    `filterEvents.js`. Chips reordenados para Lema Edu | Gratuito | Pago |
+    Este mes | Proximo mes | Data Personalizada. Testes novos em
+    `tests/events.test.js` (4 casos de range).
+  - **Logo na navbar**: favicon 32×32 ao lado esquerdo de "Radar Lema" no
+    `Navbar`; o conjunto (ícone + nome) é clicável e volta para a home.
+  - **Criar Conta**: nova rota `/criar-conta` (`pages/SignUp.jsx`) com nome,
+    e-mail, senha e confirmar senha; `AuthContext.signUp` usa
+    `supabase.auth.signUp` com metadados `client`/`ROLE_DIRIGENTE` (o trigger
+    cria o `profiles`); contas nascem como `client` e o PO altera para `staff`
+    manualmente no Supabase. Botão "Criar Conta" no `Login`; confirmação de
+    e-mail desativada no Supabase para o cadastro logar direto.
 
 - **2026-08-06** — Feature "Não definido" (ADR 0004):
   - Migration `20260806000001_add_is_confirmed.sql`: coluna `events.is_confirmed`

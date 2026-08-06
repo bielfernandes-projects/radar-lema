@@ -94,15 +94,40 @@ export function AuthProvider({ children }) {
     setProfile(null)
   }, [])
 
+  const signUp = useCallback(
+    async ({ email, password, name }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, user_type: 'client', role: 'ROLE_DIRIGENTE' }
+        }
+      })
+
+      if (error) {
+        return { error }
+      }
+
+      if (data.session) {
+        setUser(data.session.user)
+        await loadProfile(data.session.user.id)
+      }
+
+      return { error: null }
+    },
+    [loadProfile]
+  )
+
   const value = useMemo(
     () => ({
       user,
       profile,
       loading,
       signIn,
-      signOut
+      signOut,
+      signUp
     }),
-    [user, profile, loading, signIn, signOut]
+    [user, profile, loading, signIn, signOut, signUp]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
