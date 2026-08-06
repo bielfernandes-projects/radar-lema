@@ -26,6 +26,8 @@ export default defineConfig({
         name: 'Radar Lema',
         short_name: 'Radar Lema',
         description: 'Centralizador de eventos para RPPS',
+        id: '/',
+        lang: 'pt-BR',
         theme_color: '#1976d2',
         background_color: '#ffffff',
         display: 'standalone',
