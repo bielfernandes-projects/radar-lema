@@ -8,9 +8,14 @@ Como habilitar de verdade as notificações push (funcionam com o app fechado).
 [Service Worker src/sw.js]  recebe o evento push e mostra a notificação
         ▲
 [Settings toggle] → subscribe() → PushManager.subscribe(VAPID_PUBLIC)
-        │                └─ salva {endpoint,p256dh,auth} em push_subscriptions (RLS user)
+        │                └─ salva {endpoint,p256dh,auth} em push_subscriptions
+        │                   via RPC upsert_my_push_subscription (troca de conta ok)
         ▼
-[Edge Function send-push]  --service_role-->  busca subscriptions → webput() para cada
+[notification-scheduler]  --service_role-->  chama send-push (evento novo / lembrete)
+        ▲                                          │
+[pg_cron * * * * *]  →  net.http_post  -----------┘   busca subscriptions → webpush() para cada
+        ▲
+[notification_outbox trigger] / [get_due_reminders()]
 ```
 
 ## Passo 1 — Gerar chaves VAPID
@@ -74,17 +79,62 @@ Para "novo evento" por categoria, use `eventCategoryIds` em vez de `userIds`
 
 ## Disparo automático (novos eventos / lembretes)
 
-A Edge Function só dispara quando é chamada. Para "novos eventos" em
-produção você tem duas opções:
+Implementado de ponta a ponta. A Edge Function `notification-scheduler` roda a
+cada minuto via `pg_cron` + `pg_net` e faz dois trabalhos:
 
-- **Direto do staff**: ao salvar um evento confirmado, um script/serviço
-  chama `send-push` por `/gestao`. (mais simples)
-- **Cron**: um agendador (e.g. `pg_cron` ou uma função schedule) chama a
-  function com `eventCategoryIds` após o INSERT, disparando avisos de novos
-  eventos automaticamente.
+1. **Eventos novos por categoria** — lê `notification_outbox` (linhas criadas
+   por trigger no INSERT de evento confirmado), chama `send-push` com
+   `eventCategoryIds` do evento e marca `dispatched_at`.
+2. **Lembretes** — lê `get_due_reminders()` (janela de 2 min antes do início,
+   horário em `America/Sao_Paulo`, dedup por `reminder_dispatch`) e chama
+   `send-push` com `userIds` do dono do lembrete.
 
-Lembretes por evento ainda dependem de um agendador que calcule `offset_minutes`
-antes de `start_time` e chame `send-push` com `userIds` dos configs que escolhram.
+Cada disparo grava o resultado do `send-push` (`{sent, gone, failed, total}`)
+nas colunas `result` de `notification_outbox` e `reminder_dispatch` — auditoria
+no banco, sem depender dos logs do dashboard.
+
+### Deploy
+
+```bash
+supabase functions deploy notification-scheduler
+```
+
+A função usa as mesmas secrets do `send-push` (`SUPABASE_URL` e
+`SUPABASE_SERVICE_ROLE_KEY` já são injetadas pelo runtime).
+
+### Provisionar o job do cron
+
+O job **não é versionado** (a migration `20260806000006_scheduler_cron.sql`
+cria apenas as extensões `pg_cron` e `pg_net`). Ele é registrado em deploy
+porque a chamada HTTP autentica com a service role key, que não pode ficar no
+repositorio:
+
+```sql
+SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'radar-notification-scheduler';
+
+SELECT cron.schedule(
+  'radar-notification-scheduler',
+  '* * * * *',
+  'SELECT net.http_post(
+    url := ''https://SEU-PROJETO.supabase.co/functions/v1/notification-scheduler'',
+    headers := jsonb_build_object(
+      ''Content-Type'', ''application/json'',
+      ''Authorization'', ''Bearer SUA_SERVICE_ROLE_KEY''
+    ),
+    body := ''{}''
+  ) AS request_id;'
+);
+```
+
+> **Atenção (bug real já ocorrido):** se a service role key estiver vazia no
+> comando, cada tique do cron chama a função e recebe **401 Unauthorized** — o
+> scheduler roda "com sucesso" no `cron.job_run_details` mas nada é processado.
+> Verificar em `net._http_response` (status_code) que os requests retornam 200.
+> Se a service role key do projeto for **rotacionada**, o job quebra de novo
+> silenciosamente — é preciso re-provisionar com a nova chave.
+
+Para o **ambiente local**, o Supabase CLI v2 ainda não suporta `schedule_cron`
+no `config.toml`; o mecanismo acima (pg_cron + pg_net) é o oficial.
 
 ## Limitações e notas
 
@@ -93,6 +143,12 @@ antes de `start_time` e chame `send-push` com `userIds` dos configs que escolhra
 'autoUpdate'`).
 - iOS: Web Push funciona a partir do iOS 16.4 nos apps instalados via "Adicionar
   à Tela de Início" somente.
+- O toggle "Notificar novos eventos" usa `categories_enabled` (default `[]`,
+  opt-in; `['*']` = todas). Sem ele, o usuário não recebe aviso de evento novo,
+  mas continua recebendo lembretes dos eventos favoritados.
+- Lembretes hoje são enviados **somente via push**. O canal E-mail está
+  desabilitado na UI ("em breve").
 - `push_enabled` (notification_settings) é a "intenção"; a presença real de uma
-  row em `push_subscriptions` é o que o servidor usa para enviar.
+  row em `push_subscriptions` é o que o servidor usa para enviar. O `signOut`
+  remove a subscription do dispositivo (limpeza da linha em `push_subscriptions`).
 - A Edge Function exige `Authorization: service_role` para evitar abuso.

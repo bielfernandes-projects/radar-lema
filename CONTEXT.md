@@ -105,15 +105,19 @@ Aviso configurado pelo cliente para um evento favoritado, com antecedência
 livre (qualquer valor em Minutos, Horas, Dias, Semanas ou Meses — 1 mês =
 30 dias) e canal de envio por lembrete: Notificação (push) ou E-mail.
 O mesmo horário pode existir nos dois canais. O Radar salva a configuração;
-o disparo é feito pelo servidor (Edge Function `send-push`) no momento certo.
+o disparo é feito pelo servidor via `notification-scheduler` (Edge Function
+agendada por `pg_cron`, janela de 2 min) que chama `send-push` no momento
+certo. Canal E-mail ainda não é enviado ("em breve").
 _Avoid_: Alerta, aviso, notificação
 
 **Notificação (push)**:
 Mensagem real enviada ao dispositivo do cliente via Web Push API, exibida
 pelo service worker mesmo com o app fechado. Depende da subscription VAPID
-gravada em `push_subscriptions` e do envio server-side (`send-push`). No
-toggle da Config, ativar "Receber notificações push" solicita permissão e
-inscreve o dispositivo de verdade.
+gravada em `push_subscriptions` e do envio server-side (`send-push`), seja
+pela sonda de teste ou pelo agendador `notification-scheduler` (evento novo
+por categoria e lembretes). No toggle da Config, ativar "Receber notificações
+push" solicita permissão e inscreve o dispositivo de verdade; deslogar
+(`signOut`) remove a subscription do aparelho.
 _Avoid_: Pop-up, toast, badge
 
 ***Instalar app***:
