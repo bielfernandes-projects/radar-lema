@@ -29,6 +29,8 @@ import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
+import InstallAppButton from '../components/InstallAppButton'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 export default function Settings() {
@@ -52,6 +54,7 @@ export default function Settings() {
   const [pushEnabled, setPushEnabled] = useState(false)
   const [emailEnabled, setEmailEnabled] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState([])
+  const { enable: enablePush, disable: disablePush } = usePushNotifications()
 
   useEffect(() => {
     supabase
@@ -101,8 +104,19 @@ export default function Settings() {
   }, [remindersByEvent])
 
   const handlePushToggle = async (value) => {
-    setPushEnabled(value)
-    await saveSettings({ push_enabled: value })
+    if (value) {
+      try {
+        await enablePush()
+        await saveSettings({ push_enabled: true })
+        setPushEnabled(true)
+      } catch (e) {
+        setTestResult(e?.message || 'Nao foi possivel ativar as notificacoes.')
+      }
+    } else {
+      await disablePush()
+      await saveSettings({ push_enabled: false })
+      setPushEnabled(false)
+    }
   }
 
   const handleEmailToggle = async (value) => {
@@ -175,6 +189,19 @@ export default function Settings() {
       <Typography variant="h4" component="h1" gutterBottom>
         Configurações de Notificações
       </Typography>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Instalar App
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Instale o Radar Lema na tela inicial para acessar como um
+            aplicativo.
+          </Typography>
+          <InstallAppButton />
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>

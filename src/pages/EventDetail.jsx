@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { useFavorites } from '../hooks/useFavorites'
 import { useReminders } from '../hooks/useReminders'
 import ReminderDialog from '../components/ReminderDialog'
@@ -26,6 +27,7 @@ import Close from '@mui/icons-material/Close'
 import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
 import Favorite from '@mui/icons-material/Favorite'
 import Share from '@mui/icons-material/Share'
+import EditIcon from '@mui/icons-material/Edit'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import PlaceIcon from '@mui/icons-material/Place'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -40,6 +42,8 @@ import {
 
 export default function EventDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { profile } = useAuth()
   const { favoriteIds, toggleFavorite } = useFavorites()
   const { hasRemindersForEvent, refresh: refreshReminders } = useReminders()
   const [event, setEvent] = useState(null)
@@ -176,6 +180,15 @@ export default function EventDetail() {
         </IconButton>
 
         <Stack direction="row" spacing={0.5}>
+          {profile?.user_type === 'staff' && (
+            <IconButton
+              onClick={() => navigate(`/gestao/${id}/editar`)}
+              aria-label="Editar evento"
+              color="primary"
+            >
+              <EditIcon />
+            </IconButton>
+          )}
           <IconButton
             onClick={async () => {
               const result = await toggleFavorite(id)

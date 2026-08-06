@@ -14,6 +14,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from '../theme/theme'
 import { useAuth } from '../contexts/AuthContext'
+import InstallAppButton from '../components/InstallAppButton'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -127,6 +128,8 @@ export default function Login() {
             >
               Criar Conta
             </Button>
+
+            <InstallAppButton />
           </Box>
         </Paper>
       </Container>

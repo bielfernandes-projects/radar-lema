@@ -422,7 +422,8 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
   view ou URL direta. Formulário tem switch "A definir" com dialog de
   confirmação ao desconfirmar um evento já publicado; Gestão ganhou abas
   Confirmados/A definir. (ADR 0004.)
-- Notificações em modo demo: UI + persistência sem push real. Push real (VAPID + FCM + Edge Function cron) é fase futura.
+- Notificações com push real: subscribe via Web Push API (VAPID), subscription
+  gravada em `push_subscriptions`, envio server-side pela Edge Function `send-push`. Push automático/lembretes por agendador é fase futura.
 - Multi-categoria: eventos pertencem a várias categorias via tabela `event_categories` (M-N), sem categoria principal. Filtro de categoria casa se o evento tiver **qualquer** uma das selecionadas (`category_ids` incluído no enrich). Filtro por mais de uma categoria usa OR (não AND).
 - Lembretes com offset livre e canal: o usuário digita qualquer antecedência (unidades Minuto, Hora, Dia, Semana, Mês; 1 mês = 30 dias = 43.200 min) e escolhe o canal por lembrete (Notificação push ou E-mail). O mesmo offset pode existir nos dois canais — o UNIQUE é `(user_id, event_id, offset_minutes, channel)`.
 - Eventos Realizados por timestamp completo: `v_past_events`/`v_ongoing_events` comparam `(end_date + end_time) AT TIME ZONE 'America/Sao_Paulo'` com `now()`, não apenas a data. Eventos **sem nenhuma sessão** contam como Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
@@ -434,10 +435,9 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 - Redimensionamento de fotos no upload: imagens são redimensionadas para max 1200px (lado maior) e convertidas para JPEG 0.8 antes de enviar ao Supabase Storage, reduzindo de até 3MB para ~100-300KB.
 - Categorias de notificação com opção "Todas": valor `['*']` no banco representa "todas as categorias", incluindo futuras; se o cliente seleciona categorias específicas, apenas aquelas são salvas.
 
-## Notificações (demo)
+## Notificações (push via Web Push API)
 
-As notificações estão implementadas em modo demo: toda a UI e persistência
-funcionam, mas **não há push automático**. O fluxo atual:
+Fluxo completo de notificações push:
 
 1. **Favoritar evento**: ao favoritar um evento pela primeira vez (sem
    lembretes salvos ainda), o `ReminderDialog` abre perguntando com quanta
@@ -451,27 +451,52 @@ funcionam, mas **não há push automático**. O fluxo atual:
 3. **Desfavoritar**: ao desfavoritar, os lembretes **não são removidos** —
    permanecem no banco para quando o usuário refavoritar.
 4. **Configurações**: a tela `/configuracoes` permite:
-   - Ativar/desativar notificações push (`push_enabled` em `notification_settings`).
+   - Ativar/desativar notificações push **de verdade**: o toggle chama
+     `Notification.requestPermission()` + `PushManager.subscribe()` com a chave
+     pública VAPID e grava a subscription em `push_subscriptions`
+     (`{ endpoint, p256dh, auth }`). Ao desativar, cancela a subscription e
+     remove a linha.
    - Ativar/desativar notificação por email (placeholder, `email_enabled`).
    - Selecionar categorias de interesse (`categories_enabled` como `TEXT[]`).
    - Testar notificação local com `new Notification()`.
    - Visualizar, editar e remover lembretes ativos agrupados por evento
      (cada lembrete mostra offset formatado, ex. "3 dias antes · E-mail").
-5. **Teste de notificação**: o botão "Testar notificação agora" solicita
-   permissão via `Notification.requestPermission()` e, se concedida, dispara
-   uma `Notification` local real. Permissão só funciona em HTTPS ou localhost.
+5. **Service worker (`src/sw.js`)**: listener de `push` mostra a notificação;
+   `notificationclick` abre o evento (`/evento/:id`) ou a URL informada.
+   Registros com `injectManifest` (Workbox) no build.
+6. **Envio server-side**: Edge Function `send-push` (Deno + web-push) envia
+   para `userIds` explícitos ou para todos os usuários com push ativo e
+   categoria compatível (`eventCategoryIds`). Requer `Authorization: service_role`.
 
 ### Limitação
 
-Lembretes salvos em `event_reminders` **NÃO disparam push automaticamente**
-no protótipo. Push real requer:
-- Service worker com listener de `push` event.
-- VAPID keys registradas no navegador.
-- Edge Function (cron ou gatilhada por pg_cron) que consulta `event_reminders`
-  e envia push notifications via Web Push API.
-- Implementação futura (fora do escopo deste protótipo).
+Lembretes **ainda não disparam automaticamente** — o envio é acionado por
+chamada à Edge Function `send-push` (manual ou via agendador/cron). O disparo
+automático (cron que consulta `event_reminders` e calcula `offset_minutes`
+antes de `start_time`, e aviso de novos eventos por categoria) é fase futura.
+Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
+deploy da function, secrets).
 
 ## Histórico de mudanças
+
+- **2026-08-06** — Editar no detalhe, gestão com abas e push real:
+  - **Lápis de editar para staff**: `EventDetail` mostra um `IconButton` de
+    editar quando `profile.user_type === 'staff'`, navegando para
+    `/gestao/:id/editar`.
+  - **Aba "Realizados" na gestão**: `ManageEvents` ganha a aba "Realizados"
+    (eventos passados, via `v_past_events`, desconsiderando `is_confirmed`).
+    As abas agora são Confirmados (confirmados e não-passados) | A Definir
+    (não confirmados e não-passados) | Realizados. Badge "Realizado" nos cards.
+  - **Botão "Instalar App"**: `usePWAInstall` captura `beforeinstallprompt`.
+    Botão compartilhado `InstallAppButton` no `Login` e na `Config`. Oculto
+    quando já instalado; no iOS orienta a usar "Adicionar à Tela de Início".
+  - **Push real (Web Push API)**: service worker customizado
+    `src/sw.js` (`strategies: injectManifest`) com listeners `push` e
+    `notificationclick`; hook `usePushNotifications` assina
+    (`PushManager.subscribe` com VAPID) e grava em `push_subscriptions`
+    (RLS por usuário); o toggle da Config inscreve/desinscreve de verdade;
+    Edge Function `send-push` (Deno + web-push) envia por `userIds` ou por
+    categorias. Runbook em `push-notifications.md` e env `VITE_VAPID_PUBLIC_KEY`.
 
 - **2026-08-06** — Ícone do PWA, placeholder de eventos e manifest:
   - Migration `20260806000002_events_show_placeholder.sql`: `event_photos`

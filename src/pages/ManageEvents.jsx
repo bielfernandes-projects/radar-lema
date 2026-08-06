@@ -37,6 +37,7 @@ export default function ManageEvents() {
   const [error, setError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState({ open: false, event: null })
   const [tab, setTab] = useState('confirmed')
+  const [pastIds, setPastIds] = useState(new Set())
   const [successMessage, setSuccessMessage] = useState(
     location.state?.saved ? 'Evento salvo com sucesso.' : ''
   )
@@ -53,6 +54,14 @@ export default function ManageEvents() {
   const fetchEvents = async () => {
     setLoading(true)
     setError('')
+
+    const { data: pastRows, error: pastError } = await supabase
+      .from('v_past_events')
+      .select('id')
+
+    if (!pastError) {
+      setPastIds(new Set((pastRows || []).map((e) => e.id)))
+    }
 
     const { data, error: fetchError } = await supabase
       .from('events')
@@ -104,9 +113,19 @@ export default function ManageEvents() {
     return formatDateRange(dates[0], ends[ends.length - 1])
   }
 
-  const confirmedEvents = events.filter((e) => e.is_confirmed !== false)
-  const tentativeEvents = events.filter((e) => e.is_confirmed === false)
-  const visibleEvents = tab === 'tentative' ? tentativeEvents : confirmedEvents
+  const realizedEvents = events.filter((e) => pastIds.has(e.id))
+  const confirmedEvents = events.filter(
+    (e) => e.is_confirmed !== false && !pastIds.has(e.id)
+  )
+  const tentativeEvents = events.filter(
+    (e) => e.is_confirmed === false && !pastIds.has(e.id)
+  )
+  const visibleEvents =
+    tab === 'tentative'
+      ? tentativeEvents
+      : tab === 'realized'
+        ? realizedEvents
+        : confirmedEvents
 
   if (loading) {
     return (
@@ -170,13 +189,31 @@ export default function ManageEvents() {
           }
           value="tentative"
         />
+        <Tab
+          label={
+            <Stack direction="row" spacing={1} alignItems="center">
+              <span>Realizados</span>
+              {realizedEvents.length > 0 && (
+                <Chip
+                  label={realizedEvents.length}
+                  size="small"
+                  color="default"
+                  sx={{ height: 20, minWidth: 20 }}
+                />
+              )}
+            </Stack>
+          }
+          value="realized"
+        />
       </Tabs>
 
       {visibleEvents.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
           {tab === 'tentative'
             ? 'Nenhum evento a definir.'
-            : 'Nenhum evento cadastrado.'}
+            : tab === 'realized'
+              ? 'Nenhum evento realizado.'
+              : 'Nenhum evento cadastrado.'}
         </Typography>
       ) : (
         <Stack spacing={2}>
@@ -194,6 +231,9 @@ export default function ManageEvents() {
                       <Typography variant="h6">{event.title}</Typography>
                       {event.is_confirmed === false && (
                         <Chip label="A definir" size="small" color="warning" />
+                      )}
+                      {pastIds.has(event.id) && (
+                        <Chip label="Realizado" size="small" />
                       )}
                     </Stack>
                     <Typography variant="body2" color="text.secondary">

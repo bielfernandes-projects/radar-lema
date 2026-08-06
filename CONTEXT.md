@@ -104,9 +104,24 @@ _Avoid_: Saved, bookmark, marcado
 Aviso configurado pelo cliente para um evento favoritado, com antecedência
 livre (qualquer valor em Minutos, Horas, Dias, Semanas ou Meses — 1 mês =
 30 dias) e canal de envio por lembrete: Notificação (push) ou E-mail.
-O mesmo horário pode existir nos dois canais. O Radar não dispara os avisos
-no protótipo — apenas salva a configuração.
+O mesmo horário pode existir nos dois canais. O Radar salva a configuração;
+o disparo é feito pelo servidor (Edge Function `send-push`) no momento certo.
 _Avoid_: Alerta, aviso, notificação
+
+**Notificação (push)**:
+Mensagem real enviada ao dispositivo do cliente via Web Push API, exibida
+pelo service worker mesmo com o app fechado. Depende da subscription VAPID
+gravada em `push_subscriptions` e do envio server-side (`send-push`). No
+toggle da Config, ativar "Receber notificações push" solicita permissão e
+inscreve o dispositivo de verdade.
+_Avoid_: Pop-up, toast, badge
+
+***Instalar app***:
+Ação de PWA que salva a tela inicial do dispositivo. Disparada por um botão
+compartilhado ("Instalar App") no login e na Config, usando o evento nativo
+`beforeinstallprompt`; no iOS sem suporte, orienta o usuário a adicionar
+manualmente via "Adicionar à Tela de Início".
+_Avoid_: Download, add-to-standalone, bookmark
 
 **Realizado**:
 Evento cujas todas as sessões já passaram — ou que não possui nenhuma
