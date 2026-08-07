@@ -19,6 +19,7 @@ import {
   Stack,
   Tab,
   Tabs,
+  TextField,
   Typography
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
@@ -37,6 +38,7 @@ export default function ManageEvents() {
   const [error, setError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState({ open: false, event: null })
   const [tab, setTab] = useState('confirmed')
+  const [query, setQuery] = useState('')
   const [pastIds, setPastIds] = useState(new Set())
   const [successMessage, setSuccessMessage] = useState(
     location.state?.saved ? 'Evento salvo com sucesso.' : ''
@@ -113,11 +115,20 @@ export default function ManageEvents() {
     return formatDateRange(dates[0], ends[ends.length - 1])
   }
 
-  const realizedEvents = events.filter((e) => pastIds.has(e.id))
-  const confirmedEvents = events.filter(
+  const searchTerm = query.trim().toLowerCase()
+  const filteredEvents = searchTerm
+    ? events.filter(
+        (e) =>
+          e.title?.toLowerCase().includes(searchTerm) ||
+          e.description?.toLowerCase().includes(searchTerm)
+      )
+    : events
+
+  const realizedEvents = filteredEvents.filter((e) => pastIds.has(e.id))
+  const confirmedEvents = filteredEvents.filter(
     (e) => e.is_confirmed !== false && !pastIds.has(e.id)
   )
-  const tentativeEvents = events.filter(
+  const tentativeEvents = filteredEvents.filter(
     (e) => e.is_confirmed === false && !pastIds.has(e.id)
   )
   const visibleEvents =
@@ -167,6 +178,16 @@ export default function ManageEvents() {
         </Alert>
       )}
 
+      <TextField
+        label="Buscar eventos"
+        placeholder="Título ou descrição"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        fullWidth
+        size="small"
+        sx={{ mb: 2 }}
+      />
+
       <Tabs
         value={tab}
         onChange={(e, value) => setTab(value)}
@@ -209,11 +230,13 @@ export default function ManageEvents() {
 
       {visibleEvents.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
-          {tab === 'tentative'
-            ? 'Nenhum evento a definir.'
-            : tab === 'realized'
-              ? 'Nenhum evento realizado.'
-              : 'Nenhum evento cadastrado.'}
+          {searchTerm
+            ? 'Nenhum evento encontrado.'
+            : tab === 'tentative'
+              ? 'Nenhum evento a definir.'
+              : tab === 'realized'
+                ? 'Nenhum evento realizado.'
+                : 'Nenhum evento cadastrado.'}
         </Typography>
       ) : (
         <Stack spacing={2}>

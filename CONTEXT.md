@@ -121,10 +121,12 @@ push" solicita permissão e inscreve o dispositivo de verdade; deslogar
 _Avoid_: Pop-up, toast, badge
 
 ***Instalar app***:
-Ação de PWA que salva a tela inicial do dispositivo. Disparada por um botão
-compartilhado ("Instalar App") no login e na Config, usando o evento nativo
-`beforeinstallprompt`; no iOS sem suporte, orienta o usuário a adicionar
-manualmente via "Adicionar à Tela de Início".
+Ação de PWA que salva a tela inicial do dispositivo. No login é um ícone de
+download no canto superior direito do card (`InstallAppIcon`); na Config, um
+botão "Instalar App". Usa o evento nativo `beforeinstallprompt`; quando o
+navegador não suporta, abre um modal com as instruções ("Adicionar à Tela de
+Início" no iOS/Android ou "Instalar aplicativo" no desktop). Oculto quando o
+app já está instalado.
 _Avoid_: Download, add-to-standalone, bookmark
 
 **Realizado**:

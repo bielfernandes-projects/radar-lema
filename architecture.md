@@ -240,7 +240,8 @@ Todas as tabelas têm RLS habilitado:
 | `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
 | `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile). Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
-| `Login` | Formulário de login com botão "Criar Conta" (link para `/criar-conta`) | Rota `/login` |
+| `Login` | Formulário de login com botão "Criar Conta" (link para `/criar-conta`). Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
+| `InstallAppIcon` | Ícone de download (topo direito do login) que instala via `beforeinstallprompt` ou abre modal com instruções de instalação (iOS/desktop). Oculto quando já instalado | `Login` |
 | `SignUp` | Formulário de cadastro (nome, e-mail, senha, confirmar senha); cria conta `client` via `signUp` e tela de confirmação de e-mail como fallback | Rota `/criar-conta` |
 | `EventList` | Lista de eventos com filtros e paginacao; botao "Limpar Filtros" no cabecalho | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges. Toast de favorito com 3s e botao fechar | `EventList`, `Favorites`, `PastEvents` |
@@ -251,7 +252,7 @@ Todas as tabelas têm RLS habilitado:
 | `Favorites` | Lista de eventos favoritados pelo usuario logado, com botao "Limpar Filtros" | Rota `/favoritos` |
 | `PastEvents` | Lista de eventos realizados (`v_past_events`), com botao "Limpar Filtros" | Rota `/realizados` |
 | `useFavorites` | Hook para carregar e alternar favoritos via Supabase SDK. Usa `useUserData` para o listener de auth. | `EventList`, `EventDetail`, `Favorites`, `PastEvents` |
-| `ManageEvents` | Lista de eventos com ações editar/duplicar/excluir e categorias de cada evento. Toast de exclusão com 3s e botao fechar | Rota `/gestao` |
+| `ManageEvents` | Gestão de eventos com abas Confirmados/A definir/Realizados, barra de busca (título/descrição, aplicada em todas as abas) e ações editar/duplicar/excluir. Toast de exclusão com 3s e botao fechar | Rota `/gestao` |
 | `EventFormPage` | Formulário de criar/editar/duplicar evento. Seleção de múltiplas categorias via Autocomplete multiple. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
 | `Categories` | CRUD de categorias | Rota `/categorias` |
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
@@ -298,10 +299,11 @@ O `vite-plugin-pwa` gera o manifest e o service worker no build:
       `placeholder-event.png` (negative lookahead no regex).
     - **Nao ha cache para chamadas do Supabase nem fotos externas** — dados
       continuam exigindo rede, conforme restricao do prototipo.
-- **Testes**: em `localhost` (ou HTTPS), o Chrome exibe o botao "Instalar".
-  DevTools > Application > Manifest e Service Workers devem mostrar o app
-  registrado sem erros. Ao desligar a rede, o shell carrega, mas listagem e
-  detalhe de eventos ficam em empty state/erro por falta de dados.
+- **Testes**: em `localhost` (ou HTTPS), o Chrome exibe o ícone/opção de
+  instalar no login (e o botão na Config). DevTools > Application > Manifest
+  e Service Workers devem mostrar o app registrado sem erros. Ao desligar a
+  rede, o shell carrega, mas listagem e detalhe de eventos ficam em empty
+  state/erro por falta de dados.
 
 ## Deploy
 
@@ -478,6 +480,21 @@ Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy da function, secrets).
 
 ## Histórico de mudanças
+
+- **2026-08-07** — Login sem scroll/sem zoom, instalar como ícone e busca na gestão:
+  - **Instalar como ícone no login**: novo componente `InstallAppIcon`
+    substitui o botão "Instalar App" no `Login` — ícone de download no canto
+    superior direito do card; instala via `beforeinstallprompt` ou abre modal
+    com as instruções (iOS/desktop). O `InstallAppButton` continua na Config.
+  - **Login centralizado e sem scroll**: card alinhado verticalmente
+    (`100dvh` + flex center) com `overflow: hidden`, eliminando o scroll para
+    alcançar os botões no mobile.
+  - **Zoom desativado no mobile**: viewport meta em `index.html` com
+    `maximum-scale=1.0, user-scalable=no`, valendo para o app inteiro.
+  - **Busca na gestão**: `ManageEvents` ganha a barra "Buscar eventos"
+    (título/descrição) com estado local, aplicada nas três abas (Confirmados,
+    A definir, Realizados); empty state "Nenhum evento encontrado." quando a
+    busca não retorna resultados.
 
 - **2026-08-06** — Editar no detalhe, gestão com abas e push real:
   - **Lápis de editar para staff**: `EventDetail` mostra um `IconButton` de

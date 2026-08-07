@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
   Button,
-  Container,
   Paper,
   TextField,
   Typography,
@@ -14,7 +13,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from '../theme/theme'
 import { useAuth } from '../contexts/AuthContext'
-import InstallAppButton from '../components/InstallAppButton'
+import InstallAppIcon from '../components/InstallAppIcon'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -55,8 +54,23 @@ export default function Login() {
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
-      <Container maxWidth="sm" sx={{ mt: 8 }}>
-        <Paper elevation={2} sx={{ p: 4 }}>
+      <Box
+        sx={{
+          minHeight: '100dvh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          p: 2
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{ p: 4, position: 'relative', width: '100%', maxWidth: 480 }}
+        >
+          <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+            <InstallAppIcon />
+          </Box>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <img
               src="/logo.png"
@@ -128,11 +142,9 @@ export default function Login() {
             >
               Criar Conta
             </Button>
-
-            <InstallAppButton />
           </Box>
         </Paper>
-      </Container>
+      </Box>
     </ThemeProvider>
   )
 }
