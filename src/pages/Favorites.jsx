@@ -12,6 +12,7 @@ import {
   Typography,
   Skeleton
 } from '@mui/material'
+import { HeartCrack, SearchX } from 'lucide-react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchFavoriteEventsWithMeta } from '../services/eventData'
@@ -20,6 +21,8 @@ import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
+import FilterSummary from '../components/FilterSummary'
+import EmptyState from '../components/EmptyState'
 
 const PAGE_SIZE = 12
 
@@ -32,6 +35,7 @@ export default function Favorites() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +60,7 @@ export default function Favorites() {
     }
 
     fetchData()
-  }, [favoriteIds])
+  }, [favoriteIds, reload])
 
   const filters = useMemo(() => ({
     q: searchParams.get(URL_PARAMS.SEARCH) || '',
@@ -138,24 +142,29 @@ export default function Favorites() {
           ))}
         </Grid>
       ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mt: 2 }}
+          action={
+            <Button size="small" color="inherit" onClick={() => setReload((r) => r + 1)}>
+              Tentar novamente
+            </Button>
+          }
+        >
           {error}
         </Alert>
       ) : events.length === 0 ? (
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Typography variant="h6" gutterBottom>
-            Você ainda não favoritou nenhum evento.
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Salve eventos para acompanha-los depois.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            Ver eventos
-          </Button>
-        </Box>
+        <EmptyState
+          icon={HeartCrack}
+          title="Você ainda não favoritou nenhum evento"
+          message="Toque no coração de um evento para salvá-lo e acompanhá-lo aqui depois."
+          actions={[{ label: 'Ver eventos', onClick: () => navigate('/') }]}
+        />
       ) : (
         <>
           <EventFilters categories={categories} />
+
+          <FilterSummary />
 
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {filteredEvents.length}{' '}
@@ -177,9 +186,12 @@ export default function Favorites() {
           </Grid>
 
           {filteredEvents.length === 0 && (
-            <Alert severity="info" sx={{ mt: 4 }}>
-              Nenhum favorito corresponde aos filtros selecionados.
-            </Alert>
+            <EmptyState
+              icon={SearchX}
+              title="Nenhum favorito encontrado"
+              message="Nenhum evento favoritado combina com esses filtros."
+              actions={[{ label: 'Limpar filtros', onClick: clearFilters }]}
+            />
           )}
 
           {pageCount > 1 && (

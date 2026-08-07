@@ -1,16 +1,61 @@
-# React + Vite
+# Radar Lema
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Centralizador de eventos para RPPS — PWA standalone que reúne eventos do
+ecossistema (comitês, workshops, lives, palestras, congressos etc.) para
+clientes e staff da Lema.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Vite + React 18 + Material UI v7 |
+| Roteamento | react-router-dom v6 (Data Router) |
+| Backend | Supabase (PostgreSQL + Storage + Auth) |
+| PWA | `vite-plugin-pwa` + Workbox |
+| Push | Web Push API + Edge Functions (`send-push`, `notification-scheduler`) |
+| Testes | Vitest + Testing Library |
 
-## React Compiler
+## Começando
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+cp .env.example .env.local   # preencha com as credenciais do Supabase
+npm run dev
+```
 
-## Expanding the Oxlint configuration
+Abra http://localhost:5173.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Scripts
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento (Vite) |
+| `npm run build` | Build de produção para `dist/` |
+| `npm run preview` | Serve o build localmente |
+| `npm run lint` | ESLint |
+| `npm run test:run` | Suite Vitest |
+
+## Supabase
+
+O banco é versionado como migrations em `supabase/migrations/` (IaC via
+`supabase` CLI, zero Dashboard):
+
+```bash
+supabase link --project-ref <ref>
+supabase db push
+node scripts/seed-mock-users.mjs   # usuários mock para o cloud
+```
+
+## Documentação
+
+- `CONTEXT.md` — glossário e vocabulário do domínio.
+- `architecture.md` — documento vivo da arquitetura e do histórico de mudanças.
+- `DESIGN.md` — identidade visual (tema, cores, tipografia).
+- `push-notifications.md` — runbook de ativação das notificações push.
+
+## Deploy
+
+- **Vercel**: configuração em `vercel.json` (Vite, output `dist`, SPA fallback).
+  Variáveis de ambiente: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+  (e `VITE_VAPID_PUBLIC_KEY`, `VITE_GOOGLE_MAPS_API_KEY` quando aplicável).
+- **Supabase**: migrations e Edge Functions via `supabase` CLI.

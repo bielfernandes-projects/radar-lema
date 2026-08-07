@@ -23,12 +23,10 @@ import {
   Snackbar,
   Stack,
   TextField,
+  Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import LockResetIcon from '@mui/icons-material/LockReset'
-import PersonAddIcon from '@mui/icons-material/PersonAdd'
+import { Trash2, Pencil, KeyRound, UserPlus } from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -42,6 +40,8 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { adminApi, USER_TYPES, ROLE_BY_USER_TYPE } from '../services/adminApi'
+import PasswordToggle from '../components/PasswordToggle'
+import PageSkeleton from '../components/PageSkeleton'
 
 const emptyStats = {
   total_users: 0,
@@ -88,6 +88,8 @@ export default function AdminDashboard() {
   const [resetUser, setResetUser] = useState(null)
   const [resetPassword, setResetPassword] = useState('')
   const [resetBusy, setResetBusy] = useState(false)
+  const [showCreatePassword, setShowCreatePassword] = useState(false)
+  const [showResetPassword, setShowResetPassword] = useState(false)
 
   const [deleteUser, setDeleteUser] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
@@ -203,9 +205,9 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        <PageSkeleton lines={8} />
+      </Container>
     )
   }
 
@@ -222,7 +224,7 @@ export default function AdminDashboard() {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<PersonAddIcon />}
+          startIcon={<UserPlus size={20} />}
           onClick={() => setCreateOpen(true)}
         >
           Novo usuário
@@ -230,7 +232,16 @@ export default function AdminDashboard() {
       </Stack>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          onClose={() => setError('')}
+          action={
+            <Button size="small" color="inherit" onClick={loadAll}>
+              Tentar novamente
+            </Button>
+          }
+        >
           {error}
         </Alert>
       )}
@@ -292,7 +303,7 @@ export default function AdminDashboard() {
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="count" name="Favoritos" fill="#9c27b0" />
+                    <Bar dataKey="count" name="Favoritos" fill="#e0436f" />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
@@ -337,27 +348,33 @@ export default function AdminDashboard() {
                     </Box>
 
                     <Stack direction="row" spacing={1}>
-                      <IconButton
-                        onClick={() => openEdit(user)}
-                        aria-label="Editar usuário"
-                        disabled={isSelf(user.id)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setResetUser(user)}
-                        aria-label="Redefinir senha"
-                      >
-                        <LockResetIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setDeleteUser(user)}
-                        color="error"
-                        aria-label="Excluir usuário"
-                        disabled={isSelf(user.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      <MuiTooltip title="Editar usuário">
+                        <IconButton
+                          onClick={() => openEdit(user)}
+                          aria-label="Editar usuário"
+                          disabled={isSelf(user.id)}
+                        >
+                          <Pencil size={20} />
+                        </IconButton>
+                      </MuiTooltip>
+                      <MuiTooltip title="Redefinir senha do usuário">
+                        <IconButton
+                          onClick={() => setResetUser(user)}
+                          aria-label="Redefinir senha"
+                        >
+                          <KeyRound size={20} />
+                        </IconButton>
+                      </MuiTooltip>
+                      <MuiTooltip title="Excluir usuário">
+                        <IconButton
+                          onClick={() => setDeleteUser(user)}
+                          color="error"
+                          aria-label="Excluir usuário"
+                          disabled={isSelf(user.id)}
+                        >
+                          <Trash2 size={20} />
+                        </IconButton>
+                      </MuiTooltip>
                     </Stack>
                   </Stack>
                   <Divider sx={{ mt: 1.5 }} />
@@ -387,11 +404,19 @@ export default function AdminDashboard() {
             />
             <TextField
               label="Senha"
-              type="password"
+              type={showCreatePassword ? 'text' : 'password'}
               fullWidth
               value={createForm.password}
               onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
               helperText="Mínimo de 6 caracteres. O usuário pode alterar depois na Config."
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showCreatePassword}
+                    onToggle={() => setShowCreatePassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
             <FormControl fullWidth>
               <InputLabel id="create-user-type-label">Tipo de usuário</InputLabel>
@@ -470,11 +495,19 @@ export default function AdminDashboard() {
           </DialogContentText>
           <TextField
             label="Nova senha"
-            type="password"
+            type={showResetPassword ? 'text' : 'password'}
             fullWidth
             value={resetPassword}
             onChange={(e) => setResetPassword(e.target.value)}
             helperText="Mínimo de 6 caracteres."
+            InputProps={{
+              endAdornment: (
+                <PasswordToggle
+                  show={showResetPassword}
+                  onToggle={() => setShowResetPassword((prev) => !prev)}
+                />
+              )
+            }}
           />
         </DialogContent>
         <DialogActions>

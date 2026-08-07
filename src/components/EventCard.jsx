@@ -9,14 +9,11 @@ import {
   IconButton,
   Snackbar,
   Stack,
+  Tooltip,
   Typography,
   Box
 } from '@mui/material'
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import PlaceIcon from '@mui/icons-material/Place'
-import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
-import Favorite from '@mui/icons-material/Favorite'
-import CloseIcon from '@mui/icons-material/Close'
+import { CalendarDays, MapPin, Heart, X } from 'lucide-react'
 import {
   formatDateRange,
   formatModality,
@@ -111,15 +108,15 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
           </Typography>
 
           <Stack spacing={0.5}>
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <CalendarMonthIcon fontSize="small" color="action" />
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
+              <CalendarDays size={18} />
               <Typography variant="body2" color="text.secondary">
                 {formatDateRange(event.min_date, event.max_date)}
               </Typography>
             </Stack>
 
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <PlaceIcon fontSize="small" color="action" />
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
+              <MapPin size={18} />
               <Typography variant="body2" color="text.secondary">
                 {locationLabel || formatModality(event.modality)}
               </Typography>
@@ -135,19 +132,22 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
         </CardContent>
       </CardActionArea>
 
-      <IconButton
-        onClick={handleFavoriteClick}
-        sx={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          bgcolor: 'background.paper',
-          '&:hover': { bgcolor: 'background.paper' }
-        }}
-        aria-label="Favoritar"
-      >
-        {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-      </IconButton>
+      <Tooltip title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}>
+        <IconButton
+          onClick={handleFavoriteClick}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            bgcolor: 'background.paper',
+            '&:hover': { bgcolor: 'background.paper' },
+            color: isFavorite ? 'favorite.main' : 'inherit'
+          }}
+          aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+        >
+          {isFavorite ? <Heart size={22} fill="currentColor" /> : <Heart size={22} />}
+        </IconButton>
+      </Tooltip>
 
       <Snackbar
         open={snackbar.open}
@@ -161,7 +161,7 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
             aria-label="Fechar"
             onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           >
-            <CloseIcon fontSize="small" />
+            <X size={18} />
           </IconButton>
         }
       />

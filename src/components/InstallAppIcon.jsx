@@ -6,9 +6,10 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  Tooltip,
   Button
 } from '@mui/material'
-import InstallIcon from '@mui/icons-material/Download'
+import { Download } from 'lucide-react'
 import { usePWAInstall } from '../hooks/usePWAInstall'
 
 const IOS_HELP =
@@ -32,13 +33,15 @@ export default function InstallAppIcon() {
 
   return (
     <>
-      <IconButton
-        aria-label="Instalar app"
-        size="small"
-        onClick={handleClick}
-      >
-        <InstallIcon />
-      </IconButton>
+      <Tooltip title="Instalar app">
+        <IconButton
+          aria-label="Instalar app"
+          size="small"
+          onClick={handleClick}
+        >
+          <Download size={20} />
+        </IconButton>
+      </Tooltip>
 
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Instalar App</DialogTitle>

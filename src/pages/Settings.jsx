@@ -23,13 +23,14 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
+import { Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
 import InstallAppButton from '../components/InstallAppButton'
+import PasswordToggle from '../components/PasswordToggle'
+import PageSkeleton from '../components/PageSkeleton'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useAuth } from '../contexts/AuthContext'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
@@ -60,6 +61,9 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordBusy, setPasswordBusy] = useState(false)
@@ -118,7 +122,7 @@ export default function Settings() {
         await saveSettings({ push_enabled: true })
         setPushEnabled(true)
       } catch (e) {
-        setTestResult(e?.message || 'Nao foi possivel ativar as notificacoes.')
+        setTestResult(e?.message || 'Não foi possível ativar as notificações.')
       }
     } else {
       await disablePush()
@@ -242,9 +246,9 @@ export default function Settings() {
 
   if (settingsLoading || remindersLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        <PageSkeleton lines={6} />
+      </Container>
     )
   }
 
@@ -262,28 +266,52 @@ export default function Settings() {
           <Stack spacing={2}>
             <TextField
               label="Senha atual"
-              type="password"
+              type={showCurrentPassword ? 'text' : 'password'}
               fullWidth
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               autoComplete="current-password"
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showCurrentPassword}
+                    onToggle={() => setShowCurrentPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
             <TextField
               label="Nova senha"
-              type="password"
+              type={showNewPassword ? 'text' : 'password'}
               fullWidth
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
               helperText="Mínimo de 6 caracteres."
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showNewPassword}
+                    onToggle={() => setShowNewPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
             <TextField
               label="Confirmar nova senha"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               fullWidth
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
             {passwordError && <Alert severity="error">{passwordError}</Alert>}
             {passwordMessage && (
@@ -374,7 +402,6 @@ export default function Settings() {
                       {...params}
                       label="Quais categorias notificar"
                       helperText="Selecione 'Todas' para receber de todas as categorias."
-                      inputProps={{ ...params.inputProps, readOnly: true }}
                     />
                   )}
                 />
@@ -456,7 +483,7 @@ export default function Settings() {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<EditIcon />}
+                      startIcon={<Pencil size={18} />}
                       onClick={() =>
                         setEditReminder({
                           eventId,
@@ -474,7 +501,7 @@ export default function Settings() {
                       size="small"
                       variant="outlined"
                       color="error"
-                      startIcon={<DeleteIcon />}
+                      startIcon={<Trash2 size={18} />}
                       onClick={() => openRemoveDialog(eventId, event?.title || 'este evento')}
                     >
                       Remover todos

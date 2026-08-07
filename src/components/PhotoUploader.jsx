@@ -5,9 +5,10 @@ import {
   Button,
   IconButton,
   Paper,
+  Tooltip,
   Typography
 } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
+import { Trash2 } from 'lucide-react'
 
 const MAX_FILES = 5
 const MAX_SIZE_MB = 3
@@ -155,20 +156,22 @@ export default function PhotoUploader({ photos = [], onChange }) {
               alt={`Foto ${index + 1}`}
               sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => removePhoto(index)}
-              sx={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                bgcolor: 'background.paper'
-              }}
-              aria-label="Remover foto"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Remover foto">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => removePhoto(index)}
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  bgcolor: 'background.paper'
+                }}
+                aria-label="Remover foto"
+              >
+                <Trash2 size={18} />
+              </IconButton>
+            </Tooltip>
           </Paper>
         ))}
       </Box>

@@ -151,6 +151,24 @@ describe('filterEvents', () => {
     expect(result[0].id).toBe('e2')
   })
 
+  it('filtra por Hibrido com acento', () => {
+    const hibrido = [
+      { ...events[1], id: 'e5', modality: 'hibrido' }
+    ]
+    const result = filterEvents(hibrido, { modalities: ['Híbrido'] }, categories)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('e5')
+  })
+
+  it('filtra por Hibrido sem acento (URL legada)', () => {
+    const hibrido = [
+      { ...events[1], id: 'e6', modality: 'hibrido' }
+    ]
+    const result = filterEvents(hibrido, { modalities: ['Hibrido'] }, categories)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('e6')
+  })
+
   it('filtra por preco gratuitos', () => {
     const result = filterEvents(events, { price: 'free' }, categories)
     expect(result).toHaveLength(1)

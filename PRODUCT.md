@@ -35,7 +35,7 @@ cadastra um evento novo em < 5 minutos.
 
 - Tom direto, sem floreios. Informação antes de decoração.
 - Azul institucional (#1976d2) como âncora visual — herança do UNO/Lema.
-- Tipografia Manrope (títulos) + Roboto (corpo): legibilidade com presença.
+- Tipografia Manrope (títulos e corpo): legibilidade com presença.
 - Sem gamificação, sem emojis decorativos, sem ilustrações customizadas.
 - Layout denso mas respirado: dados visíveis, sem scroll excessivo.
 
@@ -65,7 +65,7 @@ sem frescura, dados legíveis em densidade moderada.
 4. **Mobile-first real.** O cliente RPPS usa no celular em trânsito.
    Touch targets ≥ 44px, bottom nav, sem hover-dependency.
 5. **Consistência com o ecossistema Lema/UNO.** Azul institucional,
-   Manrope + Roboto, padrões MUI. Não reinventar a roda visual.
+   Manrope, padrões MUI. Não reinventar a roda visual.
 
 ## Accessibility & Inclusion
 

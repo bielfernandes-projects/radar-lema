@@ -16,7 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
+import { X } from 'lucide-react'
 import { useReminders } from '../hooks/useReminders'
 import { REMINDER_UNITS, REMINDER_CHANNELS } from '../utils/constants'
 import { formatReminder, formatReminderMinutes } from '../utils/formatters'
@@ -226,7 +226,7 @@ export default function ReminderDialog({
             aria-label="Fechar"
             onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           >
-            <CloseIcon fontSize="small" />
+            <X size={18} />
           </IconButton>
         }
       />

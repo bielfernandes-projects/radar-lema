@@ -1,26 +1,39 @@
+import { Suspense, lazy } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
-import { Box } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 import Navbar from './components/Layout/Navbar'
 import BottomNav from './components/Layout/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
-import Login from './pages/Login'
-import SignUp from './pages/SignUp'
-import EventList from './pages/EventList'
-import EventDetail from './pages/EventDetail'
-import Favorites from './pages/Favorites'
-import PastEvents from './pages/PastEvents'
-import ManageEvents from './pages/ManageEvents'
-import EventFormPage from './pages/EventFormPage'
-import Categories from './pages/Categories'
-import Settings from './pages/Settings'
-import AdminDashboard from './pages/AdminDashboard'
+
+const Login = lazy(() => import('./pages/Login'))
+const SignUp = lazy(() => import('./pages/SignUp'))
+const RecoverPassword = lazy(() => import('./pages/RecoverPassword'))
+const EventList = lazy(() => import('./pages/EventList'))
+const EventDetail = lazy(() => import('./pages/EventDetail'))
+const Favorites = lazy(() => import('./pages/Favorites'))
+const PastEvents = lazy(() => import('./pages/PastEvents'))
+const ManageEvents = lazy(() => import('./pages/ManageEvents'))
+const EventFormPage = lazy(() => import('./pages/EventFormPage'))
+const Categories = lazy(() => import('./pages/Categories'))
+const Settings = lazy(() => import('./pages/Settings'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
+
+function PageFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+      <CircularProgress />
+    </Box>
+  )
+}
 
 function Layout() {
   return (
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
       <Navbar />
       <Box component="main" sx={{ px: 2, pt: 1.5, pb: 2 }}>
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </Box>
       <BottomNav />
     </Box>
@@ -30,11 +43,27 @@ function Layout() {
 export const routes = [
   {
     path: '/login',
-    element: <Login />
+    element: (
+      <Suspense fallback={<PageFallback />}>
+        <Login />
+      </Suspense>
+    )
   },
   {
     path: '/criar-conta',
-    element: <SignUp />
+    element: (
+      <Suspense fallback={<PageFallback />}>
+        <SignUp />
+      </Suspense>
+    )
+  },
+  {
+    path: '/recuperar-senha',
+    element: (
+      <Suspense fallback={<PageFallback />}>
+        <RecoverPassword />
+      </Suspense>
+    )
   },
   {
     element: <Layout />,

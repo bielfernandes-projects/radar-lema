@@ -78,6 +78,12 @@ export function validate(form, sessions) {
     if (!session.start_date || !session.start_time || !session.end_date || !session.end_time) {
       return 'Preencha data e horário de todas as sessões.'
     }
+
+    const start = parseDateTime(session.start_date, session.start_time)
+    const end = parseDateTime(session.end_date, session.end_time)
+    if (end < start) {
+      return 'A data/horário de fim deve ser depois do início em todas as sessões.'
+    }
   }
 
   return ''

@@ -14,6 +14,8 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from '../theme/theme'
 import { useAuth } from '../contexts/AuthContext'
+import { useColorMode } from '../contexts/ColorModeContext'
+import PasswordToggle from '../components/PasswordToggle'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -22,11 +24,14 @@ export default function SignUp() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [pendingConfirmation, setPendingConfirmation] = useState(false)
 
-  const lightTheme = useMemo(() => createAppTheme('light'), [])
+  const { mode } = useColorMode()
+  const theme = useMemo(() => createAppTheme(mode), [mode])
 
   useEffect(() => {
     if (!loading && user) {
@@ -72,7 +77,7 @@ export default function SignUp() {
 
   if (pendingConfirmation) {
     return (
-      <ThemeProvider theme={lightTheme}>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         <Container maxWidth="sm" sx={{ mt: 8 }}>
           <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
@@ -105,7 +110,7 @@ export default function SignUp() {
   }
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="sm" sx={{ mt: 8 }}>
         <Paper elevation={2} sx={{ p: 4 }}>
@@ -151,7 +156,7 @@ export default function SignUp() {
 
             <TextField
               label="Senha"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
               margin="normal"
               value={password}
@@ -159,17 +164,33 @@ export default function SignUp() {
               required
               autoComplete="new-password"
               helperText="Mínimo de 6 caracteres"
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showPassword}
+                    onToggle={() => setShowPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
 
             <TextField
               label="Confirmar senha"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               fullWidth
               margin="normal"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               required
               autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
 
             <Button

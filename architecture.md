@@ -3,10 +3,11 @@
 ## Visão geral
 
 O Radar Lema é um PWA standalone para centralizar eventos do ecossistema RPPS
-(comitês, workshops, lives, palestras, congressos etc.). Nesta fase, o protótipo
-conta com autenticação mockada no Supabase, navegação condicional por tipo de
-usuário (staff Lema vs. cliente RPPS) e estrutura base para listagem, detalhe,
-favoritos, eventos realizados e gestão de eventos/categorias.
+(comitês, workshops, lives, palestras, congressos etc.). Usa autenticação real
+do Supabase (e-mail/senha, com recuperação por link), navegação condicional por
+tipo de usuário (super admin, staff Lema e cliente RPPS), e cobre listagem,
+detalhe, favoritos, eventos realizados, gestão de eventos/categorias, push
+notifications com agendador e Painel Admin.
 
 ## Stack
 
@@ -14,7 +15,7 @@ favoritos, eventos realizados e gestão de eventos/categorias.
 |---|---|
 | Frontend | Vite + React 18 + Material UI v7 |
 | Roteamento | react-router-dom v6 (Data Router: `createBrowserRouter`) |
-| Tipografia | Manrope + Roboto (Google Fonts) |
+| Tipografia | Manrope (Google Fonts) |
 | Backend | Supabase (PostgreSQL + Storage + Auth) |
 | Supabase IaC | `supabase` CLI (migrations + seed, zero Dashboard) |
 | PWA | `vite-plugin-pwa` + Workbox (manifest, service worker, shell offline) |
@@ -27,14 +28,19 @@ favoritos, eventos realizados e gestão de eventos/categorias.
 ```
 radar-lema/
 ├── CONTEXT.md
+├── DESIGN.md
 ├── PLAN.md
+├── PRODUCT.md
+├── README.md
 ├── architecture.md
+├── push-notifications.md
 ├── docs/
 │   └── adr/
 │       ├── 0001-app-standalone-vs-modulo-uno.md
 │       ├── 0002-supabase-como-backend-do-prototipo.md
 │       ├── 0003-auth-supabase-mockada-vs-banco-uno.md
-│       └── 0004-evento-nao-definido.md
+│       ├── 0004-evento-nao-definido.md
+│       └── 0005-super-admin-e-roles.md
 ├── supabase/
 │   ├── migrations/
 │   │   ├── 0001_profiles.sql
@@ -56,22 +62,35 @@ radar-lema/
 │   │   ├── 20260803000001_multi_category.sql
 │   │   ├── 20260803000002_reminders_channel.sql
 │   │   ├── 20260803000003_fix_past_views.sql
-│   │   └── 20260806000001_add_is_confirmed.sql
+│   │   ├── 20260806000001_add_is_confirmed.sql
+│   │   ├── 20260806000002_events_show_placeholder.sql
+│   │   ├── 20260806000003_push_subscriptions.sql
+│   │   ├── 20260806000004_push_subscriptions_rpc.sql
+│   │   ├── 20260806000005_notification_dispatch.sql
+│   │   ├── 20260806000006_scheduler_cron.sql
+│   │   ├── 20260806000007_fix_upsert_ambig.sql
+│   │   ├── 20260806000008_outbox_result.sql
+│   │   └── 20260807000000_super_admin_roles.sql
 │   └── seed.sql
 ├── scripts/
-│   └── seed-mock-users.mjs
+│   ├── seed-mock-users.mjs
+│   ├── promote-super-admin.mjs
+│   └── detect.mjs
 ├── public/
-│   ├── favicon.svg
+│   ├── android-chrome-192x192.png
+│   ├── android-chrome-512x512.png
+│   ├── apple-touch-icon.png
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── favicon.ico
 │   ├── icons.svg
-│   └── icons/
-│       ├── icon-192x192.png
-│       ├── icon-192x192-maskable.png
-│       ├── icon-512x512.png
-│       └── icon-512x512-maskable.png
+│   ├── logo.png
+│   └── placeholder-event.png
 ├── vercel.json
 ├── src/
 │   ├── main.jsx
 │   ├── App.jsx
+│   ├── sw.js
 │   ├── theme/
 │   │   └── theme.js
 │   ├── lib/
@@ -85,6 +104,7 @@ radar-lema/
 │   │   ├── useReminders.js
 │   │   └── useNotificationSettings.js
 │   ├── services/
+│   │   ├── adminApi.js
 │   │   ├── eventData.js
 │   │   └── eventPersistence.js
 │   ├── components/
@@ -93,16 +113,24 @@ radar-lema/
 │   │   │   └── BottomNav.jsx
 │   │   ├── EventCard.jsx
 │   │   ├── EventFilters.jsx
+│   │   ├── FilterSummary.jsx
 │   │   ├── ClearFiltersButton.jsx
+│   │   ├── EmptyState.jsx
+│   │   ├── PageSkeleton.jsx
 │   │   ├── MapEmbed.jsx
 │   │   ├── ReminderDialog.jsx
+│   │   ├── SessionScopeDialog.jsx
 │   │   ├── ProtectedRoute.jsx
 │   │   ├── SessionEditor.jsx
 │   │   ├── RecurrenceEditor.jsx
-│   │   └── PhotoUploader.jsx
+│   │   ├── PhotoUploader.jsx
+│   │   ├── PasswordToggle.jsx
+│   │   ├── InstallAppButton.jsx
+│   │   └── InstallAppIcon.jsx
 │   ├── pages/
 │   │   ├── Login.jsx
 │   │   ├── SignUp.jsx
+│   │   ├── RecoverPassword.jsx
 │   │   ├── EventList.jsx
 │   │   ├── EventDetail.jsx
 │   │   ├── Favorites.jsx
@@ -110,7 +138,8 @@ radar-lema/
 │   │   ├── Settings.jsx
 │   │   ├── ManageEvents.jsx
 │   │   ├── EventFormPage.jsx
-│   │   └── Categories.jsx
+│   │   ├── Categories.jsx
+│   │   └── AdminDashboard.jsx
 │   └── utils/
 │       ├── auth.js
 │       ├── constants.js
@@ -123,11 +152,14 @@ radar-lema/
 ├── tests/
 │   ├── setup.js
 │   ├── AuthContext.test.jsx
-│   ├── formatters.test.js
+│   ├── eventForm.test.js
+│   ├── eventPersistence.test.js
+│   ├── events.test.js
 │   ├── favorites.test.jsx
-│   ├── recurrence.test.js
-│   └── events.test.js
+│   ├── formatters.test.js
+│   └── recurrence.test.js
 ├── .env.local
+├── .env.example
 ├── .eslintrc.cjs
 ├── .prettierrc
 ├── package.json
@@ -183,6 +215,14 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0018 | `20260803000002_reminders_channel.sql` | Lembrete com offset livre (`CHECK offset_minutes > 0`) e coluna `channel` (`push`/`email`) + UNIQUE com canal |
 | 0019 | `20260803000003_fix_past_views.sql` | Views `v_past_events`/`v_ongoing_events` por timestamp completo de sessão (inclui eventos sem sessões como Realizados) |
 | 0020 | `20260806000001_add_is_confirmed.sql` | Coluna `events.is_confirmed` (default true), helper `is_staff()` e política `events_select` restrita a `is_confirmed = true OR is_staff()` |
+| 0021 | `20260806000002_events_show_placeholder.sql` | Limpa `event_photos` para todos os eventos exibirem o placeholder; ajusta sort de foto única |
+| 0022 | `20260806000003_push_subscriptions.sql` | Tabela `push_subscriptions` (endpoint, p256dh, auth) + RLS por usuário |
+| 0023 | `20260806000004_push_subscriptions_rpc.sql` | RPC `upsert_push_subscription` (SECURITY DEFINER) para gravar subscriptions |
+| 0024 | `20260806000005_notification_dispatch.sql` | Motor de disparo: outbox `notification_outbox` (eventos novos por categoria) e `reminder_dispatch` (lembretes já disparados por sessão, evita reenvio) + RPC `get_due_reminders()` + trigger `queue_new_event_notification` |
+| 0025 | `20260806000006_scheduler_cron.sql` | Habilita extensões `pg_cron` e `pg_net` (o job do cron é registrado em deploy, não versionado) |
+| 0026 | `20260806000007_fix_upsert_ambig.sql` | Corrige ambiguidade ("column reference endpoint is ambiguous") no upsert de `push_subscriptions` (DROP + CREATE com parâmetros prefixados `p_`) |
+| 0027 | `20260806000008_outbox_result.sql` | Observabilidade: coluna `result jsonb` em `notification_outbox` e `reminder_dispatch` guarda `{sent, gone, failed, total}` retornado pelo `send-push` |
+| 0028 | `20260807000000_super_admin_roles.sql` | Novo modelo de roles: `super_admin`/`ROLE_SUPER_ADMIN`, `staff`/`ROLE_ADMIN`, `client`/`ROLE_VIEWER`; reclassifica contas; RLS de escrita via `is_staff()` |
 
 ## RLS
 
@@ -203,6 +243,12 @@ Todas as tabelas têm RLS habilitado:
   admin).
 - `event_reminders`: isolado por `user_id = auth.uid()` (política `reminders_owner`).
 - `notification_settings`: isolado por `user_id = auth.uid()` (política `settings_owner`).
+- `push_subscriptions`: isolado por `user_id = auth.uid()` (select/insert/update/delete
+  do próprio usuário); o upsert multi-aparelho roda via RPC SECURITY DEFINER
+  `upsert_my_push_subscription` (troca de conta no mesmo dispositivo).
+- `notification_outbox` e `reminder_dispatch`: tabelas internas sem policies —
+  acessadas apenas pela role service_role (Edge Function) e triggers
+  SECURITY DEFINER.
 - Storage `event-photos`: leitura pública; escrita apenas autenticado.
 
 ## Auth
@@ -239,6 +285,10 @@ Todas as tabelas têm RLS habilitado:
 - Frontend usa `supabase.auth.signInWithPassword` (login) e
   `supabase.auth.signUp` (cadastro). **Alterar senha** na Config confere a
   senha atual com `signInWithPassword` e aplica `supabase.auth.updateUser`.
+- **Recuperar senha**: o `Login` tem "Esqueci minha senha" (Dialog com e-mail)
+  que chama `resetPasswordForEmail` com `redirectTo: /recuperar-senha`. A rota
+  `/recuperar-senha` (`RecoverPassword.jsx`) troca o `code` da URL por sessão
+  via `exchangeCodeForSession` e aplica a nova senha com `updateUser`.
 - `AuthContext` expõe `{ user, profile, loading, signIn, signOut, signUp }`
   e carrega o perfil de `profiles` após login/cadastro. Helpers
   `utils/auth.js`: `isStaffTier(profile)` (staff|super_admin) e
@@ -261,14 +311,20 @@ Todas as tabelas têm RLS habilitado:
 | `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação; `requireStaff` exige tier staff (staff/super_admin) e `requireAdmin` exige super admin | `App.jsx` |
 | `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile). Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
-| `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
-| `Login` | Formulário de login com botão "Criar Conta" (link para `/criar-conta`). Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
+| `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label com quebra de linha — `whiteSpace: normal` — para evitar corte) | `App.jsx` |
+| `Login` | Formulário de login com "Esqueci minha senha" (Dialog que envia link de recuperação), botão "Criar Conta" (link para `/criar-conta`) e toggle de tema respeitando o `ColorModeContext`. Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
+| `InstallAppIcon` | Ícone de download (topo direito do login) que instala via `beforeinstallprompt` ou abre modal com instruções de instalação (iOS/desktop). Oculto quando já instalado | `Login` |
+| `InstallAppButton` | Botão "Instalar App" (texto completo) com o mesmo comportamento do ícone | `Settings` |
 | `InstallAppIcon` | Ícone de download (topo direito do login) que instala via `beforeinstallprompt` ou abre modal com instruções de instalação (iOS/desktop). Oculto quando já instalado | `Login` |
 | `SignUp` | Formulário de cadastro (nome, e-mail, senha, confirmar senha); cria conta `client` via `signUp` e tela de confirmação de e-mail como fallback | Rota `/criar-conta` |
-| `EventList` | Lista de eventos com filtros e paginacao; botao "Limpar Filtros" no cabecalho | Rota `/` |
+| `RecoverPassword` | Redefinição de senha: troca o `code` da URL por sessão (`exchangeCodeForSession`) e aplica a nova senha (`updateUser`) | Rota `/recuperar-senha` |
+| `EventList` | Lista de eventos com filtros e paginacao; botao "Limpar Filtros" no cabecalho; `FilterSummary` com chips dos filtros aplicados | Rota `/` |
 | `EventCard` | Card de evento com capa, titulo, datas, valor e badges. Toast de favorito com 3s e botao fechar | `EventList`, `Favorites`, `PastEvents` |
-| `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns; chips toggle na ordem Lema Edu, Gratuito, Pago, Este mes, Proximo mes e Data Personalizada (popover com Data inicio/Data fim + Confirmar/Cancelar). Filtro de data aceita range completo ou parcial | `EventList` |
+| `EventFilters` | Filtros: categorias, modalidade e estado como dropdowns (com type-to-search, sem `readOnly`); chips toggle na ordem Lema Edu, Gratuito, Pago, Este mes, Proximo mes e Data Personalizada (popover com Data inicio/Data fim + Confirmar/Cancelar). Em mobile os filtros ficam colapsados atrás de um botão "Filtros" (toggle). Filtro de data aceita range completo ou parcial | `EventList` |
+| `FilterSummary` | Chips com os filtros ativos (categoria, modalidade, estado, datas) e remoção individual de cada um | `EventList`, `Favorites`, `PastEvents` |
 | `ClearFiltersButton` | Botao compacto "Limpar Filtros" compartilhado (fonte 0.75rem, padding reduzido, icon 16px). `disabled` quando nao ha filtros | `EventList`, `Favorites`, `PastEvents` |
+| `EmptyState` | Estado vazio compartilhado (ícone, título, descrição opcional) | `EventList`, `Favorites`, `PastEvents`, `ManageEvents` |
+| `PageSkeleton` | Skeleton de página (navbar placeholder + cards) durante o carregamento | `EventList`, `PastEvents`, `Favorites` |
 | `EventDetail` | Detalhe do evento com carrossel, sessoes, mapa, acoes e lightbox (imagem clicavel em fullscreen). Exibe as categorias do evento como chips múltiplos | Rota `/evento/:id` |
 | `MapEmbed` | Embed do Google Maps a partir de endereco em texto | `EventDetail` |
 | `Favorites` | Lista de eventos favoritados pelo usuario logado, com botao "Limpar Filtros" | Rota `/favoritos` |
@@ -278,8 +334,10 @@ Todas as tabelas têm RLS habilitado:
 | `EventFormPage` | Formulário de criar/editar/duplicar evento. Seleção de múltiplas categorias via Autocomplete multiple. Delega persistência para `services/eventPersistence.js`. | Rotas `/gestao/novo` e `/gestao/:id/editar` |
 | `Categories` | CRUD de categorias | Rota `/categorias` |
 | `SessionEditor` | CRUD de sessões (data/horário início/fim) | `EventFormPage` |
+| `SessionScopeDialog` | Dialog de escopo ao editar/excluir sessão de evento recorrente: "só esta" / "esta e as próximas" / "todas" | `SessionEditor` |
 | `RecurrenceEditor` | Toggle, frequência e data fim da recorrência | `EventFormPage` |
 | `PhotoUploader` | Upload/remove de fotos com limite 5 fotos/3MB | `EventFormPage` |
+| `PasswordToggle` | Botão "mostrar/ocultar senha" (ícone de olho) em campos de senha | `Login`, `SignUp`, `RecoverPassword`, `Settings` |
 | `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Trabalha com entradas `{ offset_minutes, channel }` e upsert com `ignoreDuplicates` (mesmo offset pode existir em push e email). Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
 | `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
@@ -292,6 +350,7 @@ Todas as tabelas têm RLS habilitado:
 |---|---|---|
 | `/login` | `Login` | Pública; usuarios logados sao redirecionados para `/` |
 | `/criar-conta` | `SignUp` | Pública; usuarios logados sao redirecionados para `/` |
+| `/recuperar-senha` | `RecoverPassword` | Pública (via link do e-mail de recuperação; redireciona logados para `/`) |
 | `/` | `EventList` | Autenticado; aceita query params para filtros |
 | `/evento/:id` | `EventDetail` | Autenticado |
 | `/favoritos` | `Favorites` | Autenticado |
@@ -357,7 +416,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 
 1. `npm install`
 2. Garantir que `.env.local` exista com `VITE_SUPABASE_URL`,
-   `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_CLI_TOKEN`
+   `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`
    e, opcionalmente, `VITE_GOOGLE_MAPS_API_KEY` para exibir o mapa embed.
 3. `supabase login`
 4. `supabase link --project-ref vrvyfgneawtceebyagak`
@@ -370,7 +429,8 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 
 ## Como testar
 
-- `npm run test:run` — roda suite Vitest (smoke test do AuthContext).
+- `npm run test:run` — roda a suite Vitest (AuthContext, formatters, favorites,
+  recurrence, events, eventForm, eventPersistence).
 - `npm run lint` — verifica ESLint.
 - `npm run build` — compila para producao.
 - Acesso a qualquer rota (incluindo `/`, `/evento/:id`, `/realizados`, `/favoritos`)
@@ -438,10 +498,13 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
 
 - App standalone fora do UNO (ADR 0001) para protótipo sem mexer no codebase legado.
 - Supabase como backend completo do protótipo (ADR 0002): PostgreSQL, Auth e Storage.
-- Auth mockada no Supabase (ADR 0003): futuramente migra para leitura do banco do UNO.
+- Auth Supabase real (o ADR 0003 previa mockada): e-mail/senha com `signInWithPassword`,
+  `signUp` (contas novas nascem `client`/`ROLE_VIEWER`) e recuperação de senha por
+  link (`resetPasswordForEmail` → `/recuperar-senha`). Sem migração para o banco
+  do UNO nesta fase.
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
-- Tema MUI com paleta institucional azul/cinza e fontes Manrope + Roboto.
-- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O CSS customizado em `index.css` reage ao atributo `[data-theme='dark']` no `<html>` (não à media query do SO), garantindo que componentes não-MUI acompanhem o estado controlado pelo app.
+- Tema MUI com paleta institucional azul/cinza e fonte Manrope.
+- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O atributo `data-theme` no `<html>` é sincronizado por compatibilidade, mas o tema é 100% MUI (via `createAppTheme(mode)` + `CssBaseline`); não há mais `index.css` com variáveis CSS próprias.
 - Eventos "Não definido" (`is_confirmed`): eventos cadastrados mas não
   confirmados ficam visíveis apenas para staff, em todas as listagens, com
   badge "A definir" e banner no detalhe. A visibilidade é garantida no banco
@@ -450,11 +513,16 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
   confirmação ao desconfirmar um evento já publicado; Gestão ganhou abas
   Confirmados/A definir. (ADR 0004.)
 - Notificações com push real: subscribe via Web Push API (VAPID), subscription
-  gravada em `push_subscriptions`, envio server-side pela Edge Function `send-push`. Push automático/lembretes por agendador é fase futura.
+  gravada em `push_subscriptions` (RPC `upsert_my_push_subscription`), envio
+  server-side pela Edge Function `send-push`. Disparo **automático** pela Edge
+  Function `notification-scheduler` agendada via `pg_cron` + `pg_net`
+  (janela de ~1–2 min), que processa o outbox de eventos novos por categoria e
+  os lembretes vencidos (`get_due_reminders`). Canal E-mail (no lembrete)
+  ainda é só configuração salva — envio "em breve".
 - Multi-categoria: eventos pertencem a várias categorias via tabela `event_categories` (M-N), sem categoria principal. Filtro de categoria casa se o evento tiver **qualquer** uma das selecionadas (`category_ids` incluído no enrich). Filtro por mais de uma categoria usa OR (não AND).
 - Lembretes com offset livre e canal: o usuário digita qualquer antecedência (unidades Minuto, Hora, Dia, Semana, Mês; 1 mês = 30 dias = 43.200 min) e escolhe o canal por lembrete (Notificação push ou E-mail). O mesmo offset pode existir nos dois canais — o UNIQUE é `(user_id, event_id, offset_minutes, channel)`.
 - Eventos Realizados por timestamp completo: `v_past_events`/`v_ongoing_events` comparam `(end_date + end_time) AT TIME ZONE 'America/Sao_Paulo'` com `now()`, não apenas a data. Eventos **sem nenhuma sessão** contam como Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
-- Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns sempre visiveis; chips Este mes, Proximo mes, Gratuito, Pago como toggle. Autocomplete com `readOnly` para evitar teclado no celular. Filtro de cidade removido (só estado como dropdown).
+- Filtros: busca (lupa) + limpar no cabecalho da listagem; categorias, modalidade e estado como dropdowns (Autocomplete com **type-to-search**, sem `readOnly`); chips Este mes, Proximo mes, Gratuito, Pago, Lema Edu e Data Personalizada como toggle. Em mobile, o painel de filtros é colapsado atrás de um botão "Filtros". Filtro de cidade removido (só estado como dropdown).
 - Layout do EventDetail: botões (Voltar, favoritar, compartilhar) e badges ficam acima da imagem, sem sobreposição, para evitar miss-click.
 - Lightbox: imagem do evento é clicável e abre em Dialog fullscreen com fundo escuro, `object-fit: contain` (sem corte) e navegação entre fotos.
 - Navbar com `position: static` (sem Toolbar spacer). Espaçamento do conteúdo gerenciado pelo padding do `<main>` (`px: 2, pt: 1.5, pb: 2`).
@@ -495,16 +563,51 @@ Fluxo completo de notificações push:
    para `userIds` explícitos ou para todos os usuários com push ativo e
    categoria compatível (`eventCategoryIds`). Requer `Authorization: service_role`.
 
-### Limitação
+### Disparo automático
 
-Lembretes **ainda não disparam automaticamente** — o envio é acionado por
-chamada à Edge Function `send-push` (manual ou via agendador/cron). O disparo
-automático (cron que consulta `event_reminders` e calcula `offset_minutes`
-antes de `start_time`, e aviso de novos eventos por categoria) é fase futura.
+O envio é agendado de verdade: a Edge Function `notification-scheduler` roda a
+cada minuto via `pg_cron` + `pg_net` e faz dois trabalhos — (1) eventos novos
+confirmados por categoria (lê o outbox `notification_outbox` populado pelo
+trigger `queue_new_event_notification` e chama `send-push` com `eventCategoryIds`)
+e (2) lembretes push vencidos (RPC `get_due_reminders()`, janela de ~1 min antes
+de `start_time`, registrados em `reminder_dispatch` para não reenviar). O job do
+cron é registrado em deploy (não versionado) por exigir a service role key.
+Canal **E-mail** do lembrete ainda não é enviado ("em breve").
 Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
-deploy da function, secrets).
+deploy das functions, secrets e registro do job).
 
 ## Histórico de mudanças
+
+- **2026-08-07** — Rodada de crítica (Impeccable) aplicada + recuperar senha:
+  - **Guard "A definir" (P0)**: cliente RPPS não acessa evento não confirmado
+    nem por URL direta — a consulta do `EventDetail` respeita a RLS e cai em
+    "Evento não encontrado.".
+  - **Acentos**: textos da UI com acentuação correta.
+  - **Type-to-search nos filtros**: Autocomplete de categorias/estado sem
+    `readOnly` (antes travava o teclado no celular).
+  - **Retry de erro**: tentativa automática ao falhar carregamento.
+  - **Labels e identidade**: rótulo padrão "Limpar Filtros", Login/SignUp/
+    RecoverPassword passam a respeitar o `ColorModeContext` (antes Login fixo
+    light), chip de filtro e raio de borda ajustados.
+  - **Docs**: tipografia unificada em Manrope (removida a menção a Roboto);
+    criados `DESIGN.md` e `.impeccable/design.json` como fonte da identidade
+    visual (token do tema, cores, espaçamento).
+  - **Recuperar senha**: dialog "Esqueci minha senha" no `Login`
+    (`resetPasswordForEmail` com `redirectTo: /recuperar-senha`) + página
+    `RecoverPassword.jsx` (troca o `code` por sessão e aplica a nova senha) +
+    componente `PasswordToggle` (olho mostrar/ocultar senha).
+
+- **2026-08-07** — Disparo automático de push (scheduler):
+  - Migrations `20260806000003` a `20260806000008`: tabela `push_subscriptions`
+    com RPC SECURITY DEFINER `upsert_my_push_subscription` (troca de conta no
+    mesmo aparelho; fix de ambiguidade em `...0007`), outbox `notification_outbox`
+    (eventos novos por categoria, populado pelo trigger
+    `queue_new_event_notification`), `reminder_dispatch` (lembretes disparados
+    por sessão, evita reenvio) e `get_due_reminders()`; extensões `pg_cron` e
+    `pg_net`; coluna `result jsonb` para auditoria de entrega.
+  - Edge Function `notification-scheduler` (agendada via cron, janela ~1–2 min)
+    processa outbox e lembretes vencidos chamando `send-push`. Runbook completo
+    em `push-notifications.md`.
 
 - **2026-08-07** — Super Admin, Painel Admin e novo modelo de roles:
   - **Novo modelo de roles** (migration `20260807000000_super_admin_roles.sql`):

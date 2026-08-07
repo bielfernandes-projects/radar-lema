@@ -43,6 +43,6 @@ describe('EventCard favoritar', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByLabelText('Favoritar').querySelector('svg')).not.toBeNull()
+    expect(screen.getByLabelText('Remover dos favoritos').querySelector('svg')).not.toBeNull()
   })
 })

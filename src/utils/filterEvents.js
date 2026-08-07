@@ -28,7 +28,16 @@ export function filterEvents(events, filters, categories, options = {}) {
   }
 
   if (filters.modalities?.length > 0) {
-    const values = new Set(filters.modalities.map((m) => MODALITY_LABELS[m]))
+    const values = new Set(
+      filters.modalities.map((modality) => {
+        const value = MODALITY_LABELS[modality]
+        if (value) return value
+        return modality
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+      })
+    )
     result = result.filter((event) => values.has(event.modality))
   }
 

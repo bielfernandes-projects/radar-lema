@@ -25,13 +25,14 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import SessionEditor from '../components/SessionEditor'
 import RecurrenceEditor from '../components/RecurrenceEditor'
 import PhotoUploader from '../components/PhotoUploader'
 import SessionScopeDialog from '../components/SessionScopeDialog'
+import PageSkeleton from '../components/PageSkeleton'
 import { generateRecurringSessions } from '../utils/recurrence'
 import { parseDateTime, calculateDelta, applyDelta, emptySession, validate } from '../utils/eventForm'
 import { persistEvent } from '../services/eventPersistence'
@@ -39,7 +40,7 @@ import { persistEvent } from '../services/eventPersistence'
 const MODALITY_OPTIONS = [
   { value: 'presencial', label: 'Presencial' },
   { value: 'online', label: 'Online' },
-  { value: 'hibrido', label: 'Hibrido' }
+  { value: 'hibrido', label: 'Híbrido' }
 ]
 
 const EMPTY_FORM = {
@@ -166,6 +167,10 @@ export default function EventFormPage() {
       setCategories(categoriesData || [])
 
       if (!isEdit) {
+        initialFormRef.current = JSON.stringify({
+          form: EMPTY_FORM,
+          sessions: [emptySession()]
+        })
         setLoading(false)
         return
       }
@@ -275,7 +280,7 @@ export default function EventFormPage() {
 
     const base = sessions[0]
     if (!base) {
-      setError('Adicione a primeira sessao antes de gerar recorrencia.')
+      setError('Adicione a primeira sessão antes de gerar a recorrência.')
       return
     }
 
@@ -304,13 +309,18 @@ export default function EventFormPage() {
       .filter(Boolean)
   }
 
-  const applySessionScope = (scope) => {
-    if (scope === 'single' || originalSessions.length === 0) {
-      return sessions
+  const getScopePlan = (scope) => {
+    if (originalSessions.length === 0) {
+      return { sessions, affectedIds: new Set() }
     }
 
     const changed = getChangedSessions()
-    if (changed.length === 0) return sessions
+    const changedIds = new Set(changed.map((c) => c.current.id).filter(Boolean))
+    const affectedIds = new Set(changedIds)
+
+    if (scope === 'single' || changed.length === 0) {
+      return { sessions, affectedIds }
+    }
 
     const reference = changed.reduce((acc, item) => {
       const refDate = parseDateTime(acc.current.start_date, acc.current.start_time)
@@ -320,9 +330,8 @@ export default function EventFormPage() {
 
     const delta = calculateDelta(reference.original, reference.current)
     const referenceStartDate = reference.current.start_date
-    const changedIds = new Set(changed.map((c) => c.current.id).filter(Boolean))
 
-    return sessions.map((session) => {
+    const next = sessions.map((session) => {
       if (changedIds.has(session.id)) {
         return session
       }
@@ -334,9 +343,14 @@ export default function EventFormPage() {
         return session
       }
 
+      affectedIds.add(session.id)
       return applyDelta(session, delta)
     })
+
+    return { sessions: next, affectedIds }
   }
+
+  const applySessionScope = (scope) => getScopePlan(scope).sessions
 
   const handlePersist = async (sessionsToSave) => {
     setSaving(true)
@@ -416,9 +430,9 @@ export default function EventFormPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        <PageSkeleton lines={8} />
+      </Container>
     )
   }
 
@@ -426,7 +440,7 @@ export default function EventFormPage() {
     <Container maxWidth="md" sx={{ py: 2 }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         <Button
-          startIcon={<ArrowBackIcon />}
+          startIcon={<ArrowLeft size={20} />}
           onClick={() => navigate('/gestao')}
         >
           Voltar
@@ -439,6 +453,12 @@ export default function EventFormPage() {
       {error && (
         <Alert ref={errorRef} severity="error" sx={{ mb: 3 }}>
           {error}
+        </Alert>
+      )}
+
+      {isDuplicate && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Fotos não são copiadas na duplicação — reenvie-as antes de salvar.
         </Alert>
       )}
 
@@ -461,7 +481,7 @@ export default function EventFormPage() {
             />
 
             <TextField
-              label="Descricao"
+              label="Descrição"
               fullWidth
               required={!form.is_tentative}
               multiline
@@ -499,7 +519,6 @@ export default function EventFormPage() {
                   label="Categorias"
                   required={!form.is_tentative}
                   helperText="Selecione uma ou mais categorias do evento."
-                  inputProps={{ ...params.inputProps, readOnly: true }}
                 />
               )}
               fullWidth
@@ -584,7 +603,7 @@ export default function EventFormPage() {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField
-                    label="Endereco"
+                    label="Endereço"
                     fullWidth
                     required={!form.is_tentative}
                     value={form.address}
@@ -738,6 +757,7 @@ export default function EventFormPage() {
         open={scopeDialogOpen}
         onClose={() => setScopeDialogOpen(false)}
         onConfirm={handleConfirmScope}
+        getScopeCount={(scope) => getScopePlan(scope).affectedIds.size}
       />
 
       <Dialog open={blockerDialogOpen} onClose={handleBlockerCancel}>

@@ -62,7 +62,8 @@ Confirmar no Dashboard em **Edge Functions** que as secrets estão setadas.
 ## Passo 4 — Testar o envio
 
 Abre o app **em produção/HTTPS** (push não funciona em contextos inseguros
-nem no `npm run dev`, pois ainda não há SW). Ative "Receber notificações
+nem no `npm run dev`, pois o service worker é registrado apenas no build —
+`devOptions.enabled: false` no `vite-plugin-pwa`). Ative "Receber notificações
 push" na Config — vai pedir permissão e gravar a subscription. Depois dispara
 um envio de teste:
 

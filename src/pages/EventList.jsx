@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
+  Alert,
   Box,
+  Button,
   Container,
   Grid,
   Pagination,
   Skeleton,
   Stack,
   TextField,
-  Typography,
-  Alert
+  Typography
 } from '@mui/material'
+import { CalendarX2 } from 'lucide-react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchAllEventsWithMeta } from '../services/eventData'
@@ -18,10 +20,13 @@ import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
+import FilterSummary from '../components/FilterSummary'
+import EmptyState from '../components/EmptyState'
 
 const PAGE_SIZE = 12
 
 export default function EventList() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { favoriteIds, toggleFavorite } = useFavorites()
   const [events, setEvents] = useState([])
@@ -29,6 +34,7 @@ export default function EventList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +53,7 @@ export default function EventList() {
     }
 
     fetchData()
-  }, [])
+  }, [reload])
 
   const filters = useMemo(() => ({
     q: searchParams.get(URL_PARAMS.SEARCH) || '',
@@ -120,6 +126,8 @@ export default function EventList() {
 
       <EventFilters categories={categories} showCustomDateFilter />
 
+      <FilterSummary />
+
       {loading ? (
         <Grid container spacing={3}>
           {Array.from({ length: 8 }).map((_, i) => (
@@ -129,7 +137,15 @@ export default function EventList() {
           ))}
         </Grid>
       ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mt: 2 }}
+          action={
+            <Button size="small" color="inherit" onClick={() => setReload((r) => r + 1)}>
+              Tentar novamente
+            </Button>
+          }
+        >
           {error}
         </Alert>
       ) : (
@@ -154,9 +170,15 @@ export default function EventList() {
           </Grid>
 
           {filteredEvents.length === 0 && (
-            <Alert severity="info" sx={{ mt: 4 }}>
-              Nenhum evento encontrado com os filtros selecionados.
-            </Alert>
+            <EmptyState
+              icon={CalendarX2}
+              title="Nenhum evento encontrado"
+              message="Não há eventos que combinem com esses filtros agora. Ajuste a busca ou explore os realizados."
+              actions={[
+                { label: 'Limpar filtros', onClick: clearFilters },
+                { label: 'Ver realizados', onClick: () => navigate('/realizados') }
+              ]}
+            />
           )}
 
           {pageCount > 1 && (

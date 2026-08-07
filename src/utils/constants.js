@@ -12,11 +12,15 @@ export const URL_PARAMS = {
   LEMA_EDU: 'lema-edu'
 }
 
-export const MODALITY_LABELS = {
-  Presencial: 'presencial',
-  Online: 'online',
-  Híbrido: 'hibrido'
-}
+export const MODALITY_OPTIONS = [
+  { label: 'Presencial', value: 'presencial' },
+  { label: 'Online', value: 'online' },
+  { label: 'Híbrido', value: 'hibrido' }
+]
+
+export const MODALITY_LABELS = Object.fromEntries(
+  MODALITY_OPTIONS.map((option) => [option.label, option.value])
+)
 
 export const REMINDER_UNITS = [
   { value: 'minute', label: 'minuto', plural: 'minutos', minutes: 1 },
@@ -38,11 +42,11 @@ export const UFs = [
 ]
 
 export const NAV_ITEMS = [
-  { label: 'Eventos', path: '/', icon: 'CalendarMonth', show: () => true },
-  { label: 'Favoritos', path: '/favoritos', icon: 'Favorite', show: (user) => !!user },
+  { label: 'Eventos', path: '/', icon: 'CalendarDays', show: () => true },
+  { label: 'Favoritos', path: '/favoritos', icon: 'Heart', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
   { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
-  { label: 'Categorias', path: '/categorias', icon: 'Category', show: (user) => isStaffTier(user) },
-  { label: 'Gestão', path: '/gestao', icon: 'ManageAccounts', show: (user) => isStaffTier(user) },
-  { label: 'Painel Admin', path: '/admin', icon: 'AdminPanelSettings', show: (user) => isSuperAdmin(user) }
+  { label: 'Categorias', path: '/categorias', icon: 'FolderTree', show: (user) => isStaffTier(user) },
+  { label: 'Gestão', path: '/gestao', icon: 'UserCog', show: (user) => isStaffTier(user) },
+  { label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck', show: (user) => isSuperAdmin(user), group: 'admin' }
 ]

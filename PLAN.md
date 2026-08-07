@@ -12,7 +12,7 @@
 |---|---|
 | Frontend | Vite + React 18 + Material UI v7 |
 | Roteamento | react-router-dom v6 |
-| Tipografia | Manrope + Roboto (mesma do UNO) |
+| Tipografia | Manrope (fonte única) |
 | Backend | Supabase (PostgreSQL + Storage + Auth) |
 | Supabase IaC | `supabase` CLI (migrations + seed, zero Dashboard) |
 | PWA | `vite-plugin-pwa` + Workbox (manifest + service worker) |
@@ -498,7 +498,7 @@ decisão técnica, adicionar dependência.
 1. `npm create vite@latest` (React) + instalar deps: MUI v7, `@mui/icons-material`, `@supabase/supabase-js`, `react-router-dom`, `vite-plugin-pwa`, ESLint, Prettier, Vitest, Testing Library
 2. Configurar `.env.local` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (já existem)
 3. Configurar ESLint (`.eslintrc.cjs`) + Prettier (`.prettierrc`) + scripts `lint`/`format` no `package.json`
-4. Criar `theme.js` alinhado ao UNO (cores, Manrope/Roboto)
+4. Criar `theme.js` alinhado ao UNO (cores, Manrope)
 5. `supabase login` + `supabase link --project-ref vrvyfgneawtceebyagak`
 6. Criar migrations 0001..0010 via `supabase migration new` e aplicar com `supabase migration up`
 7. Criar `supabase/seed.sql` + migrations 0011..0013 (categorias, 2 usuários mock, 6 eventos exemplo) + `supabase db reset`

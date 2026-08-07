@@ -1,29 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
+  Alert,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Paper,
   TextField,
   Typography,
-  Alert,
   CircularProgress
 } from '@mui/material'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from '../theme/theme'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useColorMode } from '../contexts/ColorModeContext'
 import InstallAppIcon from '../components/InstallAppIcon'
+import PasswordToggle from '../components/PasswordToggle'
 
 export default function Login() {
   const navigate = useNavigate()
   const { user, loading, signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSending, setForgotSending] = useState(false)
+  const [forgotMessage, setForgotMessage] = useState('')
+  const [forgotError, setForgotError] = useState('')
 
-  const lightTheme = useMemo(() => createAppTheme('light'), [])
+  const { mode } = useColorMode()
+  const theme = useMemo(() => createAppTheme(mode), [mode])
 
   useEffect(() => {
     if (!loading && user) {
@@ -51,8 +66,35 @@ export default function Login() {
     }
   }
 
+  const openForgotDialog = () => {
+    setForgotEmail(email)
+    setForgotMessage('')
+    setForgotError('')
+    setForgotOpen(true)
+  }
+
+  const handleForgotSubmit = async (event) => {
+    event.preventDefault()
+    setForgotSending(true)
+    setForgotMessage('')
+    setForgotError('')
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      forgotEmail.trim(),
+      { redirectTo: `${window.location.origin}/recuperar-senha` }
+    )
+
+    setForgotSending(false)
+
+    if (resetError) {
+      setForgotError('Erro ao enviar o e-mail. Tente novamente.')
+    } else {
+      setForgotMessage('Enviamos um link de recuperação para o seu e-mail.')
+    }
+  }
+
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
         sx={{
@@ -78,7 +120,7 @@ export default function Login() {
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-              Descubra o seu proximo evento para RPPS
+              Descubra o seu próximo evento para RPPS
             </Typography>
           </Box>
 
@@ -103,14 +145,28 @@ export default function Login() {
 
             <TextField
               label="Senha"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
               margin="normal"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="current-password"
+              InputProps={{
+                endAdornment: (
+                  <PasswordToggle
+                    show={showPassword}
+                    onToggle={() => setShowPassword((prev) => !prev)}
+                  />
+                )
+              }}
             />
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
+              <Button size="small" onClick={openForgotDialog} sx={{ textTransform: 'none' }}>
+                Esqueci minha senha
+              </Button>
+            </Box>
 
             <Typography
               variant="caption"
@@ -143,6 +199,51 @@ export default function Login() {
               Criar Conta
             </Button>
           </Box>
+
+          <Dialog open={forgotOpen} onClose={() => setForgotOpen(false)} fullWidth maxWidth="xs">
+            <DialogTitle>Recuperar senha</DialogTitle>
+            <Box component="form" onSubmit={handleForgotSubmit} noValidate>
+              <DialogContent>
+                <DialogContentText sx={{ mb: 2 }}>
+                  Informe o e-mail cadastrado e enviaremos um link para redefinir sua
+                  senha.
+                </DialogContentText>
+                {forgotError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {forgotError}
+                  </Alert>
+                )}
+                {forgotMessage && (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    {forgotMessage}
+                  </Alert>
+                )}
+                <TextField
+                  label="E-mail"
+                  type="email"
+                  fullWidth
+                  autoFocus
+                  value={forgotEmail}
+                  onChange={(event) => setForgotEmail(event.target.value)}
+                  required
+                  autoComplete="email"
+                  disabled={Boolean(forgotMessage)}
+                />
+              </DialogContent>
+              <DialogActions sx={{ p: 2, pt: 0 }}>
+                <Button onClick={() => setForgotOpen(false)} disabled={forgotSending}>
+                  Fechar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={forgotSending || Boolean(forgotMessage)}
+                >
+                  {forgotSending ? <CircularProgress size={20} /> : 'Enviar link'}
+                </Button>
+              </DialogActions>
+            </Box>
+          </Dialog>
         </Paper>
       </Box>
     </ThemeProvider>

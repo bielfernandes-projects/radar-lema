@@ -13,10 +13,12 @@ import {
   Stack,
   TextField
 } from '@mui/material'
-import { URL_PARAMS, UFs } from '../utils/constants'
+import { ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
+import { MODALITY_OPTIONS, URL_PARAMS, UFs } from '../utils/constants'
 
 export default function EventFilters({ categories, showCustomDateFilter = false }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [rangeAnchor, setRangeAnchor] = useState(null)
   const [draftFrom, setDraftFrom] = useState('')
   const [draftTo, setDraftTo] = useState('')
@@ -94,7 +96,18 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Stack spacing={2}>
+      <Button
+        onClick={() => setFiltersOpen((prev) => !prev)}
+        startIcon={<SlidersHorizontal size={18} />}
+        endIcon={filtersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        aria-expanded={filtersOpen}
+        color="inherit"
+        sx={{ display: { md: 'none' }, mb: 1 }}
+      >
+        Filtros
+      </Button>
+
+      <Stack spacing={2} sx={{ display: { xs: filtersOpen ? 'flex' : 'none', md: 'flex' } }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={2}
@@ -117,14 +130,14 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
               ))
             }
             renderInput={(params) => (
-              <TextField {...params} label="Categorias" inputProps={{ ...params.inputProps, readOnly: true }} />
+              <TextField {...params} label="Categorias" />
             )}
             sx={{ minWidth: 200, flex: 1 }}
           />
 
           <Autocomplete
             multiple
-            options={['Presencial', 'Online', 'Hibrido']}
+            options={MODALITY_OPTIONS.map((option) => option.label)}
             value={filters.modalities}
             onChange={(event, value) => updateParam(URL_PARAMS.MODALITIES, value)}
             renderTags={(value, getTagProps) =>
@@ -139,7 +152,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
               ))
             }
             renderInput={(params) => (
-              <TextField {...params} label="Modalidade" inputProps={{ ...params.inputProps, readOnly: true }} />
+              <TextField {...params} label="Modalidade" />
             )}
             sx={{ minWidth: 160, flex: 1 }}
           />
@@ -173,17 +186,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
                 ? { color: '#fff' }
                 : (theme) => ({
                     color: theme.palette.mode === 'dark' ? '#fff' : theme.palette.text.primary,
-                    borderColor: 'primary.main',
-                    background:
-                      theme.palette.mode === 'dark'
-                        ? 'linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.20) 40%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.20) 60%, transparent 80%)'
-                        : 'linear-gradient(110deg, transparent 20%, rgba(25,118,210,0.08) 40%, rgba(25,118,210,0.18) 50%, rgba(25,118,210,0.08) 60%, transparent 80%)',
-                    backgroundSize: '200% 100%',
-                    animation: 'chipShimmer 4s ease-in-out infinite',
-                    '@keyframes chipShimmer': {
-                      '0%': { backgroundPosition: '-200% 0' },
-                      '100%': { backgroundPosition: '200% 0' }
-                    }
+                    borderColor: 'primary.main'
                   })
             }
             onClick={() => toggleChip(URL_PARAMS.LEMA_EDU, filters.lemaEdu ? '' : 'true')}
@@ -203,14 +206,14 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
             onClick={() => toggleChip(URL_PARAMS.PRICE, 'paid')}
           />
           <Chip
-            label="Este mes"
+            label="Este mês"
             clickable
             color={filters.datePresets.includes('this-month') ? 'primary' : 'default'}
             variant={filters.datePresets.includes('this-month') ? 'filled' : 'outlined'}
             onClick={() => toggleDatePreset('this-month')}
           />
           <Chip
-            label="Proximo mes"
+            label="Próximo mês"
             clickable
             color={filters.datePresets.includes('next-month') ? 'primary' : 'default'}
             variant={filters.datePresets.includes('next-month') ? 'filled' : 'outlined'}

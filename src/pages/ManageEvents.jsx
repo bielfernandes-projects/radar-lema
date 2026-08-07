@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Container,
   Dialog,
   DialogActions,
@@ -20,15 +19,13 @@ import {
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import EditIcon from '@mui/icons-material/Edit'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import DeleteIcon from '@mui/icons-material/Delete'
-import CloseIcon from '@mui/icons-material/Close'
+import { Plus, Pencil, Copy, Trash2, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDateRange, formatPrice } from '../utils/formatters'
+import PageSkeleton from '../components/PageSkeleton'
 
 export default function ManageEvents() {
   const navigate = useNavigate()
@@ -140,9 +137,9 @@ export default function ManageEvents() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        <PageSkeleton />
+      </Container>
     )
   }
 
@@ -159,7 +156,7 @@ export default function ManageEvents() {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
+          startIcon={<Plus size={20} />}
           onClick={() => navigate('/gestao/novo')}
         >
           Novo evento
@@ -167,7 +164,15 @@ export default function ManageEvents() {
       </Stack>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button size="small" color="inherit" onClick={fetchEvents}>
+              Tentar novamente
+            </Button>
+          }
+        >
           {error}
         </Alert>
       )}
@@ -268,29 +273,35 @@ export default function ManageEvents() {
                   </Box>
 
                   <Stack direction="row" spacing={1}>
-                    <IconButton
-                      onClick={() => navigate(`/gestao/${event.id}/editar`)}
-                      aria-label="Editar"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() =>
-                        navigate(`/gestao/${event.id}/editar?modo=duplicar`)
-                      }
-                      aria-label="Duplicar"
-                    >
-                      <ContentCopyIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() =>
-                        setDeleteDialog({ open: true, event })
-                      }
-                      color="error"
-                      aria-label="Excluir"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title="Editar evento">
+                      <IconButton
+                        onClick={() => navigate(`/gestao/${event.id}/editar`)}
+                        aria-label="Editar"
+                      >
+                        <Pencil size={20} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Duplicar evento">
+                      <IconButton
+                        onClick={() =>
+                          navigate(`/gestao/${event.id}/editar?modo=duplicar`)
+                        }
+                        aria-label="Duplicar"
+                      >
+                        <Copy size={20} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Excluir evento">
+                      <IconButton
+                        onClick={() =>
+                          setDeleteDialog({ open: true, event })
+                        }
+                        color="error"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={20} />
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
                 </Stack>
               </CardContent>
@@ -333,7 +344,7 @@ export default function ManageEvents() {
             aria-label="Fechar"
             onClick={() => setDeleteSnackbar(false)}
           >
-            <CloseIcon fontSize="small" />
+            <X size={18} />
           </IconButton>
         }
       />

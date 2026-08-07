@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-07T14:20:00.000Z",
+  "title": "Design System: Radar Lema",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Azul Radar",
+        "canonical": "#1976d2",
+        "tonalRamp": ["#174a7a", "#155494", "#1563b4", "#1976d2", "#2f8be8", "#59a8f4", "#8ec6fa", "#bcdcfd", "#d9ecfe", "#eef6ff"]
+      },
+      "favorite": {
+        "role": "tertiary",
+        "displayName": "Rosa Radar",
+        "canonical": "#e0436f",
+        "tonalRamp": ["#bf3357", "#d63a62", "#e0436f", "#ec668b", "#f07497", "#f79ab5", "#fcc0d2", "#ffdbe6", "#ffecf1", "#fff7f9"]
+      },
+      "neutral": {
+        "role": "neutral",
+        "displayName": "Grafite Tinta",
+        "canonical": "#232840",
+        "tonalRamp": ["#1b1f33", "#232840", "#3b4155", "#565d73", "#6b738a", "#82899e", "#a6adbe", "#c6cbd8", "#dfe2ea", "#eef0f4"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Capas de seção e título do evento no detalhe; uso raro." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos de páginas principais." },
+      "title": { "displayName": "Title", "purpose": "Títulos de card e seções de formulário." },
+      "body": { "displayName": "Body", "purpose": "Texto corrente e descrições; ~65ch de linha." },
+      "label": { "displayName": "Label", "purpose": "Metadados, chips, itens de menu, tabs." }
+    },
+    "shadows": [
+      { "name": "card-light", "value": "0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.06)", "purpose": "Flutuação ambiental dos cards no modo claro. Única sombra do sistema." },
+      { "name": "card-dark", "value": "0 1px 2px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.25)", "purpose": "Mesma leitura de profundidade sobre fundo noturno." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "600px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1200px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão Primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal: inscrever, salvar, entrar.",
+      "html": "<button class=\"ds-btn-primary\">Inscrever-se</button>",
+      "css": ".ds-btn-primary { background: #1976d2; color: #ffffff; font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; font-size: 14px; font-weight: 700; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s ease; } .ds-btn-primary:hover { background: #155494; } .ds-btn-primary:active { background: #1563b4; } .ds-btn-primary:focus-visible { outline: 2px solid #1976d2; outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão Fantasma",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação secundária em texto azul.",
+      "html": "<button class=\"ds-btn-ghost\">Ver realizados</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #1976d2; font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; font-size: 14px; font-weight: 700; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s ease; } .ds-btn-ghost:hover { background: rgba(25, 118, 210, 0.08); } .ds-btn-ghost:focus-visible { outline: 2px solid #1976d2; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de Busca",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Busca das listagens e campos de formulário.",
+      "html": "<input class=\"ds-input\" placeholder=\"Buscar eventos\" aria-label=\"Buscar eventos\" />",
+      "css": ".ds-input { font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; font-size: 14px; padding: 10px 14px; border: 1px solid #c6cbd8; border-radius: 10px; background: #ffffff; color: #1e293b; width: 100%; box-sizing: border-box; transition: border-color 0.2s ease; } .ds-input::placeholder { color: #82899e; } .ds-input:focus { outline: none; border-color: #1976d2; } .ds-input:focus-visible { outline: 2px solid rgba(25, 118, 210, 0.25); outline-offset: 1px; }"
+    },
+    {
+      "name": "Chip de Filtro",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Categorias e filtros selecionáveis.",
+      "html": "<span class=\"ds-chip\">Comitê</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; font-size: 13px; font-weight: 600; padding: 6px 12px; background: #eef0f4; color: #3b4155; border-radius: 14px; } .ds-chip-selected { background: #1976d2; color: #ffffff; }"
+    },
+    {
+      "name": "Navegação Desktop",
+      "kind": "nav",
+      "refersTo": "nav-appbar",
+      "description": "AppBar azul com item ativo em pill branca.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-link\">Eventos</span><span class=\"ds-nav-link ds-nav-active\">Favoritos</span><span class=\"ds-nav-link\">Realizados</span></nav>",
+      "css": ".ds-nav { display: inline-flex; gap: 4px; background: #1976d2; padding: 8px; border-radius: 10px; } .ds-nav-link { font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 10px; cursor: pointer; } .ds-nav-link:hover { background: rgba(255,255,255,0.12); } .ds-nav-active { background: rgba(255,255,255,0.2); color: #ffffff; font-weight: 800; }"
+    },
+    {
+      "name": "Card de Evento",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Card da listagem: capa, título, datas, valor.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-cover\"></div><h3 class=\"ds-card-title\">Congresso de RPPS</h3><p class=\"ds-card-meta\">15 a 16 de setembro de 2026</p><p class=\"ds-card-price\">A partir de R$ 500,00</p></div>",
+      "css": ".ds-card { background: #ffffff; border-radius: 14px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.06); padding: 16px; max-width: 280px; font-family: \"Manrope\", \"Helvetica Neue\", Arial, sans-serif; } .ds-card-cover { height: 140px; background: linear-gradient(135deg, #d9ecfe, #8ec6fa); border-radius: 10px; } .ds-card-title { font-weight: 800; font-size: 18px; color: #1e293b; margin: 12px 0 4px; } .ds-card-meta { font-size: 13px; color: #5f6b7e; margin: 0; } .ds-card-price { font-weight: 700; font-size: 14px; color: #1976d2; margin: 8px 0 0; }"
+    },
+    {
+      "name": "Coração de Favorito",
+      "kind": "custom",
+      "refersTo": "favorite-icon",
+      "description": "Estado favoritado em Rosa Radar.",
+      "html": "<button class=\"ds-fav\" aria-label=\"Remover dos favoritos\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"#e0436f\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.51 4.04 3 5.5l7 7Z\"/></svg></button>",
+      "css": ".ds-fav { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 1px 2px rgba(15,23,42,0.08), 0 2px 8px rgba(15,23,42,0.1); } .ds-fav:focus-visible { outline: 2px solid #e0436f; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Farol Azul",
+    "overview": "O Radar Lema é o farol do ecossistema RPPS: um azul estável, sóbrio e de confiança navega o usuário pelos eventos da Lema. A direção do redesign foi explícita — \"manter azul, só recompor\". A identidade herdada (o azul âncora #1976d2) permanece intocada em matiz; o que mudou foi o tom: uma escala azul completa com brilhos mais frios, uma escala neutra dedicada para texto/superfície, tipografia Manrope em uma única voz, cantos generosos e sombra de card discreta. O rosa dos favoritos é a única concessão — um sinal de afeto que não compete com o azul da marca. Densidade média-baixa, ar limpo e um único acento. A estética não grita: é o material de quem cuida de previdência.",
+    "keyCharacteristics": [
+      "Um único acento de marca (azul) em todas as telas; o rosa é reservado ao coração de favorito.",
+      "Manrope como única família tipográfica, com peso e hierarquia claros (800 display/título, 700 botões, 600 subtítulos).",
+      "Cantos generosos e consistentes: 10px em controles, 14px em cards.",
+      "Cards flutuam com sombra suave; o resto da interface é plana, sem bordas duras.",
+      "Barra de navegação desktop usa pills brancas semitransparentes no item ativo."
+    ],
+    "rules": [
+      { "name": "The Blue Anchor Rule", "body": "#1976d2 é a única cor de marca. Toda recomposição muda tom, tipo e espaço — nunca o matiz. Se uma cor de marca nova for necessária, a decisão é de produto, não de estilo.", "section": "colors" },
+      { "name": "The Favorite Rose Rule", "body": "O coração favoritado usa favorite.main (#e0436f). Nunca usar vermelho de error nem cinza para expressar favorito.", "section": "colors" },
+      { "name": "The Single Voice Rule", "body": "Manrope em todos os níveis. Não misturar com outra família (Roboto foi removida de index.html).", "section": "typography" },
+      { "name": "The Quiet Elevation Rule", "body": "Cards flutuam; todo o resto é plano. Bordas duras em cards são desencorajadas — profundidade é sinalizada por sombra, não por contorno.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar primary.main (#1976d2) para todo acento de marca: AppBar, botão primário, seleção, links, gráficos de usuários.",
+      "Do reservar favorite.main (#e0436f) exclusivamente para o estado favoritado e o gráfico de favoritos.",
+      "Do usar Manrope em tudo, com pesos 800 (títulos), 700 (botões) e 600 (labels/chips).",
+      "Do manter cantos de 10px em controles e 14px em cards.",
+      "Do sinalizar profundidade com sombra suave de card; o resto permanece plano."
+    ],
+    "donts": [
+      "Don't trocar o matiz azul por outra cor de marca (a recomposição é de tom, tipo e espaço).",
+      "Don't usar error ou cinza para o coração favoritado — favorito é rosa.",
+      "Don't adicionar uma segunda família tipográfica (Roboto foi removida).",
+      "Don't colocar bordas duras em cards — elevação vem da sombra.",
+      "Don't animar chips institucionais com shimmer; o tom é sóbrio."
+    ]
+  }
+}

@@ -113,4 +113,30 @@ describe('validate', () => {
       'Preencha data e horário de todas as sessões.'
     )
   })
+
+  it('rejeita sessão com fim antes do início', () => {
+    const reversed = [
+      {
+        start_date: '2026-09-01',
+        start_time: '18:00:00',
+        end_date: '2026-09-01',
+        end_time: '09:00:00'
+      }
+    ]
+    expect(validate(baseForm, reversed)).toBe(
+      'A data/horário de fim deve ser depois do início em todas as sessões.'
+    )
+  })
+
+  it('aceita sessão com fim no mesmo horário do início', () => {
+    const same = [
+      {
+        start_date: '2026-09-01',
+        start_time: '09:00:00',
+        end_date: '2026-09-01',
+        end_time: '09:00:00'
+      }
+    ]
+    expect(validate(baseForm, same)).toBe('')
+  })
 })

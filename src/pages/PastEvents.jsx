@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Box,
+  Button,
   Container,
   Grid,
   Pagination,
@@ -11,6 +12,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { CalendarX2 } from 'lucide-react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchPastEventsWithMeta } from '../services/eventData'
@@ -18,6 +20,8 @@ import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
 import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
+import FilterSummary from '../components/FilterSummary'
+import EmptyState from '../components/EmptyState'
 
 const PAGE_SIZE = 12
 
@@ -29,6 +33,7 @@ export default function PastEvents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +52,7 @@ export default function PastEvents() {
     }
 
     fetchData()
-  }, [])
+  }, [reload])
 
   const filters = useMemo(() => ({
     q: searchParams.get(URL_PARAMS.SEARCH) || '',
@@ -114,6 +119,8 @@ export default function PastEvents() {
 
       <EventFilters categories={categories} />
 
+      <FilterSummary />
+
       {loading ? (
         <Grid container spacing={3}>
           {Array.from({ length: 8 }).map((_, i) => (
@@ -123,7 +130,15 @@ export default function PastEvents() {
           ))}
         </Grid>
       ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mt: 2 }}
+          action={
+            <Button size="small" color="inherit" onClick={() => setReload((r) => r + 1)}>
+              Tentar novamente
+            </Button>
+          }
+        >
           {error}
         </Alert>
       ) : (
@@ -148,9 +163,12 @@ export default function PastEvents() {
           </Grid>
 
           {filteredEvents.length === 0 && (
-            <Alert severity="info" sx={{ mt: 4 }}>
-              Nenhum evento realizado encontrado com os filtros selecionados.
-            </Alert>
+            <EmptyState
+              icon={CalendarX2}
+              title="Nenhum evento realizado encontrado"
+              message="Nenhum evento passado combina com esses filtros."
+              actions={[{ label: 'Limpar filtros', onClick: clearFilters }]}
+            />
           )}
 
           {pageCount > 1 && (

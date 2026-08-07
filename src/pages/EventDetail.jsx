@@ -5,6 +5,7 @@ import { isStaffTier } from '../utils/auth'
 import { useFavorites } from '../hooks/useFavorites'
 import { useReminders } from '../hooks/useReminders'
 import ReminderDialog from '../components/ReminderDialog'
+import PageSkeleton from '../components/PageSkeleton'
 import {
   Alert,
   Box,
@@ -18,20 +19,21 @@ import {
   MobileStepper,
   Paper,
   Stack,
-  Typography,
-  CircularProgress
+  Tooltip,
+  Typography
 } from '@mui/material'
-import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft'
-import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
-import ArrowBack from '@mui/icons-material/ArrowBack'
-import Close from '@mui/icons-material/Close'
-import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
-import Favorite from '@mui/icons-material/Favorite'
-import Share from '@mui/icons-material/Share'
-import EditIcon from '@mui/icons-material/Edit'
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import PlaceIcon from '@mui/icons-material/Place'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  X,
+  Heart,
+  Share2,
+  Pencil,
+  CalendarDays,
+  MapPin,
+  ExternalLink
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import MapEmbed from '../components/MapEmbed'
 import {
@@ -125,10 +127,10 @@ export default function EventDetail() {
     } else {
       try {
         await navigator.clipboard.writeText(url)
-        setToast('Link copiado para a area de transferencia')
+        setToast('Link copiado para a área de transferência')
         setTimeout(() => setToast(''), 3000)
       } catch {
-        setToast('Nao foi possivel copiar o link')
+        setToast('Não foi possível copiar o link')
       }
     }
   }
@@ -142,9 +144,9 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ pt: 0, pb: 2 }}>
+        <PageSkeleton />
+      </Container>
     )
   }
 
@@ -176,47 +178,56 @@ export default function EventDetail() {
         justifyContent="space-between"
         sx={{ mb: 0.5 }}
       >
-        <IconButton onClick={() => window.history.back()} aria-label="Voltar">
-          <ArrowBack />
-        </IconButton>
+        <Tooltip title="Voltar">
+          <IconButton onClick={() => window.history.back()} aria-label="Voltar">
+            <ArrowLeft />
+          </IconButton>
+        </Tooltip>
 
         <Stack direction="row" spacing={0.5}>
           {isStaffTier(profile) && (
-            <IconButton
-              onClick={() => navigate(`/gestao/${id}/editar`)}
-              aria-label="Editar evento"
-              color="primary"
-            >
-              <EditIcon />
-            </IconButton>
+            <Tooltip title="Editar evento">
+              <IconButton
+                onClick={() => navigate(`/gestao/${id}/editar`)}
+                aria-label="Editar evento"
+                color="primary"
+              >
+                <Pencil size={22} />
+              </IconButton>
+            </Tooltip>
           )}
-          <IconButton
-            onClick={async () => {
-              const result = await toggleFavorite(id)
-              if (result?.error) {
-                setToast('Erro ao atualizar favorito.')
-              } else {
-                if (result?.favorited && !hasRemindersForEvent(id)) {
-                  setReminderOpen(true)
+          <Tooltip title={favoriteIds.has(id) ? 'Remover dos favoritos' : 'Favoritar'}>
+            <IconButton
+              onClick={async () => {
+                const result = await toggleFavorite(id)
+                if (result?.error) {
+                  setToast('Erro ao atualizar favorito.')
+                } else {
+                  if (result?.favorited && !hasRemindersForEvent(id)) {
+                    setReminderOpen(true)
+                  }
+                  setToast(
+                    result?.favorited
+                      ? 'Adicionado aos favoritos'
+                      : 'Removido dos favoritos'
+                  )
                 }
-                setToast(
-                  result?.favorited
-                    ? 'Adicionado aos favoritos'
-                    : 'Removido dos favoritos'
-                )
-              }
-            }}
-            aria-label="Favoritar"
-          >
-            {favoriteIds.has(id) ? (
-              <Favorite color="error" />
-            ) : (
-              <FavoriteBorder />
-            )}
-          </IconButton>
-          <IconButton onClick={handleShare} aria-label="Compartilhar">
-            <Share />
-          </IconButton>
+              }}
+              aria-label={favoriteIds.has(id) ? 'Remover dos favoritos' : 'Favoritar'}
+              sx={{ color: favoriteIds.has(id) ? 'favorite.main' : 'inherit' }}
+            >
+              {favoriteIds.has(id) ? (
+                <Heart size={22} fill="currentColor" />
+              ) : (
+                <Heart size={22} />
+              )}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Compartilhar evento">
+            <IconButton onClick={handleShare} aria-label="Compartilhar">
+              <Share2 size={22} />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Stack>
 
@@ -228,7 +239,16 @@ export default function EventDetail() {
             alt={event.title}
             loading="lazy"
             onClick={() => setLightboxOpen(true)}
-            sx={{ width: '100%', height: { xs: 240, md: 360 }, objectFit: 'cover', cursor: 'pointer' }}
+            tabIndex={0}
+            role="button"
+            aria-label="Ampliar foto do evento"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLightboxOpen(true)
+              }
+            }}
+            sx={{ width: '100%', height: { xs: 240, md: 360 }, objectFit: 'cover', cursor: 'pointer', display: 'block' }}
           />
         </Box>
 
@@ -244,8 +264,8 @@ export default function EventDetail() {
                 onClick={() => setActivePhoto((prev) => prev + 1)}
                 disabled={activePhoto === photos.length - 1}
               >
-                Proxima
-                <KeyboardArrowRight />
+                Próxima
+                <ChevronRight size={20} />
               </Button>
             }
             backButton={
@@ -254,7 +274,7 @@ export default function EventDetail() {
                 onClick={() => setActivePhoto((prev) => prev - 1)}
                 disabled={activePhoto === 0}
               >
-                <KeyboardArrowLeft />
+                <ChevronLeft size={20} />
                 Anterior
               </Button>
             }
@@ -263,7 +283,7 @@ export default function EventDetail() {
       </Paper>
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-        {event.is_lema_edu && <Chip label="Lema Edu" color="info" size="small" />}
+        {event.is_lema_edu && <Chip label="Lema Edu" color="primary" size="small" />}
         {event.is_past && <Chip label="Realizado" color="default" size="small" />}
         {event.is_ongoing && <Chip label="Em andamento" color="secondary" size="small" />}
         {categories.map((c) => (
@@ -276,8 +296,8 @@ export default function EventDetail() {
       </Typography>
 
       <Stack spacing={1} sx={{ mb: 3 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <CalendarMonthIcon color="action" />
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
+          <CalendarDays size={20} />
           <Typography variant="body1" color="text.secondary">
             {formatDateRange(
               sessions[0]?.start_date,
@@ -286,8 +306,8 @@ export default function EventDetail() {
           </Typography>
         </Stack>
 
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <PlaceIcon color="action" />
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
+          <MapPin size={20} />
           <Typography variant="body1" color="text.secondary">
             {locationLabel || formatModality(event.modality)}
           </Typography>
@@ -309,7 +329,7 @@ export default function EventDetail() {
         href={event.url}
         target="_blank"
         rel="noopener noreferrer"
-        endIcon={<OpenInNewIcon />}
+        endIcon={<ExternalLink size={20} />}
         sx={{ mb: 3 }}
       >
         Inscrever-se
@@ -323,7 +343,7 @@ export default function EventDetail() {
 
       {sessions.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          Nenhuma sessao cadastrada.
+          Nenhuma sessão cadastrada.
         </Typography>
       ) : (
         <Stack spacing={1} sx={{ mb: 3 }}>
@@ -382,33 +402,45 @@ export default function EventDetail() {
             position: 'relative'
           }}
         >
-          <IconButton
-            onClick={() => setLightboxOpen(false)}
-            sx={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 2,
-              color: 'white',
-              bgcolor: 'rgba(0,0,0,0.4)',
-              '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' }
-            }}
-            aria-label="Fechar"
-          >
-            <Close />
-          </IconButton>
+          <Tooltip title="Fechar">
+            <IconButton
+              onClick={() => setLightboxOpen(false)}
+              sx={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 2,
+                color: 'white',
+                bgcolor: 'rgba(0,0,0,0.4)',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' }
+              }}
+              aria-label="Fechar"
+            >
+              <X size={24} />
+            </IconButton>
+          </Tooltip>
 
           <Box
             component="img"
             src={photos[activePhoto]?.public_url || '/placeholder-event.png?v=2'}
             alt={event.title}
+            tabIndex={0}
+            role="button"
+            aria-label="Fechar visualização ampliada"
+            onClick={() => setLightboxOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLightboxOpen(false)
+              }
+            }}
             sx={{
               maxWidth: '100%',
               maxHeight: '100vh',
               objectFit: 'contain',
-              cursor: 'zoom-out'
+              cursor: 'zoom-out',
+              display: 'block'
             }}
-            onClick={() => setLightboxOpen(false)}
           />
         </DialogContent>
 

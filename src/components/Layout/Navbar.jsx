@@ -1,8 +1,5 @@
-import { AppBar, Box, Button, IconButton, Toolbar, Typography } from '@mui/material'
-import LogoutIcon from '@mui/icons-material/Logout'
-import LoginIcon from '@mui/icons-material/Login'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import LightModeIcon from '@mui/icons-material/LightMode'
+import { AppBar, Box, Button, IconButton, Toolbar, Tooltip, Typography } from '@mui/material'
+import { LogOut, LogIn, Moon, Sun } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useColorMode } from '../../contexts/ColorModeContext'
@@ -36,33 +33,41 @@ export default function Navbar() {
           </Typography>
         </Box>
 
-        <IconButton
-          color="inherit"
-          onClick={toggleColorMode}
-          aria-label="Alternar tema"
-        >
-          {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
+        <Tooltip title={mode === 'dark' ? 'Tema claro' : 'Tema escuro'}>
+          <IconButton
+            color="inherit"
+            onClick={toggleColorMode}
+            aria-label="Alternar tema"
+          >
+            {mode === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+          </IconButton>
+        </Tooltip>
 
         {user ? (
-          <IconButton
-            color="inherit"
-            sx={{ display: { xs: 'inline-flex', md: 'none' } }}
-            onClick={async () => {
-              await signOut()
-              navigate('/login')
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
+          <Tooltip title="Sair">
+            <IconButton
+              color="inherit"
+              aria-label="Sair"
+              sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+              onClick={async () => {
+                await signOut()
+                navigate('/login')
+              }}
+            >
+              <LogOut size={22} />
+            </IconButton>
+          </Tooltip>
         ) : (
-          <IconButton
-            color="inherit"
-            sx={{ display: { xs: 'inline-flex', md: 'none' } }}
-            onClick={() => navigate('/login')}
-          >
-            <LoginIcon />
-          </IconButton>
+          <Tooltip title="Entrar">
+            <IconButton
+              color="inherit"
+              aria-label="Entrar"
+              sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+              onClick={() => navigate('/login')}
+            >
+              <LogIn size={22} />
+            </IconButton>
+          </Tooltip>
         )}
 
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
@@ -70,23 +75,41 @@ export default function Navbar() {
             .filter((item) => item.show(userWithType))
             .map((item) => {
               const active = isActive(location.pathname, item.path)
+              const isAdmin = item.group === 'admin'
               return (
-                <Button
-                  key={item.path}
-                  color="inherit"
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    fontWeight: active ? 700 : 500,
-                    textDecoration: active ? 'underline' : 'none',
-                    textUnderlineOffset: 4,
-                    '&:hover': {
-                      backgroundColor: 'rgba(255,255,255,0.12)',
-                      textDecoration: 'underline'
-                    }
-                  }}
-                >
-                  {item.label}
-                </Button>
+                <Box key={item.path} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isAdmin && (
+                    <Box sx={{ width: 1, height: 24, bgcolor: 'rgba(255,255,255,0.5)', mx: 1 }} />
+                  )}
+                  <Button
+                    color="inherit"
+                    onClick={() => navigate(item.path)}
+                    sx={{
+                      fontWeight: active ? 800 : 600,
+                      backgroundColor: isAdmin
+                        ? active
+                          ? 'rgba(255,255,255,0.28)'
+                          : 'rgba(255,255,255,0.16)'
+                        : active
+                          ? 'rgba(255,255,255,0.2)'
+                          : 'transparent',
+                      border: isAdmin ? '1px solid rgba(255,255,255,0.45)' : 'none',
+                      borderRadius: '10px',
+                      px: 1.5,
+                      '&:hover': {
+                        backgroundColor: isAdmin
+                          ? active
+                            ? 'rgba(255,255,255,0.34)'
+                            : 'rgba(255,255,255,0.26)'
+                          : active
+                            ? 'rgba(255,255,255,0.26)'
+                            : 'rgba(255,255,255,0.12)'
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                </Box>
               )
             })}
 

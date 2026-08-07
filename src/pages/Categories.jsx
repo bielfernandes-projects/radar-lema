@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Container,
   Dialog,
   DialogActions,
@@ -15,11 +14,12 @@ import {
   IconButton,
   Stack,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import DeleteIcon from '@mui/icons-material/Delete'
+import { Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import PageSkeleton from '../components/PageSkeleton'
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
@@ -108,9 +108,9 @@ export default function Categories() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="sm" sx={{ py: 2 }}>
+        <PageSkeleton lines={3} />
+      </Container>
     )
   }
 
@@ -161,21 +161,25 @@ export default function Categories() {
                 >
                   <Typography variant="h6">{category.name}</Typography>
                   <Stack direction="row" spacing={1}>
-                    <IconButton
-                      onClick={() => handleEdit(category)}
-                      aria-label="Editar"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() =>
-                        setDeleteDialog({ open: true, category })
-                      }
-                      color="error"
-                      aria-label="Excluir"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title="Editar categoria">
+                      <IconButton
+                        onClick={() => handleEdit(category)}
+                        aria-label="Editar"
+                      >
+                        <Pencil size={20} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Excluir categoria">
+                      <IconButton
+                        onClick={() =>
+                          setDeleteDialog({ open: true, category })
+                        }
+                        color="error"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={20} />
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
                 </Stack>
               </CardContent>

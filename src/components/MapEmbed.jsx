@@ -14,7 +14,7 @@ export default function MapEmbed({ address }) {
       sx={{
         width: '100%',
         height: 300,
-        borderRadius: 2,
+        borderRadius: '14px',
         overflow: 'hidden',
         border: (theme) => `1px solid ${theme.palette.divider}`
       }}
