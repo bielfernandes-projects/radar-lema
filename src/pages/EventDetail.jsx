@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { isStaffTier } from '../utils/auth'
 import { useFavorites } from '../hooks/useFavorites'
 import { useReminders } from '../hooks/useReminders'
 import ReminderDialog from '../components/ReminderDialog'
@@ -180,7 +181,7 @@ export default function EventDetail() {
         </IconButton>
 
         <Stack direction="row" spacing={0.5}>
-          {profile?.user_type === 'staff' && (
+          {isStaffTier(profile) && (
             <IconButton
               onClick={() => navigate(`/gestao/${id}/editar`)}
               aria-label="Editar evento"

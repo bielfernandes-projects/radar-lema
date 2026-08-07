@@ -5,7 +5,7 @@
 -- mas pode nao ser suficiente no Supabase cloud (GoTrue tambem precisa da identidade).
 -- Em ambientes cloud, use o script scripts/seed-mock-users.mjs apos o push.
 
--- Admin staff.
+-- Admin super admin.
 INSERT INTO auth.users (
   id,
   aud,
@@ -25,13 +25,13 @@ INSERT INTO auth.users (
   '$2a$10$0xfGYQz.qnUvUUaNlDsEPeq7/QY3Wjqa16CrX7JV65JF3ak.LsAwW',
   now(),
   '{"provider":"email","providers":["email"]}',
-  '{"name":"Admin Lema","user_type":"staff","role":"ROLE_SUPER_ADMIN"}',
+  '{"name":"Admin Lema","user_type":"super_admin","role":"ROLE_SUPER_ADMIN"}',
   now(),
   now()
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Dirigente cliente.
+-- Cliente visualizador.
 INSERT INTO auth.users (
   id,
   aud,
@@ -51,7 +51,7 @@ INSERT INTO auth.users (
   '$2a$10$0xfGYQz.qnUvUUaNlDsEPeq7/QY3Wjqa16CrX7JV65JF3ak.LsAwW',
   now(),
   '{"provider":"email","providers":["email"]}',
-  '{"name":"Dirigente RPPS","user_type":"client","role":"ROLE_DIRIGENTE"}',
+  '{"name":"Dirigente RPPS","user_type":"client","role":"ROLE_VIEWER"}',
   now(),
   now()
 )
@@ -102,6 +102,6 @@ ON CONFLICT (provider, provider_id) DO NOTHING;
 
 -- Perfis correspondentes (fallback caso o trigger nao dispare).
 INSERT INTO public.profiles (id, email, name, user_type, role) VALUES
-  ('6ea73c10-8875-4a17-ac53-e9f51e1db777', 'admin@lema.com', 'Admin Lema', 'staff', 'ROLE_SUPER_ADMIN'),
-  ('e7b8b2bd-db0d-4ca3-85f8-0dcc4f6f9cde', 'dirigente@lema.com', 'Dirigente RPPS', 'client', 'ROLE_DIRIGENTE')
+  ('6ea73c10-8875-4a17-ac53-e9f51e1db777', 'admin@lema.com', 'Admin Lema', 'super_admin', 'ROLE_SUPER_ADMIN'),
+  ('e7b8b2bd-db0d-4ca3-85f8-0dcc4f6f9cde', 'dirigente@lema.com', 'Dirigente RPPS', 'client', 'ROLE_VIEWER')
 ON CONFLICT (id) DO NOTHING;

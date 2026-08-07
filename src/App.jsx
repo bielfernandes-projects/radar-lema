@@ -13,6 +13,7 @@ import ManageEvents from './pages/ManageEvents'
 import EventFormPage from './pages/EventFormPage'
 import Categories from './pages/Categories'
 import Settings from './pages/Settings'
+import AdminDashboard from './pages/AdminDashboard'
 
 function Layout() {
   return (
@@ -56,6 +57,10 @@ export const routes = [
           { path: 'gestao/:id/editar', element: <EventFormPage /> },
           { path: 'categorias', element: <Categories /> }
         ]
+      },
+      {
+        element: <ProtectedRoute requireAdmin />,
+        children: [{ path: 'admin', element: <AdminDashboard /> }]
       },
       { path: '*', element: <Navigate to="/login" replace /> }
     ]

@@ -1,3 +1,5 @@
+import { isStaffTier, isSuperAdmin } from './auth'
+
 export const URL_PARAMS = {
   SEARCH: 'q',
   CATEGORIES: 'categoria',
@@ -40,6 +42,7 @@ export const NAV_ITEMS = [
   { label: 'Favoritos', path: '/favoritos', icon: 'Favorite', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
   { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
-  { label: 'Categorias', path: '/categorias', icon: 'Category', show: (user) => user?.user_type === 'staff' },
-  { label: 'Gestão', path: '/gestao', icon: 'ManageAccounts', show: (user) => user?.user_type === 'staff' }
+  { label: 'Categorias', path: '/categorias', icon: 'Category', show: (user) => isStaffTier(user) },
+  { label: 'Gestão', path: '/gestao', icon: 'ManageAccounts', show: (user) => isStaffTier(user) },
+  { label: 'Painel Admin', path: '/admin', icon: 'AdminPanelSettings', show: (user) => isSuperAdmin(user) }
 ]

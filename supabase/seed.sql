@@ -27,7 +27,7 @@ INSERT INTO auth.users (
     '$2a$10$0xfGYQz.qnUvUUaNlDsEPeq7/QY3Wjqa16CrX7JV65JF3ak.LsAwW',
     now(), now(),
     '{"provider":"email","providers":["email"]}',
-    '{"name":"Admin Lema","user_type":"staff","role":"ROLE_SUPER_ADMIN"}',
+    '{"name":"Admin Lema","user_type":"super_admin","role":"ROLE_SUPER_ADMIN"}',
     now(), now()
   ),
   (
@@ -37,7 +37,7 @@ INSERT INTO auth.users (
     '$2a$10$0xfGYQz.qnUvUUaNlDsEPeq7/QY3Wjqa16CrX7JV65JF3ak.LsAwW',
     now(), now(),
     '{"provider":"email","providers":["email"]}',
-    '{"name":"Dirigente RPPS","user_type":"client","role":"ROLE_DIRIGENTE"}',
+    '{"name":"Dirigente RPPS","user_type":"client","role":"ROLE_VIEWER"}',
     now(), now()
   )
 ON CONFLICT (id) DO NOTHING;
@@ -72,8 +72,8 @@ INSERT INTO auth.identities (
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, name, user_type, role) VALUES
-  ('6ea73c10-8875-4a17-ac53-e9f51e1db777', 'admin@lema.com', 'Admin Lema', 'staff', 'ROLE_SUPER_ADMIN'),
-  ('e7b8b2bd-db0d-4ca3-85f8-0dcc4f6f9cde', 'dirigente@lema.com', 'Dirigente RPPS', 'client', 'ROLE_DIRIGENTE')
+  ('6ea73c10-8875-4a17-ac53-e9f51e1db777', 'admin@lema.com', 'Admin Lema', 'super_admin', 'ROLE_SUPER_ADMIN'),
+  ('e7b8b2bd-db0d-4ca3-85f8-0dcc4f6f9cde', 'dirigente@lema.com', 'Dirigente RPPS', 'client', 'ROLE_VIEWER')
 ON CONFLICT (id) DO NOTHING;
 
 -- Eventos de exemplo (demais sessoes e fotos estao na migration 0013_seed_sample_events.sql).

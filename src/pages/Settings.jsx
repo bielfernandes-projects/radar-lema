@@ -31,10 +31,12 @@ import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
 import InstallAppButton from '../components/InstallAppButton'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { useAuth } from '../contexts/AuthContext'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 export default function Settings() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const {
     remindersByEvent,
     removeReminders,
@@ -55,6 +57,12 @@ export default function Settings() {
   const [newEventsEnabled, setNewEventsEnabled] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState([])
   const { enable: enablePush, disable: disablePush } = usePushNotifications()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordBusy, setPasswordBusy] = useState(false)
 
   useEffect(() => {
     supabase
@@ -178,6 +186,50 @@ export default function Settings() {
     setRemoveDialog({ open: true, eventId, eventTitle })
   }
 
+  const handleChangePassword = async () => {
+    setPasswordError('')
+    setPasswordMessage('')
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Preencha todos os campos.')
+      return
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter ao menos 6 caracteres.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('A confirmação não confere com a nova senha.')
+      return
+    }
+
+    setPasswordBusy(true)
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user?.email,
+      password: currentPassword
+    })
+
+    if (verifyError) {
+      setPasswordBusy(false)
+      setPasswordError('Senha atual incorreta.')
+      return
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+    setPasswordBusy(false)
+
+    if (updateError) {
+      setPasswordError('Erro ao alterar a senha. Tente novamente.')
+    } else {
+      setPasswordMessage('Senha alterada com sucesso.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    }
+  }
+
   const reminderEntries = useMemo(() => {
     return Array.from(remindersByEvent.entries()).map(([eventId, entries]) => ({
       eventId,
@@ -199,8 +251,55 @@ export default function Settings() {
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Configurações de Notificações
+        Configurações
       </Typography>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Alterar senha
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Senha atual"
+              type="password"
+              fullWidth
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <TextField
+              label="Nova senha"
+              type="password"
+              fullWidth
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              helperText="Mínimo de 6 caracteres."
+            />
+            <TextField
+              label="Confirmar nova senha"
+              type="password"
+              fullWidth
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            {passwordError && <Alert severity="error">{passwordError}</Alert>}
+            {passwordMessage && (
+              <Alert severity="success">{passwordMessage}</Alert>
+            )}
+            <Button
+              variant="contained"
+              sx={{ alignSelf: 'flex-start' }}
+              onClick={handleChangePassword}
+              disabled={passwordBusy}
+            >
+              {passwordBusy ? <CircularProgress size={24} /> : 'Alterar senha'}
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>

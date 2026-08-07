@@ -1,8 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { isStaffTier, isSuperAdmin } from '../utils/auth'
 import { Box, CircularProgress } from '@mui/material'
 
-export default function ProtectedRoute({ requireStaff }) {
+export default function ProtectedRoute({ requireStaff, requireAdmin }) {
   const { user, profile, loading } = useAuth()
   const location = useLocation()
 
@@ -25,7 +26,11 @@ export default function ProtectedRoute({ requireStaff }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requireStaff && profile?.user_type !== 'staff') {
+  if (requireStaff && !isStaffTier(profile)) {
+    return <Navigate to="/" replace />
+  }
+
+  if (requireAdmin && !isSuperAdmin(profile)) {
     return <Navigate to="/" replace />
   }
 

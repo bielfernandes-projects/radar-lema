@@ -188,41 +188,62 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 
 Todas as tabelas têm RLS habilitado:
 
-- `profiles`: usuário lê próprio perfil; staff (`ROLE_SUPER_ADMIN`) lê todos.
+- `profiles`: usuário lê próprio perfil; super admin (`ROLE_SUPER_ADMIN`)
+  lê todos. Insert/update/delete bloqueados (perfil criado pelo trigger de
+  auth; mudanças via Edge Function `admin-users` com service role).
 - `categories`, `events`, `event_sessions`, `event_photos`: leitura pública;
-  escrita apenas `ROLE_SUPER_ADMIN`. Eventos não confirmados (`is_confirmed =
-  false`) são legíveis apenas por staff (`is_staff()` — qualquer
-  `user_type = 'staff'`); as views `v_past_events`/`v_ongoing_events`
+  escrita para o tier staff (`is_staff()` = `user_type IN ('staff',
+  'super_admin')`). Eventos não confirmados (`is_confirmed = false`) são
+  legíveis apenas pelo tier staff; as views `v_past_events`/`v_ongoing_events`
   herdam a restrição por serem `SECURITY INVOKER`.
-- `event_categories`: leitura pública; escrita apenas super admin
-  (política `event_categories_write` via `public.is_super_admin()`).
-- `favorites`: isolado por `user_id = auth.uid()`.
+- `event_categories`: leitura pública; escrita para o tier staff
+  (`is_staff()`).
+- `favorites`: isolado por `user_id = auth.uid()`; agregados cross-usuário
+  apenas via RPC `admin_dashboard_stats()` (SECURITY DEFINER, valida super
+  admin).
 - `event_reminders`: isolado por `user_id = auth.uid()` (política `reminders_owner`).
 - `notification_settings`: isolado por `user_id = auth.uid()` (política `settings_owner`).
 - Storage `event-photos`: leitura pública; escrita apenas autenticado.
 
 ## Auth
 
-- Dois usuários mockados:
-  - `admin@lema.com` / `lema123` → staff, `ROLE_SUPER_ADMIN`.
-  - `dirigente@lema.com` / `lema123` → client, `ROLE_DIRIGENTE`.
+- Modelo de roles (migration `20260807000000_super_admin_roles.sql`):
+
+  | user_type | role | Acesso |
+  |---|---|---|
+  | `super_admin` | `ROLE_SUPER_ADMIN` | Tudo (staff) + Painel Admin `/admin` (dashboard e gestão de usuários) |
+  | `staff` | `ROLE_ADMIN` | Gerencia eventos e categorias |
+  | `client` | `ROLE_VIEWER` | Somente leitura |
+
+- Mockados de exemplo: `admin@lema.com` / `lema123` → super_admin
+  (`ROLE_SUPER_ADMIN`); `dirigente@lema.com` / `lema123` → client
+  (`ROLE_VIEWER`).
 - A migration `0012_seed_mock_users.sql` tenta inserir via SQL em `auth.users`,
   `auth.identities` e `profiles` (funciona em `supabase db reset` local).
 - No Supabase cloud, o insert direto em `auth.users` não é suficiente para o
-  GoTruth; use `node scripts/seed-mock-users.mjs` após o push.
+  GoTrue; use `node scripts/seed-mock-users.mjs` após o push.
 - **Criar Conta** (rota `/criar-conta`): colaboradores testam o protótipo
   criando conta própria. O formulário pede nome, e-mail e senha; o
   `AuthContext` chama `supabase.auth.signUp` com metadados
-  `user_type: 'client'`, `role: 'ROLE_DIRIGENTE'` — o trigger
+  `user_type: 'client'`, `role: 'ROLE_VIEWER'` — o trigger
   `on_auth_user_created` cria o `profiles` automaticamente. Contas novas
-  nascem como `client` (menor privilégio); para virar `staff`, o PO altera
-  `profiles.user_type` (e `role`, se desejar) manualmente no Supabase.
-  Com a confirmação de e-mail desativada no Supabase, o cadastro já loga na
-  hora; se ativa, a tela orienta a verificar o e-mail antes do login.
+  nascem como `client` (menor privilégio). O super admin promove/degrada
+  usuários pelo **Painel Admin** (`/admin`).
+- **Gestão de usuários** (super admin): a Edge Function `admin-users`
+  (service role) valida o chamador como `ROLE_SUPER_ADMIN` e oferece
+  `create` (nome/e-mail/senha/user_type, e-mail confirmado), `update`
+  (nome/tipo), `reset_password` e `delete`. O app chama via
+  `services/adminApi.js`. Dashboard e lista de usuários leem
+  `profiles` diretamente (RLS libera leitura para super admin) e a RPC
+  `admin_dashboard_stats()` (SECURITY DEFINER) devolve os agregados.
 - Frontend usa `supabase.auth.signInWithPassword` (login) e
-  `supabase.auth.signUp` (cadastro).
-- `AuthContext` expõe `{ user, profile, user_type, role, loading, signIn, signOut, signUp }`
-  e carrega o perfil de `profiles` após login/cadastro.
+  `supabase.auth.signUp` (cadastro). **Alterar senha** na Config confere a
+  senha atual com `signInWithPassword` e aplica `supabase.auth.updateUser`.
+- `AuthContext` expõe `{ user, profile, loading, signIn, signOut, signUp }`
+  e carrega o perfil de `profiles` após login/cadastro. Helpers
+  `utils/auth.js`: `isStaffTier(profile)` (staff|super_admin) e
+  `isSuperAdmin(profile)` (role `ROLE_SUPER_ADMIN` ou user_type
+  `super_admin`) centralizam as checagens.
 
 ## Serviços
 
@@ -230,6 +251,7 @@ Todas as tabelas têm RLS habilitado:
 |---|---|---|
 | `services/eventData.js` | `fetchMetadata`, `fetchCategories`, `fetchAllEventsWithMeta`, `fetchFavoriteEventsWithMeta`, `fetchPastEventsWithMeta` | Todas aceitam `deps = { supabase }` (seam para testes). `fetchMetadata` também busca `event_categories` e cada fetcher enriquece os eventos com `category_ids` (multi-categoria). |
 | `services/eventPersistence.js` | `uploadPhotos`, `saveSessions`, `persistEvent`, `saveCategories` | Extraído do `EventFormPage`. Gerencia o salvamento completo de um evento (dados, fotos, sessões) em transação lógica; `saveCategories` grava os vínculos em `event_categories` (replica por evento). |
+| `services/adminApi.js` | `adminApi` (`create`, `update`, `resetPassword`, `remove`) + constantes `USER_TYPES`, `ROLE_BY_USER_TYPE` | Chama a Edge Function `admin-users` (service role) com o token do usuário logado; o backend valida `ROLE_SUPER_ADMIN` antes de criar/editar/excluir usuários ou redefinir senhas. |
 
 ## Componentes
 
@@ -237,7 +259,7 @@ Todas as tabelas têm RLS habilitado:
 |---|---|---|
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
 | `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
-| `ProtectedRoute` | Protege rotas por autenticação e/ou staff | `App.jsx` |
+| `ProtectedRoute` | Protege rotas por autenticação; `requireStaff` exige tier staff (staff/super_admin) e `requireAdmin` exige super admin | `App.jsx` |
 | `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile). Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
 | `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label ellipsis) | `App.jsx` |
 | `Login` | Formulário de login com botão "Criar Conta" (link para `/criar-conta`). Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
@@ -261,7 +283,8 @@ Todas as tabelas têm RLS habilitado:
 | `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Trabalha com entradas `{ offset_minutes, channel }` e upsert com `ignoreDuplicates` (mesmo offset pode existir em push e email). Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
 | `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
-| `Settings` | Pagina de configuracao de notificacoes, teste de notificacao e lista de lembretes | Rota `/configuracoes` |
+| `AdminDashboard` | Painel Admin: cards com totais (usuários/eventos/favoritos), gráficos mensais (recharts) de crescimento de usuários e favoritos, e gestão de usuários (criar com senha escolhida, editar tipo/role, redefinir senha, excluir). Previne excluir/editar a própria conta | Rota `/admin` |
+| `Settings` | Configurações: alterar senha (atual/nova/confirmação), notificações push, teste de notificação, instalar app e lista de lembretes | Rota `/configuracoes` |
 
 ## Rotas
 
@@ -273,10 +296,11 @@ Todas as tabelas têm RLS habilitado:
 | `/evento/:id` | `EventDetail` | Autenticado |
 | `/favoritos` | `Favorites` | Autenticado |
 | `/realizados` | `PastEvents` | Autenticado |
-| `/gestao` | `ManageEvents` | Staff (`ROLE_SUPER_ADMIN`) |
-| `/gestao/novo` | `EventFormPage` | Staff |
-| `/gestao/:id/editar` | `EventFormPage` | Staff |
-| `/categorias` | `Categories` | Staff |
+| `/gestao` | `ManageEvents` | Staff (staff/super_admin) |
+| `/gestao/novo` | `EventFormPage` | Staff (staff/super_admin) |
+| `/gestao/:id/editar` | `EventFormPage` | Staff (staff/super_admin) |
+| `/categorias` | `Categories` | Staff (staff/super_admin) |
+| `/admin` | `AdminDashboard` | Super admin (`ROLE_SUPER_ADMIN`) |
 | `/configuracoes` | `Settings` | Autenticado |
 
 ## PWA
@@ -352,17 +376,18 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 - Acesso a qualquer rota (incluindo `/`, `/evento/:id`, `/realizados`, `/favoritos`)
   sem login redireciona para `/login`.
 - Login com `admin@lema.com` / `lema123` redireciona para `/` e mostra abas de
-  staff (Gestão, Categorias).
+  staff (Gestão, Categorias) + Painel Admin.
 - Login com `dirigente@lema.com` / `lema123` redireciona para `/` e não mostra
   Gestão nem Categorias.
 - Clicar em **Sair** redireciona para `/login`.
-- `/gestao` logado como dirigente redireciona para `/`.
+- `/gestao` logado como dirigente redireciona para `/`; `/admin` logado como
+  staff (não super_admin) também redireciona para `/`.
 
 ## Utils
 
 | Arquivo | Funcoes | Uso |
 |---|---|---|---|
-| `utils/auth.js` | `getUserId` | Extrai `user.id` da sessão atual |
+| `utils/auth.js` | `getUserId`, `isStaffTier`, `isSuperAdmin` | Extrai `user.id` da sessão atual; checagens de autorização por perfil (tier staff e super admin) |
 | `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `REMINDER_UNITS`, `REMINDER_CHANNELS`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels, unidades de lembrete (minute/hour/day/week/month em minutos), canais (push/email) e dados estáticos compartilhados |
 | `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime`, `formatReminder`, `formatReminderUnit`, `formatReminderMinutes`, `minutesToReminder` | Cards, detalhe, sessoes, lembretes e testes |
 | `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos; recebe `eventCategories` para popular `category_ids` |
@@ -480,6 +505,34 @@ Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy da function, secrets).
 
 ## Histórico de mudanças
+
+- **2026-08-07** — Super Admin, Painel Admin e novo modelo de roles:
+  - **Novo modelo de roles** (migration `20260807000000_super_admin_roles.sql`):
+    `super_admin`/`ROLE_SUPER_ADMIN` (painel + usuários) | `staff`/`ROLE_ADMIN`
+    (gerencia eventos/categorias) | `client`/`ROLE_VIEWER` (somente leitura).
+    Contas legadas reclassificadas (staff → super_admin; client → ROLE_VIEWER);
+    trigger de novo usuário passa a criar `ROLE_VIEWER`.
+  - **RLS**: escrita de eventos/categorias/sessões/fotos/`event_categories`
+    passa de `is_super_admin()` para `is_staff()` (tier staff), e
+    `is_staff()` passa a considerar `user_type IN ('staff','super_admin')`.
+    `is_super_admin()` (role) continua valendo para ler todos os `profiles`.
+  - **Painel Admin** (`/admin`, rota protegida por `requireAdmin`):
+    `AdminDashboard.jsx` com cards de totais (usuários/eventos/favoritos),
+    gráficos mensais de crescimento (recharts) e gestão de usuários.
+    RPC `admin_dashboard_stats()` (SECURITY DEFINER) devolve agregados
+    cross-usuário; lista de usuários via `profiles` (RLS super admin).
+  - **Edge Function `admin-users`**: valida o chamador como
+    `ROLE_SUPER_ADMIN` e expõe `create` (nome/e-mail/senha/user_type,
+    e-mail confirmado), `update`, `reset_password` e `delete` (service role).
+    Cliente via `services/adminApi.js`.
+  - **Alterar senha na Config**: card com senha atual/nova/confirmação
+    (confere a atual com `signInWithPassword` e aplica `updateUser`).
+    Título da página renomeado para "Configurações".
+  - **Helpers de autorização**: `utils/auth.js` ganha `isStaffTier` e
+    `isSuperAdmin`; `ProtectedRoute` ganha `requireAdmin`; nav (desktop e
+    mobile) passa a exibir "Painel Admin" apenas para super admin.
+  - Seed/scripts atualizados (`0012`, `seed.sql`, `seed-mock-users.mjs`) e
+    novo `scripts/promote-super-admin.mjs`.
 
 - **2026-08-07** — Login sem scroll/sem zoom, instalar como ícone e busca na gestão:
   - **Instalar como ícone no login**: novo componente `InstallAppIcon`

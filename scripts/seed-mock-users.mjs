@@ -29,7 +29,7 @@ const mocks = [
     email: 'admin@lema.com',
     password: 'lema123',
     name: 'Admin Lema',
-    user_type: 'staff',
+    user_type: 'super_admin',
     role: 'ROLE_SUPER_ADMIN'
   },
   {
@@ -37,7 +37,7 @@ const mocks = [
     password: 'lema123',
     name: 'Dirigente RPPS',
     user_type: 'client',
-    role: 'ROLE_DIRIGENTE'
+    role: 'ROLE_VIEWER'
   }
 ]
 

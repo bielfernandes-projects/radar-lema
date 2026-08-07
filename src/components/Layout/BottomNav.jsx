@@ -6,7 +6,8 @@ import {
   Notifications,
   Settings,
   Category,
-  ManageAccounts
+  ManageAccounts,
+  AdminPanelSettings
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -19,7 +20,8 @@ const ICONS = {
   Notifications: <Notifications />,
   Settings: <Settings />,
   Category: <Category />,
-  ManageAccounts: <ManageAccounts />
+  ManageAccounts: <ManageAccounts />,
+  AdminPanelSettings: <AdminPanelSettings />
 }
 
 export default function BottomNav() {
@@ -27,7 +29,9 @@ export default function BottomNav() {
   const location = useLocation()
   const { user, profile } = useAuth()
 
-  const userWithType = user ? { ...user, user_type: profile?.user_type } : null
+  const userWithType = user
+    ? { ...user, user_type: profile?.user_type, role: profile?.role }
+    : null
   const visibleItems = NAV_ITEMS
     .filter((item) => item.show(userWithType))
     .map((item) => ({ ...item, icon: ICONS[item.icon] }))

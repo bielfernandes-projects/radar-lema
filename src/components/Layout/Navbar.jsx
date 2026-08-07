@@ -19,7 +19,9 @@ export default function Navbar() {
   const { user, profile, signOut } = useAuth()
   const { mode, toggleColorMode } = useColorMode()
 
-  const userWithType = user ? { ...user, user_type: profile?.user_type } : null
+  const userWithType = user
+    ? { ...user, user_type: profile?.user_type, role: profile?.role }
+    : null
 
   return (
     <AppBar position="static">

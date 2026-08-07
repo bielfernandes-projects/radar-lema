@@ -86,13 +86,21 @@ _Avoid_: Preço, custo, taxa
 
 **Staff Lema**:
 Funcionários da Lema (comercial, gerência, Lema Edu, etc.) que cadastra,
-edita, duplica e exclui eventos. Mapeado para as roles do UNO:
-SUPER_ADMIN, ADMIN, BACKOFFICE, COMERCIAL, CONSULTOR_TECNICO.
+edita, duplica e exclui eventos. No Radar é o user type `staff` com role
+`ROLE_ADMIN`. Não tem acesso ao painel de administração de usuários.
 _Avoid_: Administrador, gestor
 
+**Super Admin**:
+User type `super_admin` com role `ROLE_SUPER_ADMIN`. Faz tudo que o staff
+faz e ainda acessa o **Painel Admin** (`/admin`): dashboard (total de
+usuários, eventos e favoritos, crescimento por mês) e gestão de usuários —
+cria usuários com senha escolhida, edita tipo/role, redefine senhas e
+exclui contas. Conta principal do protótipo.
+_Avoid_: Root, owner
+
 **Cliente RPPS**:
-Usuários finais que navegam e favoritam eventos. Mapeado para as roles
-do UNO: DIRIGENTE, COMITE, CONSELHO. Não podem criar, editar ou excluir.
+Usuários finais que navegam e favoritam eventos. No Radar é o user type
+`client` com role `ROLE_VIEWER`. Não podem criar, editar ou excluir.
 _Avoid_: Usuário, participante
 
 **Favorito**:
@@ -159,10 +167,13 @@ _Avoid_: Clonar, copiar
 
 ## Roles e Acesso
 
-**Staff Lema** (acesso total): cadastra, edita, duplica, exclui eventos;
-gerencia categorias.
-**Cliente RPPS** (somente leitura): lista, filtra, favorita, compartilha.
+| user_type | role | Acesso |
+|---|---|---|
+| `super_admin` | `ROLE_SUPER_ADMIN` | Tudo (staff) + Painel Admin (`/admin`): dashboard e gestão de usuários (criar, editar tipo/role, redefinir senha, excluir) |
+| `staff` | `ROLE_ADMIN` | Visualiza, cria, edita, duplica e exclui eventos; gerencia categorias |
+| `client` | `ROLE_VIEWER` | Somente leitura: lista, filtra, favorita, compartilha |
 
-Qualquer staff pode editar/excluir qualquer evento, independentemente de
-quem criou. O campo `created_by` é guardado no banco mas não há tela de
-auditoria no protótipo.
+Qualquer staff (inclui super_admin) pode editar/excluir qualquer evento,
+independentemente de quem criou. O campo `created_by` é guardado no banco mas
+não há tela de auditoria no protótipo. Novos cadastros (`signUp`) nascem
+`client`/`ROLE_VIEWER`; o super admin altera tipo/role pelo Painel Admin.

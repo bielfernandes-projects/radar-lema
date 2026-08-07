@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
         email,
         password,
         options: {
-          data: { name, user_type: 'client', role: 'ROLE_DIRIGENTE' }
+          data: { name, user_type: 'client', role: 'ROLE_VIEWER' }
         }
       })
 
