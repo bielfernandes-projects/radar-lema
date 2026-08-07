@@ -223,6 +223,7 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0026 | `20260806000007_fix_upsert_ambig.sql` | Corrige ambiguidade ("column reference endpoint is ambiguous") no upsert de `push_subscriptions` (DROP + CREATE com parâmetros prefixados `p_`) |
 | 0027 | `20260806000008_outbox_result.sql` | Observabilidade: coluna `result jsonb` em `notification_outbox` e `reminder_dispatch` guarda `{sent, gone, failed, total}` retornado pelo `send-push` |
 | 0028 | `20260807000000_super_admin_roles.sql` | Novo modelo de roles: `super_admin`/`ROLE_SUPER_ADMIN`, `staff`/`ROLE_ADMIN`, `client`/`ROLE_VIEWER`; reclassifica contas; RLS de escrita via `is_staff()` |
+| 0029 | `20260807000001_harden_on_auth_user_created.sql` | Endurece `on_auth_user_created`: sanitiza `user_type`/`role` do metadata para valores do modelo atual (fallback `client`/`ROLE_VIEWER`) — impede 500 no `/signup` de clientes antigos que ainda enviam `ROLE_DIRIGENTE` |
 
 ## RLS
 
@@ -577,6 +578,14 @@ Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy das functions, secrets e registro do job).
 
 ## Histórico de mudanças
+
+- **2026-08-07** — Blindagem do signup contra clientes antigos:
+  - Migration `20260807000001_harden_on_auth_user_created.sql` aplicada no
+    remoto: o trigger `on_auth_user_created` agora sanitiza `user_type`/`role`
+    do metadata do signup. Clientes com bundle antigo em cache ainda enviam
+    `client`/`ROLE_DIRIGENTE`, que violava a `profiles_role_check` do novo
+    modelo e fazia o `/auth/v1/signup` retornar 500 (`unexpected_failure`).
+    Valores fora do modelo caem para `client`/`ROLE_VIEWER`.
 
 - **2026-08-07** — Rodada de crítica (Impeccable) aplicada + recuperar senha:
   - **Guard "A definir" (P0)**: cliente RPPS não acessa evento não confirmado
