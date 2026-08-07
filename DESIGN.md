@@ -188,7 +188,7 @@ estado, não por profundidade.
 ### Shadow Vocabulary
 - **Card** (modo claro, `0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.06)`): a única sombra do sistema; flutuação leve e ambiental.
 - **Card** (modo escuro, `0 1px 2px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.25)`): mesma leitura de profundidade sobre o fundo noturno.
-- **BottomNav** (`elevation={3}`): âncora flutuante do shell mobile.
+- **Drawer** (mobile): superfície plana do tema; a navegação mobile não eleva — ela desliza da borda esquerda sobre o conteúdo.
 
 ### Named Rules
 **The Quiet Elevation Rule.** Cards flutuam; todo o resto é plano. Bordas
@@ -199,8 +199,8 @@ por contorno.
 
 Linguagem de formas generosa e consistente: raio base de **10px** em todos
 os controles (botões, campos, chips) e **14px** em cards. Pill branca
-semitransparente para o item ativo da navbar desktop e contêiner do item
-admin no menu inferior.
+semitransparente para o item ativo da navbar desktop; grupo staff
+(Categorias+Gestão) num contêiner com borda `primary.light` (raio 12px).
 
 ## Components
 
@@ -226,8 +226,8 @@ admin no menu inferior.
 - **Focus:** borda azul Radar (`primary.main`), sem glow exagerado.
 
 ### Navigation
-- **Desktop:** AppBar azul (`primary.main`) com texto branco. Item ativo = pill branca `rgba(255,255,255,0.2)` + peso 800; hover = pill mais forte. Item de grupo admin (Painel Admin) = pill com borda branca para separar o bloco.
-- **Mobile:** barra inferior fixa (`BottomNavigation`) com rótulos completos (sem ellipsis). Item selecionado em azul (`primary.main`) com peso 800 no rótulo; item do Painel Admin com tint azul e borda superior.
+- **Desktop:** AppBar azul (`primary.main`) com texto branco. Item ativo = pill branca `rgba(255,255,255,0.2)` + peso 800; hover = pill mais forte. Grupo staff (Categorias + Gestão) agrupado num contêiner com borda `primary.light` e fundo translúcido; item admin (Painel Admin) = pill com fundo azul claro (`rgba(142,198,250,0.28)`, ativo `0.45`) e borda branca para separar o bloco. Rótulos com `whiteSpace: nowrap`.
+- **Mobile:** botão hambúrguer na AppBar abre um `Drawer` lateral com todas as seções (ícone + rótulo) separadas por `Divider` entre os grupos (client / staff / admin), item ativo destacado, toggle de tema e Sair/Entrar no rodapé.
 
 ### Favorito (coração)
 - Ícone coração: rosa Radar (`favorite.main`) quando favoritado, cinza quando não. `aria-label` dinâmico ("Favoritar" / "Remover dos favoritos").

@@ -46,7 +46,7 @@ export const NAV_ITEMS = [
   { label: 'Favoritos', path: '/favoritos', icon: 'Heart', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
   { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
-  { label: 'Categorias', path: '/categorias', icon: 'FolderTree', show: (user) => isStaffTier(user) },
-  { label: 'Gestão', path: '/gestao', icon: 'UserCog', show: (user) => isStaffTier(user) },
+  { label: 'Categorias', path: '/categorias', icon: 'FolderTree', show: (user) => isStaffTier(user), group: 'staff' },
+  { label: 'Gestão', path: '/gestao', icon: 'UserCog', show: (user) => isStaffTier(user), group: 'staff' },
   { label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck', show: (user) => isSuperAdmin(user), group: 'admin' }
 ]

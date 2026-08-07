@@ -110,7 +110,6 @@ radar-lema/
 │   ├── components/
 │   │   ├── Layout/
 │   │   │   ├── Navbar.jsx
-│   │   │   └── BottomNav.jsx
 │   │   ├── EventCard.jsx
 │   │   ├── EventFilters.jsx
 │   │   ├── FilterSummary.jsx
@@ -311,8 +310,7 @@ Todas as tabelas têm RLS habilitado:
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
 | `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação; `requireStaff` exige tier staff (staff/super_admin) e `requireAdmin` exige super admin | `App.jsx` |
-| `Navbar` | Navegação desktop com abas condicionais + toggle de tema (visível também no mobile). Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
-| `BottomNav` | Navegação mobile com abas condicionais, responsiva (items com minWidth 0 e label com quebra de linha — `whiteSpace: normal` — para evitar corte) | `App.jsx` |
+| `Navbar` | Navegação: desktop com abas condicionais (itens de client, grupo staff com borda `primary.light` para Categorias+Gestão e Painel Admin com fundo azul claro + borda branca) + toggle de tema; mobile com Drawer lateral (hambúrguer) listando as mesmas seções com ícones (separadas por `Divider` por grupo), tema e Sair/Entrar no rodapé. Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
 | `Login` | Formulário de login com "Esqueci minha senha" (Dialog que envia link de recuperação), botão "Criar Conta" (link para `/criar-conta`) e toggle de tema respeitando o `ColorModeContext`. Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
 | `InstallAppIcon` | Ícone de download (topo direito do login) que instala via `beforeinstallprompt` ou abre modal com instruções de instalação (iOS/desktop). Oculto quando já instalado | `Login` |
 | `InstallAppButton` | Botão "Instalar App" (texto completo) com o mesmo comportamento do ícone | `Settings` |
@@ -763,6 +761,8 @@ deploy das functions, secrets e registro do job).
     Realizados (LEFT JOIN + `COUNT(s.id) = 0`).
   - Testes `tests/events.test.js` ampliados; 39 testes passando; lint e build
     limpos. Migrations aplicadas no Supabase (projeto `vrvyfgneawtceebyagak`).
+
+- **2026-08-07** — Redesign de navegação: no desktop, `Categorias` e `Gestão` agrupados num contêiner com borda `primary.light` (raio 12px, fundo translúcido) e `Painel Admin` com fundo azul claro (`primary.light` com alpha) + borda branca; divisor cinza removido e rótulos com `whiteSpace: nowrap`. No mobile, `BottomNav` removida e substituída por hambúrguer na AppBar que abre um `Drawer` lateral com as mesmas seções (ícones + rótulo), separadas por `Divider` entre os grupos client/staff/admin, item ativo destacado, toggle de tema e Sair/Entrar no rodapé. `NAV_ITEMS` ganha `group: 'staff'`. `App.jsx` perde o `pb` reservado à barra fixa.
 
 - **2026-07-13** — Login sempre em light mode: página `Login.jsx` envolvida por `ThemeProvider` local com `createAppTheme('light')` e `CssBaseline`, ignorando o tema global salvo pelo usuário.
 

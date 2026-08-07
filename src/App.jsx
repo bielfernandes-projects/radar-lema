@@ -2,7 +2,6 @@ import { Suspense, lazy } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
 import { Box, CircularProgress } from '@mui/material'
 import Navbar from './components/Layout/Navbar'
-import BottomNav from './components/Layout/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const Login = lazy(() => import('./pages/Login'))
@@ -28,14 +27,13 @@ function PageFallback() {
 
 function Layout() {
   return (
-    <Box sx={{ pb: { xs: 7, md: 0 } }}>
+    <Box sx={{ pb: 0 }}>
       <Navbar />
       <Box component="main" sx={{ px: 2, pt: 1.5, pb: 2 }}>
         <Suspense fallback={<PageFallback />}>
           <Outlet />
         </Suspense>
       </Box>
-      <BottomNav />
     </Box>
   )
 }
