@@ -268,15 +268,18 @@ export default function AdminDashboard() {
       </Grid>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
           <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Crescimento de usuários
               </Typography>
-              <Box sx={{ width: '100%', height: 260 }}>
-                <ResponsiveContainer>
-                  <BarChart data={toChartData(stats.users_by_month)}>
+              <Box sx={{ position: 'relative', width: '100%', height: 260, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={toChartData(stats.users_by_month)}
+                    margin={{ top: 5, right: 65, bottom: 5, left: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis allowDecimals={false} />
@@ -289,15 +292,18 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
           <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Favoritos por mês
               </Typography>
-              <Box sx={{ width: '100%', height: 260 }}>
-                <ResponsiveContainer>
-                  <BarChart data={toChartData(stats.favorites_by_month)}>
+              <Box sx={{ position: 'relative', width: '100%', height: 260, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={toChartData(stats.favorites_by_month)}
+                    margin={{ top: 5, right: 65, bottom: 5, left: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis allowDecimals={false} />

@@ -51,7 +51,10 @@ node scripts/seed-mock-users.mjs   # usuários mock para o cloud
 - `CONTEXT.md` — glossário e vocabulário do domínio.
 - `architecture.md` — documento vivo da arquitetura e do histórico de mudanças.
 - `DESIGN.md` — identidade visual (tema, cores, tipografia).
+- `PLAN.md` — plano de implementação original (fases, schema, migrations).
+- `PRODUCT.md` — visão de produto, personas e princípios de design.
 - `push-notifications.md` — runbook de ativação das notificações push.
+- `docs/adr/` — decisões de arquitetura registradas (ADR 0001–0005).
 
 ## Deploy
 

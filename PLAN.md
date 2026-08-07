@@ -74,7 +74,7 @@ radar-lema/
 │   │   ├── MapEmbed.jsx
 │   │   └── Layout/
 │   │       ├── Navbar.jsx
-│   │       └── BottomNav.jsx     ← navegação mobile
+│   │       └── Navbar.jsx         ← navegação desktop + Drawer mobile
 │   ├── pages/
 │   │   ├── Login.jsx
 │   │   ├── EventList.jsx         ← listagem principal
@@ -108,12 +108,12 @@ Espelha o usuário autenticado do Supabase Auth com metadados.
 | `id` | UUID PK | = `auth.users.id` |
 | `email` | TEXT | email do usuário |
 | `name` | TEXT | nome de exibição |
-| `user_type` | TEXT | `'staff'` ou `'client'` |
-| `role` | TEXT | role do UNO: `'ROLE_SUPER_ADMIN'` (staff) ou `'ROLE_DIRIGENTE'` (client) |
+| `user_type` | TEXT | `'super_admin'`, `'staff'` ou `'client'` |
+| `role` | TEXT | role do UNO: `'ROLE_SUPER_ADMIN'`, `'ROLE_ADMIN'` ou `'ROLE_VIEWER'` |
 
 **CHECK constraints:**
-- `user_type IN ('staff', 'client')`
-- `role IN ('ROLE_SUPER_ADMIN', 'ROLE_DIRIGENTE')`
+- `user_type IN ('super_admin', 'staff', 'client')`
+- `role IN ('ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_VIEWER')`
 
 > Futuro (migração UNO): expandir `role` para as 8 roles (BACKOFFICE,
 > COMERCIAL, CONSULTOR_TECNICO, COMITE, CONSELHO, ADMIN).
@@ -269,26 +269,25 @@ CREATE INDEX idx_favorites_user         ON favorites(user_id);
 Todas as tabelas têm RLS habilitado. Políticas:
 
 **`profiles`**
-- SELECT: `id = auth.uid()` OU `role = 'ROLE_SUPER_ADMIN'` (staff lê todos).
+- SELECT: `id = auth.uid()` OU super admin (`ROLE_SUPER_ADMIN` lê todos).
 - INSERT/UPDATE/DELETE: bloqueado via SQL (perfil criado só pelo trigger de Auth).
 
 **`categories`**
 - SELECT: público (anon + authenticated).
-- INSERT/UPDATE/DELETE: `role = 'ROLE_SUPER_ADMIN'`.
+- INSERT/UPDATE/DELETE: tier staff (`is_staff()` = `user_type IN ('staff','super_admin')`).
 
 **`event_categories`**
 - SELECT: público (anon + authenticated).
-- INSERT/UPDATE/DELETE: super admin (via `public.is_super_admin()`).
+- INSERT/UPDATE/DELETE: tier staff (`is_staff()`).
 
 **`events`**
-- SELECT: público.
-- INSERT/UPDATE/DELETE: `role = 'ROLE_SUPER_ADMIN'`.
+- SELECT: público, exceto não confirmados (`is_confirmed = false`) que só o
+  tier staff lê.
+- INSERT/UPDATE/DELETE: tier staff (`is_staff()`).
 
 **`event_sessions`**, **`event_photos`**
 - SELECT: público.
-- INSERT/UPDATE/DELETE: `role = 'ROLE_SUPER_ADMIN'` (verificado via join em
-  `events.created_by` ou via `auth.uid()` em `profiles`; política usa
-  subquery em `profiles`).
+- INSERT/UPDATE/DELETE: tier staff (`is_staff()`, via subquery em `profiles`).
 
 **`favorites`**
 - SELECT/INSERT/UPDATE/DELETE: `user_id = auth.uid()`.
@@ -304,8 +303,8 @@ Todas as tabelas têm RLS habilitado. Políticas:
 ### Protótipo (mockado no Supabase)
 
 - Dois usuários criados via **SQL insert em `auth.users`** (não via Dashboard):
-  - `admin@lema.com` → `user_type = 'staff'`, `role = 'ROLE_SUPER_ADMIN'`
-  - `dirigente@lema.com` → `user_type = 'client'`, `role = 'ROLE_DIRIGENTE'`
+  - `admin@lema.com` → `user_type = 'super_admin'`, `role = 'ROLE_SUPER_ADMIN'`
+  - `dirigente@lema.com` → `user_type = 'client'`, `role = 'ROLE_VIEWER'`
 - Senha: hash bcrypt pré-gerado (executor gera hash local com Node e insere
   em `auth.users.encrypted_password`). Senha dos mocks: definir no prompt da
   Fase 1 (ex: `lema123`), nunca commitar o hash em texto no repo além do
@@ -397,6 +396,16 @@ Substitui "SQL via Dashboard" do plano original. Migrations vivem em
 | 0017 | `20260803000001_multi_category.sql` | `event_categories` (M-N) + backfill + drop de `events.category_id` |
 | 0018 | `20260803000002_reminders_channel.sql` | offset livre + canal em `event_reminders` |
 | 0019 | `20260803000003_fix_past_views.sql` | views por timestamp completo (eventos sem sessão = Realizados) |
+| 0020 | `20260806000001_add_is_confirmed.sql` | `events.is_confirmed` (default true) + helper `is_staff()` + RLS de leitura (não confirmado só p/ staff) |
+| 0021 | `20260806000002_events_show_placeholder.sql` | limpa `event_photos` p/ todos exibirem o placeholder |
+| 0022 | `20260806000003_push_subscriptions.sql` | tabela `push_subscriptions` + RLS por usuário |
+| 0023 | `20260806000004_push_subscriptions_rpc.sql` | RPC `upsert_push_subscription` (SECURITY DEFINER) |
+| 0024 | `20260806000005_notification_dispatch.sql` | outbox de eventos novos + `reminder_dispatch` + `get_due_reminders()` + trigger |
+| 0025 | `20260806000006_scheduler_cron.sql` | extensões `pg_cron` e `pg_net` (job registrado em deploy) |
+| 0026 | `20260806000007_fix_upsert_ambig.sql` | corrige ambiguidade do upsert de `push_subscriptions` |
+| 0027 | `20260806000008_outbox_result.sql` | coluna `result jsonb` de auditoria em outbox/reminder_dispatch |
+| 0028 | `20260807000000_super_admin_roles.sql` | novo modelo de roles (super_admin/staff/client) + RLS via `is_staff()` |
+| 0029 | `20260807000001_harden_on_auth_user_created.sql` | sanitiza `user_type`/`role` do metadata no signup (fallback client/ROLE_VIEWER) |
 
 `supabase/seed.sql` orquestra a chamada dos seeds (0011..0013) para que
 `supabase db reset` reproduza o banco inteiro do zero.
@@ -504,7 +513,7 @@ decisão técnica, adicionar dependência.
 7. Criar `supabase/seed.sql` + migrations 0011..0013 (categorias, 2 usuários mock, 6 eventos exemplo) + `supabase db reset`
 8. Tela de Login (Supabase Auth) — `pages/Login.jsx`
 9. `AuthContext`: carregar perfil do Supabase, expor `{ user, profile, user_type, role, loading, signIn, signOut }`
-10. Layout base: `Navbar` + `BottomNav` com abas condicionais por `user_type` (staff vê "Gestão" e "Categorias"; client não vê)
+10. Layout base: `Navbar` (desktop) + Drawer lateral mobile com abas condicionais por tier (staff vê "Gestão" e "Categorias"; client não vê)
 11. Rotas com `react-router-dom`: `/login`, `/`, `/evento/:id`, `/favoritos`, `/realizados`, `/gestao`, `/gestao/novo`, `/gestao/:id/editar`, `/categorias`
 12. Criar `architecture.md` (template acima preenchido com o que foi feito nesta fase)
 
@@ -537,7 +546,7 @@ decisão técnica, adicionar dependência.
     - **Todos**: atualiza campos compartilhados em `events` (ex: título, descrição) + aplica delta de horário/duração a **todas** as `event_sessions` do evento. Não regenera sessões (mantém instâncias existentes, só ajusta campos editados).
     - UI: modal após clicar "Salvar" pedindo o escopo. Default: "Só esta".
 32. **Duplicação de evento**: copia campos + modelo de recorrência + intervalo de datas. **NÃO copia fotos** (novo evento nasce sem fotos). Se `recurrence_until < hoje`, warnar no form: "Datas no passado. Ajuste antes de salvar."
-33. Gestão de categorias (tela Categories: criar/editar/excluir) — só `ROLE_SUPER_ADMIN`
+33. Gestão de categorias (tela Categories: criar/editar/excluir) — tier staff (`staff`/`super_admin`)
 34. Atualizar `architecture.md`
 
 ### Fase 5 — PWA e Deploy
@@ -552,8 +561,8 @@ decisão técnica, adicionar dependência.
 ## Mock data inicial (seed)
 
 ### Usuários (2)
-- `admin@lema.com` — `user_type = 'staff'`, `role = 'ROLE_SUPER_ADMIN'` (cadastra/edita/exclui/duplica)
-- `dirigente@lema.com` — `user_type = 'client'`, `role = 'ROLE_DIRIGENTE'` (só visualiza/favorita/compartilha)
+- `admin@lema.com` — `user_type = 'super_admin'`, `role = 'ROLE_SUPER_ADMIN'` (cadastra/edita/exclui/duplica + Painel Admin)
+- `dirigente@lema.com` — `user_type = 'client'`, `role = 'ROLE_VIEWER'` (só visualiza/favorita/compartilha)
 
 Senha dos mocks: `lema123` (hash bcrypt gerado pelo executor no seed).
 
@@ -573,13 +582,19 @@ Comitê, Workshop, Live/Webinar, Palestra, Congresso, Seminário, Curso, Encontr
 ## Restrições e limites do protótipo
 
 - **Não mexer no código do UNO** — zero arquivos alterados no codebase do UNO
-- **Sem push automático** — lembretes são salvos no banco, mas o disparo (push/FCM) fica para fase 2
+- **Push automático implementado** — o disparo de notificações (eventos novos
+  por categoria e lembretes) roda de verdade via Edge Function
+  `notification-scheduler` agendada por `pg_cron` + `pg_net`; o canal E-mail
+  do lembrete ainda é só configuração salva ("em breve")
 - **Sem suporte offline de dados** — só o shell do PWA funciona offline
 - **Sem autocomplete de endereço** — mapa via Google Maps embed com texto livre
 - **Sem tela de auditoria** — `created_by` é salvo mas não há UI para consultar
 - **Sem i18n** — tudo em pt-BR
 - **Sem lat/lng** — geolocalização fica para quando o dev assumir
-- **Sem permissões granulares por staff** — no protótipo só `ROLE_SUPER_ADMIN` edita/exclui; futuras roles (BACKOFFICE, COMERCIAL, etc.) ganham acesso na migração
+- **Sem permissões granulares por staff** — no protótipo o tier staff
+  (`staff`/`super_admin`) edita/exclui; o super admin ainda acessa o Painel
+  Admin (`/admin`); futuras roles (BACKOFFICE, COMERCIAL, etc.) ganham acesso
+  na migração
 
 ---
 

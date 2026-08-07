@@ -123,6 +123,13 @@ export default function ReminderDialog({
                 label="Quantidade"
                 size="small"
                 fullWidth
+                sx={{
+                  '& input[type=number]': { MozAppearance: 'textfield' },
+                  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0
+                  }
+                }}
               />
             </Box>
 

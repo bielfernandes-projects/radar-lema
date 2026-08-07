@@ -339,8 +339,8 @@ Todas as tabelas têm RLS habilitado:
 | `PasswordToggle` | Botão "mostrar/ocultar senha" (ícone de olho) em campos de senha | `Login`, `SignUp`, `RecoverPassword`, `Settings` |
 | `useReminders` | Hook para carregar/salvar/remover lembretes via Supabase SDK. Trabalha com entradas `{ offset_minutes, channel }` e upsert com `ignoreDuplicates` (mesmo offset pode existir em push e email). Usa `useUserData` para o listener de auth. | `EventCard`, `EventDetail`, `Settings` |
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
-| `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
-| `AdminDashboard` | Painel Admin: cards com totais (usuários/eventos/favoritos), gráficos mensais (recharts) de crescimento de usuários e favoritos, e gestão de usuários (criar com senha escolhida, editar tipo/role, redefinir senha, excluir). Previne excluir/editar a própria conta | Rota `/admin` |
+| `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico **sem spinners +/−** + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
+| `AdminDashboard` | Painel Admin: cards com totais (usuários/eventos/favoritos), gráficos mensais (recharts) de crescimento de usuários e favoritos com barras centralizadas no card (margens balanceadas com a faixa do eixo Y), e gestão de usuários (criar com senha escolhida, editar tipo/role, redefinir senha, excluir). Previne excluir/editar a própria conta | Rota `/admin` |
 | `Settings` | Configurações: alterar senha (atual/nova/confirmação), notificações push, teste de notificação, instalar app e lista de lembretes | Rota `/configuracoes` |
 
 ## Rotas
@@ -576,6 +576,20 @@ Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy das functions, secrets e registro do job).
 
 ## Histórico de mudanças
+
+- **2026-08-07** — Ajustes finos de UI no Painel Admin e nos lembretes:
+  - **Gráficos centralizados no card**: os `BarChart` (Usuários e Favoritos)
+    do `AdminDashboard` ganharam margem direita balanceada com a faixa do
+    eixo Y (`margin.right: 65` ≈ `margin.left: 5` + `YAxis` de 60px). Antes,
+    as barras ficavam deslocadas ~30px à direita do centro do card por causa
+    da largura do eixo Y — o plot ocupava o lado direito e sobrava vazio à
+    esquerda. Agora o plot fica centralizado (folgas de 72px de cada lado).
+  - **Campo "Quantidade" sem spinners**: o `TextField` numérico do
+    `ReminderDialog` esconde as setas +/− nativas do navegador com CSS
+    escopado no próprio campo via `sx` (`::-webkit-inner-spin-button`/
+    `::-webkit-outer-spin-button` com `WebkitAppearance: none` e
+    `MozAppearance: textfield`). O valor continua sendo digitado direto no
+    campo; os controles nativos de incremento não são mais exibidos.
 
 - **2026-08-07** — Blindagem do signup contra clientes antigos:
   - Migration `20260807000001_harden_on_auth_user_created.sql` aplicada no
