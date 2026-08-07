@@ -10,7 +10,13 @@
 -- Apos aplicar, rode o script scripts/promote-super-admin.mjs (ou o painel) para
 -- garantir que a conta principal esteja em super_admin/ROLE_SUPER_ADMIN.
 
--- 1) Reclassifica dados existentes (antes das novas CHECK constraints).
+-- 1) Remove as CHECK constraints atuais ANTES de reclassificar dados:
+--    a constraint antiga so aceita ROLE_DIRIGENTE/ROLE_SUPER_ADMIN, e a nova
+--    so pode ser adicionada quando os dados ja estao dentro dos novos valores.
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+-- 2) Reclassifica dados existentes.
 -- Antigos admins (staff/ROLE_SUPER_ADMIN) viram super_admin.
 UPDATE public.profiles
 SET user_type = 'super_admin', role = 'ROLE_SUPER_ADMIN'
@@ -26,18 +32,16 @@ UPDATE public.profiles
 SET user_type = 'super_admin', role = 'ROLE_SUPER_ADMIN'
 WHERE email = 'gabrielfernandes@lemaef.com.br';
 
--- 2) Alarga as CHECK constraints de profiles.
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+-- 3) Adiciona as novas CHECK constraints (dados ja reclassificados).
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_user_type_check
   CHECK (user_type IN ('super_admin', 'staff', 'client'));
 
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_VIEWER'));
 
--- 3) Trigger de novo usuario: padrao de role agora e ROLE_VIEWER.
+-- 4) Trigger de novo usuario: padrao de role agora e ROLE_VIEWER.
 CREATE OR REPLACE FUNCTION public.on_auth_user_created()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -54,7 +58,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4) is_staff(): qualquer tier que gerencia eventos (staff OU super_admin).
+-- 5) is_staff(): qualquer tier que gerencia eventos (staff OU super_admin).
 CREATE OR REPLACE FUNCTION public.is_staff()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -66,7 +70,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 5) Escrita de eventos/categorias agora liberada para o tier staff
+-- 6) Escrita de eventos/categorias agora liberada para o tier staff
 --    (staff/ROLE_ADMIN e super_admin/ROLE_SUPER_ADMIN), nao apenas SUPER_ADMIN.
 
 DROP POLICY IF EXISTS categories_write ON public.categories;
@@ -99,7 +103,7 @@ CREATE POLICY event_categories_write ON public.event_categories
   USING (public.is_staff())
   WITH CHECK (public.is_staff());
 
--- 6) RPC do painel admin: agregados cross-usuario (apenas super_admin).
+-- 7) RPC do painel admin: agregados cross-usuario (apenas super_admin).
 CREATE OR REPLACE FUNCTION public.admin_dashboard_stats()
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER
