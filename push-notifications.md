@@ -139,34 +139,46 @@ no `config.toml`; o mecanismo acima (pg_cron + pg_net) é o oficial.
 
 ## Rotação de credenciais (runbook SEC-010)
 
-As credenciais do protótipo viviam em `.env.local` **sincronizado no OneDrive**.
-Se houver suspeita de vazamento, rotacione na ordem abaixo. Rotação é
-**manual** (Supabase Dashboard + Vercel) — este runbook apenas documenta o
-passo a passo.
+As credenciais vivem em `.env.local` dentro de uma pasta do **OneDrive da Lema**
+(empresa dona do app). Rotação é **manual** (Supabase Dashboard + Vercel) —
+este runbook documenta o passo a passo, mas **não há rotação agendada**:
+avaliado em 10/08/2026 e considerado desnecessário por enquanto (OneDrive
+institucional, sem indício de vazamento). Roteie apenas se houver suspeita.
 
-### 1. service_role (Supabase)
+> **Modelo de chaves:** o projeto usa as **novas API Keys** do Supabase
+> (`sb_secret_...` = secret key no lugar da antiga `service_role`). Nesse
+> modelo **não existe botão "Regenerate"** — a rotação é *criar uma nova chave,
+> trocar onde é usada e apagar a antiga*. O front usa a `anon` (JWT) no
+> `VITE_SUPABASE_ANON_KEY`.
 
-1. Dashboard → **Project Settings → API → service_role** → Reveal → **Regenerate**.
-2. As Edge Functions recebem a nova key automaticamente no runtime (não
-   precisam de redeploy).
-3. ⚠️ **Re-provisionar o job do cron** — ele guarda a key em texto puro no SQL
+### 1. Secret key (substitui a service_role) — Supabase
+
+1. Dashboard → **Settings → API Keys** (https://supabase.com/dashboard/project/vrvyfgneawtceebyagak/settings/api-keys)
+   → aba **Publishable and secret API keys**.
+2. Clique **Create new secret key** (nome ex.: `radar-prod`) e copie o valor
+   `sb_secret_...` novo.
+3. Atualize `SUPABASE_SERVICE_ROLE_KEY` no `.env.local` e nos scripts que usam
+   service role (`seed-*.mjs`, `promote-super-admin.mjs`).
+4. ⚠️ **Re-provisionar o job do cron** — ele guarda a chave em texto puro no SQL
    da chamada. Sem isso o scheduler roda "com sucesso" mas recebe 401 em todo
    tique (bug documentado acima):
    ```sql
    SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'radar-notification-scheduler';
    ```
    Depois re-execute o `cron.schedule(...)` da seção "Provisionar o job do cron"
-   **com a nova key**.
-4. Conferir em `net._http_response` que o `status_code` voltou a 200.
-5. Atualizar `SUPABASE_SERVICE_ROLE_KEY` no `.env.local` e nos scripts que usam
-   service role (`seed-*.mjs`, `promote-super-admin.mjs`).
+   **com a nova chave**.
+5. Conferir em `net._http_response` que o `status_code` voltou a 200.
+6. As Edge Functions **não precisam de redeploy**: o Supabase injeta a chave no
+   runtime. Depois de tudo validado, volte ao Dashboard e **delete a chave
+   antiga** (revogação imediata e irreversível).
 
-### 2. anon key (Supabase)
+### 2. anon / publishable key (Supabase)
 
-Se a anon key também vazou: Dashboard → **Project Settings → API → anon** →
-**Regenerate**. Atualizar `VITE_SUPABASE_ANON_KEY` no `.env.local` **e** nas
-Env Vars do projeto Vercel (aplicativo precisa dela para autenticar). O front
-só usa a anon key — a service role nunca vai para o browser.
+Se a anon também vazou: Dashboard → **Settings → API Keys** → crie/copie a
+`sb_publishable_...` (ou reative a anon legada) e atualize
+`VITE_SUPABASE_ANON_KEY` no `.env.local` **e** nas Env Vars do projeto Vercel
+(aplicativo precisa dela para autenticar). O front só usa a anon — a secret key
+nunca vai para o browser.
 
 ### 3. SUPABASE_ACCESS_TOKEN (CLI)
 
@@ -187,14 +199,6 @@ derivada das chaves). Gerar novo par com `npx web-push generate-vapid-keys
 `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` nas Edge Functions
 (`supabase secrets set`). Usuários precisam desativar/re-ativar o toggle de
 push para re-assinar.
-
-### 6. Mover chaves para fora do OneDrive
-
-O `.env.local` (com `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN` e
-`VERCEL_OIDC_TOKEN`) está dentro de uma pasta sincronizada. Para remover do
-sync: mova o arquivo para um diretório fora do OneDrive e crie um `.env.local`
-local apontando para ele durante dev, ou use um gerenciador de segredos. O
-arquivo já está coberto por `.gitignore` (`.env*`).
 
 ## Limitações e notas
 
