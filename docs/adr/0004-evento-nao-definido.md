@@ -48,7 +48,11 @@ controlado pela coluna booleana `events.is_confirmed` (default `true`).
   data-fim, não no passado) são obrigatórios. Descrição, link de inscrição,
   categorias, endereço, valor e sessões podem ficar vazios — o evento ainda
   está em definição. Os atributos `required` do formulário ficam condicionais
-  a `!form.is_tentative` para o navegador não bloquear o envio.
+  a `!form.is_tentative`; como a validação acontece no `validate()` do front
+  (checando `form.category_ids`, que vive no estado React e não no input), o
+  `<form>` usa `noValidate` — sem isso o navegador bloquearia o envio na
+  validação nativa de `required` do input interno do Autocomplete `multiple`
+  de categorias, que fica sempre vazio mesmo com chips selecionados.
 - Ao **desmarcar** "A definir" (confirmar/publicar), a validação volta a
   exigir todos os campos obrigatórios — evento incompleto não é publicado.
 - Não há mudança de schema: `title`/`description` são `NOT NULL`, mas strings

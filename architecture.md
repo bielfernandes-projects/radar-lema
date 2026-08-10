@@ -577,6 +577,19 @@ deploy das functions, secrets e registro do job).
 
 ## Histórico de mudanças
 
+- **2026-08-10** — Correção da validação de categorias no formulário de eventos:
+  - O campo Categorias (`Autocomplete` `multiple`) exibia os chips corretamente,
+    mas o `<input>` interno de texto do MUI fica **sempre vazio** em modo
+    múltiplo — mesmo com categorias selecionadas. Como o `<form>` não tinha
+    `noValidate`, o navegador bloqueava o envio na validação nativa de
+    `required` desse input vazio ("Preencha este campo"), impedindo salvar um
+    evento confirmado mesmo com categorias preenchidas. Apagar/readicionar chips
+    ou recarregar não resolvia, pois o estado (`form.category_ids`) já estava
+    correto — o problema era a checagem nativa do browser sobre o input vazio.
+  - Correção: `<Box component="form" noValidate>` em `EventFormPage`,
+    deixando a validação 100% no `validate()` (`utils/eventForm.js`), que já
+    checa `category_ids?.length` via estado React. Testes (61) e lint limpos.
+
 - **2026-08-07** — Ajustes finos de UI no Painel Admin e nos lembretes:
   - **Gráficos centralizados no card**: os `BarChart` (Usuários e Favoritos)
     do `AdminDashboard` ganharam margem direita balanceada com a faixa do

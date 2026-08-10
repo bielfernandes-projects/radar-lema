@@ -468,7 +468,7 @@ export default function EventFormPage() {
         </Alert>
       )}
 
-      <Box ref={formRef} component="form" onSubmit={handleSubmit}>
+      <Box ref={formRef} component="form" onSubmit={handleSubmit} noValidate>
         <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
           <SectionHeader title="Identificação" description="Dados básicos do evento" />
           <Stack spacing={2}>
