@@ -22,6 +22,16 @@ const url = env.VITE_SUPABASE_URL
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 const email = process.argv[2] || 'gabrielfernandes@lemaef.com.br'
 
+// SEC-005: promocao de role via service_role so deve rodar contra o Supabase
+// local. Para o cloud, use o Painel Admin (gestao de usuarios).
+if (!url || !/^http:\/\/(127\.0\.0\.1|localhost)/.test(url)) {
+  console.error(
+    'ABORTADO: este script so pode rodar contra o Supabase local ' +
+      '(VITE_SUPABASE_URL deve ser http://127.0.0.1:54321).'
+  )
+  process.exit(1)
+}
+
 const adminClient = createClient(url, serviceKey)
 
 async function main() {

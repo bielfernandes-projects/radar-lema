@@ -22,6 +22,16 @@ for (const line of envText.split('\n')) {
 const url = env.VITE_SUPABASE_URL
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
+// SEC-005: nunca rodar contra o projeto cloud. Este script cria/remove contas
+// com senha conhecida ('lema123') e so deve rodar no Supabase local.
+if (!url || !/^http:\/\/(127\.0\.0\.1|localhost)/.test(url)) {
+  console.error(
+    'ABORTADO: este script so pode rodar contra o Supabase local ' +
+      '(VITE_SUPABASE_URL deve ser http://127.0.0.1:54321).'
+  )
+  process.exit(1)
+}
+
 const adminClient = createClient(url, serviceKey)
 
 const mocks = [

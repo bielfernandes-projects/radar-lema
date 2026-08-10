@@ -35,6 +35,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { safeUrl } from '../utils/safeUrl'
 import MapEmbed from '../components/MapEmbed'
 import {
   formatDateRange,
@@ -326,7 +327,7 @@ export default function EventDetail() {
         variant="contained"
         size="large"
         fullWidth
-        href={event.url}
+        href={safeUrl(event.url) ?? undefined}
         target="_blank"
         rel="noopener noreferrer"
         endIcon={<ExternalLink size={20} />}

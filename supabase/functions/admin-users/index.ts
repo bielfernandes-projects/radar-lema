@@ -15,11 +15,55 @@ const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
+
+// SEC-008: CORS restrito a origins do app. Configuravel via APP_ORIGINS
+// (virgula-separada). Default seguro e funcional: origins do Vercel
+// (production + preview) e localhost de dev.
+const APP_ORIGINS = (Deno.env.get("APP_ORIGINS") || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return true; // chamadas server-to-server sem Origin
+  if (APP_ORIGINS.some((o) => o === origin)) return true;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== "https:" && protocol !== "http:") return false;
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    return hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
+function withCors(origin: string | null) {
+  const headers: Record<string, string> = { ...corsHeaders };
+  if (origin && isAllowedOrigin(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  } else if (!origin) {
+    headers["Access-Control-Allow-Origin"] = "*";
+  }
+  return headers;
+}
+
+const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_RE =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+
+function validatePassword(password: string): string | null {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `Senha deve ter ao menos ${PASSWORD_MIN_LENGTH} caracteres.`;
+  }
+  if (!PASSWORD_RE.test(password)) {
+    return "Senha deve conter maiúsculas, minúsculas, número e símbolo.";
+  }
+  return null;
+}
 
 const USER_TYPES = ["client", "staff", "super_admin"];
 
@@ -30,27 +74,34 @@ const ROLE_BY_USER_TYPE = {
   super_admin: "ROLE_SUPER_ADMIN"
 };
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, origin: string | null = null) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", ...corsHeaders }
+    headers: { "Content-Type": "application/json", ...withCors(origin) }
   });
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("Origin");
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: withCors(origin) });
+  }
+
+  // SEC-008: origem de navegador desconhecida -> bloqueia antes de processar.
+  if (origin && !isAllowedOrigin(origin)) {
+    return json({ error: "Origem nao permitida" }, 403, origin);
   }
 
   if (req.method !== "POST") {
-    return json({ error: "Metodo nao permitido" }, 405);
+    return json({ error: "Metodo nao permitido" }, 405, origin);
   }
 
   let body: { action?: string; [key: string]: unknown };
   try {
     body = await req.json();
   } catch {
-    return json({ error: "JSON invalido" }, 400);
+    return json({ error: "JSON invalido" }, 400, origin);
   }
 
   // Resolve o chamador a partir do token do app (anon + JWT do usuario).
@@ -62,7 +113,7 @@ Deno.serve(async (req) => {
 
   const { data: { user } } = await callerClient.auth.getUser();
   if (!user) {
-    return json({ error: "Nao autenticado" }, 401);
+    return json({ error: "Nao autenticado" }, 401, origin);
   }
 
   const { data: profile } = await callerClient
@@ -72,7 +123,7 @@ Deno.serve(async (req) => {
     .single();
 
   if (!profile || profile.role !== "ROLE_SUPER_ADMIN") {
-    return json({ error: "Acesso negado" }, 403);
+    return json({ error: "Acesso negado" }, 403, origin);
   }
 
   const adminClient = createClient(supabaseUrl, serviceRole, {
@@ -88,13 +139,14 @@ Deno.serve(async (req) => {
     const userType = String(body.user_type ?? "client");
 
     if (!name || !email || !password) {
-      return json({ error: "Nome, email e senha sao obrigatorios" }, 400);
+      return json({ error: "Nome, email e senha sao obrigatorios" }, 400, origin);
     }
     if (!USER_TYPES.includes(userType)) {
-      return json({ error: "user_type invalido" }, 400);
+      return json({ error: "user_type invalido" }, 400, origin);
     }
-    if (password.length < 6) {
-      return json({ error: "Senha deve ter ao menos 6 caracteres" }, 400);
+    const passwordIssue = validatePassword(password);
+    if (passwordIssue) {
+      return json({ error: passwordIssue }, 400, origin);
     }
 
     const role = ROLE_BY_USER_TYPE[userType];
@@ -106,7 +158,7 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      return json({ error: error.message }, 400);
+      return json({ error: error.message }, 400, origin);
     }
 
     // Garante o profile (o trigger deve ter criado; reforca por seguranca).
@@ -118,10 +170,10 @@ Deno.serve(async (req) => {
       role
     });
     if (profileError) {
-      return json({ error: profileError.message }, 500);
+      return json({ error: profileError.message }, 500, origin);
     }
 
-    return json({ user: { id: data.user.id, email, name } }, 201);
+    return json({ user: { id: data.user.id, email, name } }, 201, origin);
   }
 
   if (action === "update") {
@@ -130,10 +182,10 @@ Deno.serve(async (req) => {
     const userType = String(body.user_type ?? "");
 
     if (!userId) {
-      return json({ error: "user_id obrigatorio" }, 400);
+      return json({ error: "user_id obrigatorio" }, 400, origin);
     }
     if (!USER_TYPES.includes(userType)) {
-      return json({ error: "user_type invalido" }, 400);
+      return json({ error: "user_type invalido" }, 400, origin);
     }
 
     const role = ROLE_BY_USER_TYPE[userType];
@@ -143,7 +195,7 @@ Deno.serve(async (req) => {
       { user_metadata: { name, user_type: userType, role } }
     );
     if (metaError) {
-      return json({ error: metaError.message }, 400);
+      return json({ error: metaError.message }, 400, origin);
     }
 
     const { error: profileError } = await adminClient
@@ -151,10 +203,10 @@ Deno.serve(async (req) => {
       .update({ name, user_type: userType, role })
       .eq("id", userId);
     if (profileError) {
-      return json({ error: profileError.message }, 500);
+      return json({ error: profileError.message }, 500, origin);
     }
 
-    return json({ ok: true });
+    return json({ ok: true }, 200, origin);
   }
 
   if (action === "reset_password") {
@@ -162,38 +214,39 @@ Deno.serve(async (req) => {
     const password = String(body.password ?? "");
 
     if (!userId || !password) {
-      return json({ error: "user_id e senha sao obrigatorios" }, 400);
+      return json({ error: "user_id e senha sao obrigatorios" }, 400, origin);
     }
-    if (password.length < 6) {
-      return json({ error: "Senha deve ter ao menos 6 caracteres" }, 400);
+    const passwordIssue = validatePassword(password);
+    if (passwordIssue) {
+      return json({ error: passwordIssue }, 400, origin);
     }
 
     const { error } = await adminClient.auth.admin.updateUserById(userId, {
       password
     });
     if (error) {
-      return json({ error: error.message }, 400);
+      return json({ error: error.message }, 400, origin);
     }
 
-    return json({ ok: true });
+    return json({ ok: true }, 200, origin);
   }
 
   if (action === "delete") {
     const userId = String(body.user_id ?? "");
     if (!userId) {
-      return json({ error: "user_id obrigatorio" }, 400);
+      return json({ error: "user_id obrigatorio" }, 400, origin);
     }
     if (userId === user.id) {
-      return json({ error: "Voce nao pode excluir a propria conta" }, 400);
+      return json({ error: "Voce nao pode excluir a propria conta" }, 400, origin);
     }
 
     const { error } = await adminClient.auth.admin.deleteUser(userId);
     if (error) {
-      return json({ error: error.message }, 400);
+      return json({ error: error.message }, 400, origin);
     }
 
-    return json({ ok: true });
+    return json({ ok: true }, 200, origin);
   }
 
-  return json({ error: "Acao desconhecida" }, 400);
+  return json({ error: "Acao desconhecida" }, 400, origin);
 });

@@ -137,6 +137,65 @@ SELECT cron.schedule(
 Para o **ambiente local**, o Supabase CLI v2 ainda não suporta `schedule_cron`
 no `config.toml`; o mecanismo acima (pg_cron + pg_net) é o oficial.
 
+## Rotação de credenciais (runbook SEC-010)
+
+As credenciais do protótipo viviam em `.env.local` **sincronizado no OneDrive**.
+Se houver suspeita de vazamento, rotacione na ordem abaixo. Rotação é
+**manual** (Supabase Dashboard + Vercel) — este runbook apenas documenta o
+passo a passo.
+
+### 1. service_role (Supabase)
+
+1. Dashboard → **Project Settings → API → service_role** → Reveal → **Regenerate**.
+2. As Edge Functions recebem a nova key automaticamente no runtime (não
+   precisam de redeploy).
+3. ⚠️ **Re-provisionar o job do cron** — ele guarda a key em texto puro no SQL
+   da chamada. Sem isso o scheduler roda "com sucesso" mas recebe 401 em todo
+   tique (bug documentado acima):
+   ```sql
+   SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'radar-notification-scheduler';
+   ```
+   Depois re-execute o `cron.schedule(...)` da seção "Provisionar o job do cron"
+   **com a nova key**.
+4. Conferir em `net._http_response` que o `status_code` voltou a 200.
+5. Atualizar `SUPABASE_SERVICE_ROLE_KEY` no `.env.local` e nos scripts que usam
+   service role (`seed-*.mjs`, `promote-super-admin.mjs`).
+
+### 2. anon key (Supabase)
+
+Se a anon key também vazou: Dashboard → **Project Settings → API → anon** →
+**Regenerate**. Atualizar `VITE_SUPABASE_ANON_KEY` no `.env.local` **e** nas
+Env Vars do projeto Vercel (aplicativo precisa dela para autenticar). O front
+só usa a anon key — a service role nunca vai para o browser.
+
+### 3. SUPABASE_ACCESS_TOKEN (CLI)
+
+Dashboard → **Account → Access Tokens** → revoke e gere um novo. Atualizar
+`SUPABASE_ACCESS_TOKEN` no `.env.local` (ou rodar `supabase login`).
+
+### 4. Vercel OIDC token
+
+Vercel → projeto → **Settings → Environment Variables** (token OIDC) ou
+regenerar via `vercel login`/`vercel link` quando o CLI acusar token expirado.
+Atualizar `VERCEL_OIDC_TOKEN` no `.env.local`.
+
+### 5. Chaves VAPID (push) — só se vazadas
+
+Trocar o par VAPID **invalida todas as subscriptions existentes** (p256dh é
+derivada das chaves). Gerar novo par com `npx web-push generate-vapid-keys
+--json`, atualizar `VITE_VAPID_PUBLIC_KEY` (`.env.local` + Vercel) e as secrets
+`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` nas Edge Functions
+(`supabase secrets set`). Usuários precisam desativar/re-ativar o toggle de
+push para re-assinar.
+
+### 6. Mover chaves para fora do OneDrive
+
+O `.env.local` (com `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN` e
+`VERCEL_OIDC_TOKEN`) está dentro de uma pasta sincronizada. Para remover do
+sync: mova o arquivo para um diretório fora do OneDrive e crie um `.env.local`
+local apontando para ele durante dev, ou use um gerenciador de segredos. O
+arquivo já está coberto por `.gitignore` (`.env*`).
+
 ## Limitações e notas
 
 - Push só funciona em **HTTPS** e com **SW registrado** (a partir do build,

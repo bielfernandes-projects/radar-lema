@@ -26,6 +26,10 @@ interface PushPayload {
   eventId?: string;
 }
 
+const MAX_RECIPIENTS = 5000;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function sendOne(row: SubscriptionRow, payload: PushPayload): Promise<string> {
   try {
     await webpush.sendNotification(
@@ -64,12 +68,29 @@ Deno.serve(async (req) => {
     return new Response("payload.title e obrigatorio", { status: 400 });
   }
 
+  // SEC-004: exige um alvo explicito. Sem userIds nem categories, recusa em vez
+  // de fazer broadcast global para todos os inscritos do app.
+  const hasUserIds = Array.isArray(body.userIds) && body.userIds.length > 0;
+  const hasCategoryIds =
+    Array.isArray(eventCategoryIds) && eventCategoryIds.length > 0;
+
+  if (!hasUserIds && !hasCategoryIds) {
+    return new Response(
+      "Informe userIds ou eventCategoryIds para evitar broadcast global",
+      { status: 400 }
+    );
+  }
+
+  if (hasUserIds && body.userIds!.some((id) => !UUID_RE.test(id))) {
+    return new Response("userIds invalido (UUID esperado)", { status: 400 });
+  }
+
   // Define a lista de usuarios-alvo.
   let targetUserIds: string[] | null = null;
 
-  if (body.userIds && body.userIds.length > 0) {
-    targetUserIds = body.userIds;
-  } else if (eventCategoryIds && eventCategoryIds.length > 0) {
+  if (hasUserIds) {
+    targetUserIds = Array.from(new Set(body.userIds!));
+  } else if (hasCategoryIds) {
     const { data: matches } = await supabase
       .from("notification_settings")
       .select("user_id, categories_enabled")
@@ -79,7 +100,7 @@ Deno.serve(async (req) => {
     (matches || []).forEach((s) => {
       const hasAny = (s.categories_enabled || []).includes("*");
       const hasCategory = (s.categories_enabled || []).some((c: string) =>
-        eventCategoryIds.includes(c)
+        eventCategoryIds!.includes(c)
       );
       if (hasAny || hasCategory) targeted.add(s.user_id);
     });
@@ -87,6 +108,13 @@ Deno.serve(async (req) => {
       return Response.json({ sent: 0, gone: 0, failed: 0, total: 0 });
     }
     targetUserIds = Array.from(targeted);
+  }
+
+  if (targetUserIds && targetUserIds.length > MAX_RECIPIENTS) {
+    return new Response(
+      `Muitos destinatarios (max ${MAX_RECIPIENTS})`,
+      { status: 400 }
+    );
   }
 
   // Busca as assinaturas.

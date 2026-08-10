@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { safeUrl } from '../utils/safeUrl'
 
 export async function uploadPhotos(eventId, photos) {
   const photoFiles = photos.filter((p) => p.file)
@@ -116,7 +117,7 @@ export async function persistEvent({
     city: form.modality === 'online' ? null : form.city.trim() || null,
     state: form.modality === 'online' ? null : form.state.trim() || null,
     address: form.modality === 'online' ? null : form.address.trim() || null,
-    url: form.url.trim(),
+    url: safeUrl(form.url),
     is_recurring: form.is_recurring,
     recurrence_freq: form.is_recurring ? form.recurrence_freq : null,
     recurrence_until: form.is_recurring ? form.recurrence_until : null,

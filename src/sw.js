@@ -66,7 +66,22 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const { url, eventId } = event.notification.data || {}
-  const target = new URL(eventId ? `/evento/${eventId}` : url || '/', self.location.origin).href
+
+  // SEC-013: apenas navegacao same-origin. Se o push trouxer uma URL absoluta
+  // de origem externa, ignoramos e caímos para a home em vez de abrir o link.
+  let target = `${self.location.origin}/`
+  if (eventId) {
+    target = `${self.location.origin}/evento/${encodeURIComponent(eventId)}`
+  } else if (url) {
+    try {
+      const parsed = new URL(url, self.location.origin)
+      if (parsed.origin === self.location.origin) {
+        target = parsed.href
+      }
+    } catch {
+      target = `${self.location.origin}/`
+    }
+  }
 
   event.waitUntil(
     (async () => {
