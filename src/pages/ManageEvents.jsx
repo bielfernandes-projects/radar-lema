@@ -121,13 +121,15 @@ export default function ManageEvents() {
       )
     : events
 
-  const realizedEvents = filteredEvents.filter((e) => pastIds.has(e.id))
+  // Eventos "a definir" ignoram datas: nunca caem em Realizados/Em andamento,
+  // independentemente de sessoes presentes, passadas ou ausentes.
+  const realizedEvents = filteredEvents.filter(
+    (e) => e.is_confirmed !== false && pastIds.has(e.id)
+  )
   const confirmedEvents = filteredEvents.filter(
     (e) => e.is_confirmed !== false && !pastIds.has(e.id)
   )
-  const tentativeEvents = filteredEvents.filter(
-    (e) => e.is_confirmed === false && !pastIds.has(e.id)
-  )
+  const tentativeEvents = filteredEvents.filter((e) => e.is_confirmed === false)
   const visibleEvents =
     tab === 'tentative'
       ? tentativeEvents
