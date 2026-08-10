@@ -646,6 +646,13 @@ export default function EventFormPage() {
                 inputProps={{ min: 0, step: '0.01' }}
                 value={form.price_from}
                 onChange={(e) => updateForm({ price_from: e.target.value })}
+                sx={{
+                  '& input[type=number]': { MozAppearance: 'textfield' },
+                  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0
+                  }
+                }}
               />
             )}
           </Stack>

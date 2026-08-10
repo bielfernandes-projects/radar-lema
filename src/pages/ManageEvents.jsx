@@ -200,7 +200,22 @@ export default function ManageEvents() {
         onChange={(e, value) => setTab(value)}
         sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
       >
-        <Tab label="Confirmados" value="confirmed" />
+        <Tab
+          label={
+            <Stack direction="row" spacing={1} alignItems="center">
+              <span>Confirmados</span>
+              {confirmedEvents.length > 0 && (
+                <Chip
+                  label={confirmedEvents.length}
+                  size="small"
+                  color="primary"
+                  sx={{ height: 20, minWidth: 20 }}
+                />
+              )}
+            </Stack>
+          }
+          value="confirmed"
+        />
         <Tab
           label={
             <Stack direction="row" spacing={1} alignItems="center">
