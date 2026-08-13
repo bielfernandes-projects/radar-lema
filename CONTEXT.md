@@ -1,12 +1,18 @@
-# Radar Lema
+# Radar Lema (em evolução para o Hub da Lema)
 
-Centralizador de eventos para RPPS — um PWA standalone que reúne todos os
-eventos do ecossistema (comitês, workshops, lives, palestras, congressos, etc.)
-para clientes e staff da Lema.
+PWA standalone que reúne o ecossistema da Lema para RPPS — eventos, artigos,
+notícias de mercado, novidades do sistema UNO, materiais de apoio e o dashboard
+de investimentos do UNO — para clientes e staff da Lema.
 
 > Nota: o app foi rebranded de "Lema Discovery" para "Radar Lema". Pasta,
 > pacote (`package.json`/`package-lock.json`) e repo do GitHub foram renomeados
 > para `radar-lema`, bem como o projeto no Supabase e na Vercel.
+>
+> Nota 2: em andamento (branch `feat/lema-hub`) — o app está sendo expandido
+> de "centralizador de eventos" para um **hub da Lema** (nome e identidade
+> visual ainda não definidos). Novos conteúdos: Artigos, Notícias de Mercado,
+> Novidades UNO, Materiais de Apoio, Dashboard UNO, Curtidas e Comentários.
+> Nada disso vai para produção até a conclusão.
 
 ## Language
 
@@ -165,6 +171,83 @@ fotos e o staff re-uploads antes de salvar. Se a `recurrence_until` copiada
 estiver no passado, o formulário warna o staff para ajustar antes de salvar.
 _Avoid_: Clonar, copiar
 
+**Cliente Lema**:
+Usuário com a flag `is_uno_client = true` no perfil. Acessa os diferenciais
+do hub: Artigos e Materiais com visibilidade `lema_client`, e o Dashboard
+UNO. É um conceito **ortogonal** ao `user_type` — qualquer tier pode ou não
+ser Cliente Lema. No protótipo a flag é alternada manualmente pelo super
+admin no Painel Admin; na integração com o banco do UNO passa a ser
+derivada do vínculo da conta (mesmo e-mail).
+_Avoid_: Cliente pago, assinante, premium
+
+**Visibilidade**:
+Quem pode ler um conteúdo. Campo `visibility` em Artigos e Materiais com os
+valores `public` (todos) e `lema_client` (apenas Clientes Lema). Não se
+confunde com o **Não definido** dos eventos, que é um estado de publicação
+(visível só para staff) e não uma escolha de audiência.
+_Avoid_: Público-alvo, acesso, tier
+
+**Artigo**:
+Conteúdo editorial da Lema (análises, comparativos, estudos) hoje publicado
+no LinkedIn e passado a viver no hub. Criado/editado manualmente pelo staff,
+com título, subtítulo, autor, corpo (Markdown), capa e visibilidade. O link
+para o LinkedIn original é opcional (`source_url`).
+_Avoid_: Post, matéria, blog
+
+**Notícia de Mercado**:
+Item noticioso externo sobre RPPS e investimentos, ingerido automaticamente
+da API de notícias (NewsAPI) por uma Edge Function agendada e gravado na
+tabela `news`. Não tem autor Lema nem visibilidade restrita — é `public`.
+_Avoid_: Feed, clipping, matéria
+
+**Novidade UNO**:
+Aviso sobre o sistema UNO escrito pelo staff: atualizações e novas
+funcionalidades, manutenção programada, bugs e instabilidades. Vive na
+tabela `uno_updates`, é visível para todos (serve de captação) e pode
+disparar push para quem tiver notificações ativas.
+_Avoid_: Changelog, release note, comunicado
+
+**Material de Apoio**:
+Documento disponibilizado pelo staff para agregar ao dia a dia do RPPS —
+manuais, resoluções (ex.: CMN 5.272/2025), guias. Upload de arquivo no app
+(bucket `materials`), com título, descrição e visibilidade. Não recebe
+curtidas nem comentários.
+_Avoid_: Anexo, download, biblioteca
+
+**Dashboard UNO**:
+Reprodução da tela inicial do sistema UNO mostrando a situação dos
+investimentos do RPPS (alocação, rendimento, composição da carteira).
+Restrito a Clientes Lema (`is_uno_client`). No protótipo consome a API do
+UNO via Edge Function proxy apontando para o perfil de demonstração
+(`client_id = 192`); o vínculo por e-mail com a conta real do UNO fica para
+a fase de integração plena.
+_Avoid_: Painel, visão geral, home do UNO
+
+**Curtida**:
+Interação de apreço do usuário em um conteúdo de leitura (Artigo, Evento,
+Notícia de Mercado ou Novidade UNO). Exige conta (não há navegação
+anônima). Não existe em Materiais.
+_Avoid_: Like, gostei, favoritar
+
+**Comentário**:
+Interação textual do usuário em um conteúdo de leitura (Artigo, Evento,
+Notícia de Mercado ou Novidade UNO). Aparece na hora (moderação
+pós-publicação) e o staff pode ocultá-lo pela fila de moderação. Não existe
+em Materiais.
+_Avoid_: Mensagem, resposta, discussão
+
+**Moderação**:
+Atividade do staff sobre comentários: ocultar/remover conteúdo impróprio
+pela fila de moderação do hub. Pós-publicação — o comentário é exibido
+imediatamente e ocultado depois, se necessário.
+_Avoid_: Revisão, aprovação, filtro
+
+**Feed**:
+Home do hub (`/`), que agrega os últimos itens de todas as seções —
+próximos eventos, últimas notícias de mercado, artigos recentes e novidades
+UNO. Cada tipo de conteúdo também tem seção própria no menu.
+_Avoid_: Home, dashboard, vitrine
+
 ## Roles e Acesso
 
 | user_type | role | Acesso |
@@ -177,3 +260,7 @@ Qualquer staff (inclui super_admin) pode editar/excluir qualquer evento,
 independentemente de quem criou. O campo `created_by` é guardado no banco mas
 não há tela de auditoria no protótipo. Novos cadastros (`signUp`) nascem
 `client`/`ROLE_VIEWER`; o super admin altera tipo/role pelo Painel Admin.
+
+O **Cliente Lema** (`is_uno_client = true`) é ortogonal ao `user_type`: é
+uma capacidade de visibilidade (conteúdo `lema_client` + Dashboard UNO), não
+uma permissão de escrita. Super admin alterna a flag pelo Painel Admin.

@@ -1,10 +1,74 @@
 # Plano de Implementação — Radar Lema
 
-> **Status:** Pronto para desenvolvimento  
-> **Data:** 2026-07-08  
+> **Status:** Eventos implementados; **hub da Lema em andamento** (branch
+> `feat/lema-hub`)  
+> **Data:** 2026-07-08 (original) · 2026-08-13 (hub)  
 > **Autor:** Gabriel (PO) + opencode
 
 ---
+
+## Hub da Lema (em andamento — branch `feat/lema-hub`)
+
+> Nada do hub vai para produção até a conclusão. O trabalho vive na branch
+> `feat/lema-hub`; a `main` permanece como está no deploy da Vercel. Os
+> testes são feitos localmente.
+
+O Radar Lema está sendo expandido de centralizador de eventos para um **hub
+da Lema**: eventos, artigos, notícias de mercado, novidades UNO, materiais de
+apoio, curtidas/comentários e o Dashboard UNO. Nome e identidade visual
+ficam para depois.
+
+### Decisões do grill (2026-08-13)
+
+| # | Tema | Decisão |
+|---|---|---|
+| Q1 | Acesso | **Conta grátis obrigatória** — sem navegação anônima; todo conteúdo após login |
+| Q2 | Cliente Lema | Flag `is_uno_client` em `profiles`, alternada pelo super admin no Painel Admin |
+| Q3 | Visibilidade | Campo `visibility` (`public`/`lema_client`) em Artigos e Materiais; mantém `is_confirmed` p/ Eventos |
+| Q4 | Artigos | Agregado próprio, staff publica manualmente; `source_url` opcional p/ LinkedIn |
+| Q5 | Notícias | Ingestão agendada (Edge + cron) → tabela `news`; API = NewsAPI |
+| Q6 | Novidades UNO | Agregado próprio `uno_updates`, escrito pelo staff |
+| Q7 | Materiais | Upload no app: bucket `materials` + tabela `materials` |
+| Q8/Q9 | Dashboard UNO | Edge Function proxy → `unoapp.com.br`, perfil demo `client_id=192`, token JWT em secret |
+| Q10 | Moderação | Pós-publicação + fila de moderação p/ staff |
+| Q11 | Interações | Curtidas/comentários em Artigos, Eventos, Notícias, Novidades UNO; **Materiais sem** |
+| Q12 | Arquitetura | Home = feed agregado; cada tipo com seção própria |
+| Q13 | Push | Novidades UNO (todos) + Artigos exclusivos (Clientes Lema); não p/ notícias de mercado nem materiais |
+
+### Fases do hub
+
+| # | Fase | Conteúdo |
+|---|---|---|
+| 1 | Fundação | `profiles.is_uno_client` + helper `is_uno_client()` + RLS; switch "Cliente Lema" no Painel Admin; glossário + ADRs |
+| 2 | Vitrine | Tabelas `news` e `uno_updates`; Edge `news-ingest` (NewsAPI + cron); páginas Notícias e Novidades UNO; home feed agregado; rework da navbar/rotas |
+| 3 | Diferenciais 1 e 2 | Tabelas `articles` e `materials` (+ bucket); formulário staff (editor Markdown + upload); listagens públicas e restritas; badges "Exclusivo Lema" |
+| 4 | Social | Tabelas `likes` e `comments` polimórficas (`content_type` + `content_id`); componente de interação; página/aba Moderação p/ staff |
+| 5 | Push novo | Estender `send-push`/outbox: novidades UNO (todos com push) e artigos `lema_client` (só Clientes Lema) |
+| 6 | Trunfo | Edge `uno-proxy` (token JWT em secret); página Dashboard UNO (perfil demo 192); acesso via `is_uno_client` |
+| 7 | Rebrand | Nome + identidade visual + domínio (adiado) |
+
+### Integração com o ecossistema Lema (futuro)
+
+Quando o hub estiver pronto e sem pontas soltas: migração para AWS (S2),
+vínculo com o banco do UNO (o `is_uno_client` passa a ser derivado do e-mail
+da conta UNO), domínio próprio (`lemahub.lemaef.com.br`). Sempre via
+integração, nunca refazendo o que já existe.
+
+### API do UNO (mapeada do `api_uno.yml`)
+
+- Base: `https://unoapp.com.br/server/api/v1/outer_api/`
+- Auth: header `x-access-token` com JWT fixo (payload `{id:"userToOuterAPI"}`)
+- Endpoints p/ o dashboard (todos com `client_id` + datas):
+  `demonstrativoFundosCliente`, `fundosCliente`, `movimentacoesCliente`,
+  `titulosAnalise`, `enquadramentosCliente`, `metaClientePorAno`,
+  `disponibilidadesCliente`
+- Perfil de demonstração: `client_id=192` ("DEMONSTRAÇÃO - LEMA")
+- ⚠️ O `api_uno.yml` contém secrets (JWT, `x-api-key`, credenciais
+  comdinheiro) — rotacionar e manter fora do git (ver `.gitignore`)
+
+---
+
+## Plano original (eventos) — implementado
 
 ## Stack
 

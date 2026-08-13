@@ -29,3 +29,6 @@ supabase/config.toml
 
 .vercel
 .env*
+
+# Segredos / credenciais de APIs externas (NÃO commitar)
+api_uno/

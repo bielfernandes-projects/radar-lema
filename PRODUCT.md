@@ -9,25 +9,40 @@ product
 **Cliente RPPS** (dirigente, membro de comitê ou conselho):
 Profissional sênior do setor de previdência complementar. Usa o app para
 descobrir eventos do ecossistema (comitês, workshops, congressos, lives),
-filtrar por categoria/modalidade/estado, favoritar os relevantes e
-compartilhar com a equipe. Contexto: desktop no trabalho ou mobile em
-trânsito. Job principal: "quais eventos são relevantes para mim agora?"
+acompanhar notícias de mercado, ler artigos e materiais da Lema, e se manter
+atualizado sobre o sistema UNO. Filtra, favorita, compartilha, curte e
+comenta. Contexto: desktop no trabalho ou mobile em trânsito. Job principal:
+"o que é relevante para o meu RPPS agora — eventos, análises e notícias?"
+
+**Cliente Lema** (RPPS que usa o sistema UNO):
+Cliente RPPS com `is_uno_client = true`. Além de tudo do cliente comum,
+acessa os diferenciais do hub: Artigos e Materiais exclusivos (`lema_client`)
+e o Dashboard UNO com a situação dos investimentos. Job principal: "conferir
+a carteira do meu RPPS rapidamente e acessar material exclusivo da Lema."
+O dashboard é usado como apoio em reuniões e pitches.
 
 **Staff Lema** (comercial, gerência, Lema Edu):
-Responsável por curar e cadastrar eventos. Usa o app como ferramenta de
-gestão: criar, editar, duplicar e excluir eventos; gerenciar categorias;
-acompanhar o calendário. Contexto: desktop no trabalho, com atenção total.
-Job principal: "manter o calendário atualizado e preciso para os clientes."
+Responsável por curar e cadastrar eventos, artigos, materiais e novidades do
+UNO. Usa o app como ferramenta de gestão: criar, editar, duplicar e excluir
+conteúdos; gerenciar categorias; moderar comentários. Contexto: desktop no
+trabalho, com atenção total. Job principal: "manter o hub atualizado e
+preciso para os clientes."
 
 ## Product Purpose
 
-Centralizar todos os eventos do ecossistema RPPS em um único ponto de
-descoberta. Hoje os eventos estão espalhados (emails, WhatsApp, planilhas).
-O Radar resolve isso com uma listagem filtrável, detalhe rico com
-fotos/mapa/sessões, e gestão simplificada para o staff.
+Transformar o Radar Lema de centralizador de eventos em um **hub da Lema**:
+um único ponto de descoberta e relacionamento para o ecossistema RPPS. O hub
+reúne eventos, notícias de mercado, artigos e análises da Lema, novidades do
+sistema UNO, materiais de apoio e o dashboard de investimentos do UNO.
 
-Sucesso = cliente encontra o evento relevante em < 30 segundos; staff
-cadastra um evento novo em < 5 minutos.
+Acesso gratuito para todos (cadastro obrigatório), com diferenciais para
+Clientes Lema: conteúdo exclusivo e o Dashboard UNO. O objetivo é gerar
+relacionamento contínuo com o cliente (captação via conteúdo público) e
+reforçar o valor da assinatura UNO (diferenciais exclusivos).
+
+Sucesso = cliente encontra o conteúdo relevante em < 30 segundos; staff
+publica um conteúdo novo em < 5 minutos; Clientes Lema conferem o dashboard
+em reuniões e pitches.
 
 ## Brand Personality
 
@@ -38,6 +53,9 @@ cadastra um evento novo em < 5 minutos.
 - Tipografia Manrope (títulos e corpo): legibilidade com presença.
 - Sem gamificação, sem emojis decorativos, sem ilustrações customizadas.
 - Layout denso mas respirado: dados visíveis, sem scroll excessivo.
+
+> A identidade visual do hub (novo nome, logo, marca) ainda não foi definida
+> e fica para uma fase posterior. Por ora mantém-se a identidade Radar Lema.
 
 ## Anti-references
 

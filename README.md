@@ -1,8 +1,12 @@
 # Radar Lema
 
-Centralizador de eventos para RPPS — PWA standalone que reúne eventos do
-ecossistema (comitês, workshops, lives, palestras, congressos etc.) para
-clientes e staff da Lema.
+PWA standalone que reúne o ecossistema da Lema para RPPS — eventos, artigos,
+notícias de mercado, novidades do sistema UNO, materiais de apoio e o
+dashboard de investimentos do UNO — para clientes e staff da Lema.
+
+> **Em evolução para o Hub da Lema** (branch `feat/lema-hub`): novas seções
+> de conteúdo estão em desenvolvimento e **não vão para produção** até a
+> conclusão. A `main` continua sendo o que está publicado.
 
 ## Stack
 
@@ -51,10 +55,10 @@ node scripts/seed-mock-users.mjs   # usuários mock para o cloud
 - `CONTEXT.md` — glossário e vocabulário do domínio.
 - `architecture.md` — documento vivo da arquitetura e do histórico de mudanças.
 - `DESIGN.md` — identidade visual (tema, cores, tipografia).
-- `PLAN.md` — plano de implementação original (fases, schema, migrations).
+- `PLAN.md` — plano de implementação (eventos implementado + fases do hub).
 - `PRODUCT.md` — visão de produto, personas e princípios de design.
 - `push-notifications.md` — runbook de ativação das notificações push.
-- `docs/adr/` — decisões de arquitetura registradas (ADR 0001–0005).
+- `docs/adr/` — decisões de arquitetura registradas (ADR 0001–0009).
 
 ## Deploy
 

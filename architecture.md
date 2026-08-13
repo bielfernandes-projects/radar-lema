@@ -2,12 +2,17 @@
 
 ## Visão geral
 
-O Radar Lema é um PWA standalone para centralizar eventos do ecossistema RPPS
-(comitês, workshops, lives, palestras, congressos etc.). Usa autenticação real
-do Supabase (e-mail/senha, com recuperação por link), navegação condicional por
-tipo de usuário (super admin, staff Lema e cliente RPPS), e cobre listagem,
-detalhe, favoritos, eventos realizados, gestão de eventos/categorias, push
-notifications com agendador e Painel Admin.
+O Radar Lema é um PWA standalone que está evoluindo de centralizador de
+eventos do ecossistema RPPS para um **hub da Lema**: eventos (já
+implementados), artigos, notícias de mercado, novidades UNO, materiais de
+apoio, curtidas/comentários e o Dashboard UNO (em desenvolvimento na branch
+`feat/lema-hub`, sem ir para produção até a conclusão). Usa autenticação
+real do Supabase (e-mail/senha, com recuperação por link), navegação
+condicional por tipo de usuário (super admin, staff Lema, cliente RPPS) e
+pelo perfil Cliente Lema (`is_uno_client`), e cobre listagem, detalhe,
+favoritos, eventos realizados, gestão de eventos/categorias, push
+notifications com agendador, Painel Admin e — em desenvolvimento — as novas
+seções do hub.
 
 ## Stack
 
@@ -575,7 +580,64 @@ Canal **E-mail** do lembrete ainda não é enviado ("em breve").
 Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy das functions, secrets e registro do job).
 
+## Hub da Lema (em desenvolvimento — branch `feat/lema-hub`)
+
+> Nada do hub vai para produção até a conclusão. A `main` permanece como está
+> no deploy da Vercel; os testes são feitos localmente na branch.
+
+Decisões de produto e plano detalhado em `PLAN.md` (seção "Hub da Lema").
+Novos termos de domínio em `CONTEXT.md` (Cliente Lema, Visibilidade, Artigo,
+Notícia de Mercado, Novidade UNO, Material de Apoio, Dashboard UNO, Curtida,
+Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
+
+### Schema previsto
+
+- `profiles.is_uno_client boolean default false` — Cliente Lema (flag manual
+  no Painel Admin; passa a ser derivada do vínculo UNO na integração).
+- `articles` — título, subtítulo, autor, corpo (Markdown), capa, `visibility`
+  (`public`/`lema_client`), `source_url` (LinkedIn original, opcional),
+  `created_by`, timestamps.
+- `news` — notícias de mercado ingeridas da NewsAPI (título, descrição, URL,
+  imagem, fonte, `published_at`, `ingested_at`).
+- `uno_updates` — novidades do sistema UNO escritas pelo staff (título, corpo,
+  tipo: atualização/manutenção/bug/instabilidade).
+- `materials` — materiais de apoio com `visibility`, metadados e arquivo no
+  bucket `materials`.
+- `likes` e `comments` — polimórficas por `(content_type, content_id)`:
+  `article`, `event`, `news`, `uno_update`. Comentários têm `hidden` (fila de
+  moderação pós-publicação).
+
+### Edge Functions previstas
+
+- `news-ingest` — busca notícias na NewsAPI (secret `NEWSAPI_KEY`) e grava em
+  `news`; agendada via `pg_cron` (padrão do `notification-scheduler`).
+- `uno-proxy` — autentica na `outer_api` do UNO (JWT `x-access-token` em
+  secret) e devolve os dados do dashboard para o `client_id` solicitado.
+  Verifica `is_uno_client` do chamador.
+
+### Rotas previstas
+
+- `/noticias`, `/artigos`, `/artigo/:id`, `/novidades-uno`, `/materiais`,
+  `/dashboard-uno` (Clientes Lema), `/moderacao` (staff).
+- `/` passa a ser o **Feed** agregado (próximos eventos, notícias, artigos,
+  novidades UNO).
+
 ## Histórico de mudanças
+
+- **2026-08-13** — Início do Hub da Lema (branch `feat/lema-hub`):
+  - Sessão de grill (grilling + domain-modeling) com decisões de produto para
+    expandir o Radar de centralizador de eventos para hub da Lema: Artigos,
+    Notícias de Mercado (NewsAPI via ingestão agendada), Novidades UNO,
+    Materiais de Apoio, Dashboard UNO (API real, perfil demo 192), Curtidas &
+    Comentários com moderação pós-publicação, home como feed agregado e push
+    para novidades UNO/artigos exclusivos. Detalhes e fases em `PLAN.md`.
+  - Glossário atualizado em `CONTEXT.md` (11 novos termos de domínio) e
+    `PRODUCT.md` reescrito para a visão de hub.
+  - ADRs 0006–0009 registrados em `docs/adr/`.
+  - ⚠️ Segurança: `api_uno.yml` contém secrets (JWT do `x-access-token`,
+    `x-api-key`, credenciais comdinheiro) — adicionado ao `.gitignore` para
+    não ser commitado; rotacionar os tokens e trocar a NewsAPI key (exposta
+    no chat).
 
 - **2026-08-10** — Correção da validação de categorias no formulário de eventos:
   - O campo Categorias (`Autocomplete` `multiple`) exibia os chips corretamente,
