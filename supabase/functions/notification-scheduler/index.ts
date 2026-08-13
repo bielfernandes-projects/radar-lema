@@ -19,7 +19,8 @@ interface SendPushResult {
 async function callSendPush(body: {
   userIds?: string[];
   eventCategoryIds?: string[];
-  payload: { title: string; body?: string; eventId?: string };
+  audience?: "all" | "uno_clients";
+  payload: { title: string; body?: string; eventId?: string; url?: string };
 }): Promise<{ ok: boolean; result?: SendPushResult }> {
   try {
     const res = await fetch(SEND_PUSH_URL, {
@@ -124,10 +125,50 @@ Deno.serve(async (req) => {
     }
   }
 
+  // 3) Outbox do hub: novidades UNO (todos) e artigos exclusivos (Clientes Lema).
+  const { data: hubPending, error: hubError } = await supabase
+    .from("v_hub_notification_outbox")
+    .select("id, content_type, content_id, title, subtitle")
+    .limit(10);
+
+  if (hubError) console.error("hub outbox error", hubError.message);
+
+  for (const row of (hubPending || []) as {
+    id: string;
+    content_type: "uno_update" | "article";
+    content_id: string;
+    title: string;
+    subtitle: string | null;
+  }[]) {
+    const isUpdate = row.content_type === "uno_update";
+    const outcome = await callSendPush({
+      audience: isUpdate ? "all" : "uno_clients",
+      payload: {
+        title: isUpdate
+          ? `Novidade UNO: ${row.title}`
+          : `Novo artigo: ${row.title}`,
+        body: isUpdate
+          ? "Atualizações e avisos do sistema UNO."
+          : "Conteúdo exclusivo para Clientes Lema.",
+        url: isUpdate
+          ? `/novidade/${row.content_id}`
+          : `/artigo/${row.content_id}`
+      }
+    });
+
+    if (outcome.ok) {
+      await supabase
+        .from("hub_notification_outbox")
+        .update({ dispatched_at: new Date().toISOString() })
+        .eq("id", row.id);
+    }
+  }
+
   return new Response(
     JSON.stringify({
       newEvents: (pending || []).length,
-      dueReminders: (due || []).length
+      dueReminders: (due || []).length,
+      hubOutbox: (hubPending || []).length
     }),
     { headers: { "Content-Type": "application/json" } }
   );

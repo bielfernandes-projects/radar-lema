@@ -180,6 +180,9 @@ Deno.serve(async (req) => {
     const userId = String(body.user_id ?? "");
     const name = String(body.name ?? "").trim();
     const userType = String(body.user_type ?? "");
+    const isUnoClient = typeof body.is_uno_client === "boolean"
+      ? body.is_uno_client
+      : undefined;
 
     if (!userId) {
       return json({ error: "user_id obrigatorio" }, 400, origin);
@@ -198,9 +201,18 @@ Deno.serve(async (req) => {
       return json({ error: metaError.message }, 400, origin);
     }
 
+    const profileUpdate: Record<string, unknown> = {
+      name,
+      user_type: userType,
+      role
+    };
+    if (isUnoClient !== undefined) {
+      profileUpdate.is_uno_client = isUnoClient;
+    }
+
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update({ name, user_type: userType, role })
+      .update(profileUpdate)
       .eq("id", userId);
     if (profileError) {
       return json({ error: profileError.message }, 500, origin);

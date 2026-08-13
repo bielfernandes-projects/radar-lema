@@ -27,7 +27,14 @@ import {
   Settings,
   FolderTree,
   UserCog,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert,
+  Newspaper,
+  Megaphone,
+  BookOpen,
+  FileStack,
+  LayoutGrid,
+  LineChart
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -36,12 +43,19 @@ import { NAV_ITEMS } from '../../utils/constants'
 
 const ICONS = {
   CalendarDays: <CalendarDays size={22} />,
+  Newspaper: <Newspaper size={22} />,
+  Megaphone: <Megaphone size={22} />,
+  BookOpen: <BookOpen size={22} />,
+  FileStack: <FileStack size={22} />,
+  LayoutGrid: <LayoutGrid size={22} />,
+  LineChart: <LineChart size={22} />,
   Heart: <Heart size={22} />,
   History: <History size={22} />,
   Bell: <Bell size={22} />,
   Settings: <Settings size={22} />,
   FolderTree: <FolderTree size={22} />,
   UserCog: <UserCog size={22} />,
+  ShieldAlert: <ShieldAlert size={22} />,
   ShieldCheck: <ShieldCheck size={22} />
 }
 
@@ -70,7 +84,12 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const userWithType = user
-    ? { ...user, user_type: profile?.user_type, role: profile?.role }
+    ? {
+        ...user,
+        user_type: profile?.user_type,
+        role: profile?.role,
+        is_uno_client: profile?.is_uno_client
+      }
     : null
 
   const visibleItems = NAV_ITEMS.filter((item) => item.show(userWithType))

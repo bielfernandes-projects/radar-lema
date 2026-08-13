@@ -15,3 +15,7 @@ export function isSuperAdmin(profile) {
     profile?.role === 'ROLE_SUPER_ADMIN'
   )
 }
+
+export function isUnoClient(profile) {
+  return profile?.is_uno_client === true
+}

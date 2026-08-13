@@ -228,6 +228,11 @@ Detalhes completos estão nas migrations em `supabase/migrations/`.
 | 0027 | `20260806000008_outbox_result.sql` | Observabilidade: coluna `result jsonb` em `notification_outbox` e `reminder_dispatch` guarda `{sent, gone, failed, total}` retornado pelo `send-push` |
 | 0028 | `20260807000000_super_admin_roles.sql` | Novo modelo de roles: `super_admin`/`ROLE_SUPER_ADMIN`, `staff`/`ROLE_ADMIN`, `client`/`ROLE_VIEWER`; reclassifica contas; RLS de escrita via `is_staff()` |
 | 0029 | `20260807000001_harden_on_auth_user_created.sql` | Endurece `on_auth_user_created`: sanitiza `user_type`/`role` do metadata para valores do modelo atual (fallback `client`/`ROLE_VIEWER`) — impede 500 no `/signup` de clientes antigos que ainda enviam `ROLE_DIRIGENTE` |
+| 0030 | `20260813000001_profiles_uno_client.sql` | Coluna `profiles.is_uno_client` (Cliente Lema) + helper `is_uno_client()` + RLS do admin para alternar a flag |
+| 0031 | `20260813000002_news_and_uno_updates.sql` | Tabelas `news` (Notícias de Mercado) e `uno_updates` (Novidades UNO) + RLS |
+| 0032 | `20260813000003_articles_and_materials.sql` | Tabelas `articles` e `materials` com `visibility` (`public`/`lema_client`) + bucket privado `materials` + policies de storage |
+| 0033 | `20260813000004_likes_and_comments.sql` | Tabelas `likes` e `comments` (polimórficas `article/event/news/uno_update`) + RLS + view `v_comments_with_content` para a fila de moderação |
+| 0034 | `20260813000005_hub_notification_outbox.sql` | Outbox `hub_notification_outbox` (único por `content_type`+`content_id`) + triggers de novidades UNO e artigos exclusivos + view `v_hub_notification_outbox` |
 
 ## RLS
 
@@ -307,6 +312,12 @@ Todas as tabelas têm RLS habilitado:
 | `services/eventData.js` | `fetchMetadata`, `fetchCategories`, `fetchAllEventsWithMeta`, `fetchFavoriteEventsWithMeta`, `fetchPastEventsWithMeta` | Todas aceitam `deps = { supabase }` (seam para testes). `fetchMetadata` também busca `event_categories` e cada fetcher enriquece os eventos com `category_ids` (multi-categoria). |
 | `services/eventPersistence.js` | `uploadPhotos`, `saveSessions`, `persistEvent`, `saveCategories` | Extraído do `EventFormPage`. Gerencia o salvamento completo de um evento (dados, fotos, sessões) em transação lógica; `saveCategories` grava os vínculos em `event_categories` (replica por evento). |
 | `services/adminApi.js` | `adminApi` (`create`, `update`, `resetPassword`, `remove`) + constantes `USER_TYPES`, `ROLE_BY_USER_TYPE` | Chama a Edge Function `admin-users` (service role) com o token do usuário logado; o backend valida `ROLE_SUPER_ADMIN` antes de criar/editar/excluir usuários ou redefinir senhas. |
+| `services/newsData.js` | `fetchNews`, `fetchNewsItem` | Notícias de Mercado (`news`): listagem e detalhe. |
+| `services/unoUpdatesData.js` | `fetchUnoUpdates`, `fetchUnoUpdate`, `saveUnoUpdate`, `deleteUnoUpdate` | Novidades UNO (`uno_updates`): leitura pública + escrita staff. |
+| `services/articlesData.js` | `fetchArticles`, `fetchArticleById`, `saveArticle`, `deleteArticle` | Artigos (`articles`): leitura respeita `visibility` (RLS), escrita staff. |
+| `services/materialsData.js` | `fetchMaterials`, `fetchMaterialById`, `saveMaterial`, `deleteMaterial`, `uploadMaterialFile`, `getMaterialUrl`, `deleteMaterialFile` | Materiais de Apoio (`materials` + bucket privado): listagem, CRUD e URL assinada (3600s) do arquivo. |
+| `services/interactionsData.js` | `fetchLikeStatus`, `toggleLike`, `fetchComments`, `addComment`, `deleteComment`, `toggleCommentHidden`, `fetchModerationQueue` | Curtidas e comentários polimórficos + fila de moderação (`v_comments_with_content`). |
+| `services/unoProxy.js` | `callUnoProxy`, `fetchUnoDashboard` | Proxy autenticado para a `outer_api` do UNO (Edge Function `uno-proxy`); busca demonstrativo, fundos, movimentações, títulos, enquadramentos, disponibilidades e metas. |
 
 ## Componentes
 
@@ -347,6 +358,13 @@ Todas as tabelas têm RLS habilitado:
 | `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico **sem spinners +/−** + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
 | `AdminDashboard` | Painel Admin: cards com totais (usuários/eventos/favoritos), gráficos mensais (recharts) de crescimento de usuários e favoritos com barras centralizadas no card (margens balanceadas com a faixa do eixo Y), e gestão de usuários (criar com senha escolhida, editar tipo/role, redefinir senha, excluir). Previne excluir/editar a própria conta | Rota `/admin` |
 | `Settings` | Configurações: alterar senha (atual/nova/confirmação), notificações push, teste de notificação, instalar app e lista de lembretes | Rota `/configuracoes` |
+| `Markdown` | Renderiza Markdown (títulos, parágrafos, listas, itálico/negrito, links com `safeUrl`) em blocos MUI — sem `dangerouslySetInnerHTML` (XSS-safe) | `ArticleDetail`, `UnoUpdateDetail` |
+| `Interactions` | Curtida (ícone + contador) e comentários (lista, form, exclusão do autor) para conteúdos de leitura | `ArticleDetail`, `EventDetail`, `NewsDetail`, `UnoUpdateDetail` |
+| `ExclusiveBadge` | Badge "Exclusivo Cliente Lema" | `ArticleCard`, `MaterialCard`, detalhes |
+| `ArticleCard` | Card de artigo (capa, título, subtítulo, autor, visibilidade) | `Articles`, `Feed` |
+| `MaterialCard` | Card de material de apoio (título, descrição, visibilidade) | `Materials` |
+| `NewsCard` | Card de notícia de mercado (imagem, título, fonte, data) | `News`, `Feed` |
+| `UnoUpdateCard` | Card de novidade UNO (título, tipo, data) | `UnoUpdates`, `Feed` |
 
 ## Rotas
 
@@ -365,6 +383,18 @@ Todas as tabelas têm RLS habilitado:
 | `/categorias` | `Categories` | Staff (staff/super_admin) |
 | `/admin` | `AdminDashboard` | Super admin (`ROLE_SUPER_ADMIN`) |
 | `/configuracoes` | `Settings` | Autenticado |
+| `/` | `Feed` (hub) | Autenticado |
+| `/eventos` | `EventList` | Autenticado |
+| `/noticias` · `/noticia/:id` | `News` · `NewsDetail` | Autenticado |
+| `/novidades-uno` · `/novidade/:id` | `UnoUpdates` · `UnoUpdateDetail` | Autenticado |
+| `/artigos` · `/artigo/:id` | `Articles` · `ArticleDetail` | Autenticado (detalhe de `lema_client` exige Cliente Lema via RLS) |
+| `/materiais` | `Materials` | Autenticado (listagem filtra por `visibility` no cliente) |
+| `/gestao/hub` | `ManageHub` | Staff (gestão de artigos, novidades UNO, materiais e notícias) |
+| `/gestao/artigos/novo` · `/gestao/artigos/:id/editar` | `ArticleFormPage` | Staff |
+| `/gestao/materiais/novo` · `/gestao/materiais/:id/editar` | `MaterialFormPage` | Staff |
+| `/gestao/novidades-uno/novo` · `/gestao/novidades-uno/:id/editar` | `UnoUpdateFormPage` | Staff |
+| `/moderacao` | `Moderation` | Staff (fila de comentários) |
+| `/dashboard-uno` | `DashboardUno` | Cliente Lema (`requireUnoClient`) |
 
 ## PWA
 
@@ -434,7 +464,8 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 ## Como testar
 
 - `npm run test:run` — roda a suite Vitest (AuthContext, formatters, favorites,
-  recurrence, events, eventForm, eventPersistence).
+  recurrence, events, eventForm, eventPersistence, hubData, markdown,
+  articlesData, interactionsData, uno).
 - `npm run lint` — verifica ESLint.
 - `npm run build` — compila para producao.
 - Acesso a qualquer rota (incluindo `/`, `/evento/:id`, `/realizados`, `/favoritos`)
@@ -451,14 +482,17 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 
 | Arquivo | Funcoes | Uso |
 |---|---|---|---|
-| `utils/auth.js` | `getUserId`, `isStaffTier`, `isSuperAdmin` | Extrai `user.id` da sessão atual; checagens de autorização por perfil (tier staff e super admin) |
-| `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `REMINDER_UNITS`, `REMINDER_CHANNELS`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels, unidades de lembrete (minute/hour/day/week/month em minutos), canais (push/email) e dados estáticos compartilhados |
+| `utils/auth.js` | `getUserId`, `isStaffTier`, `isSuperAdmin`, `isUnoClient` | Extrai `user.id` da sessão atual; checagens de autorização por perfil (tier staff, super admin e Cliente Lema) |
+| `utils/constants.js` | `URL_PARAMS`, `MODALITY_LABELS`, `REMINDER_UNITS`, `REMINDER_CHANNELS`, `UFs`, `NAV_ITEMS` | Nomes canônicos de query params, labels, unidades de lembrete (minute/hour/day/week/month em minutos), canais (push/email) e dados estáticos compartilhados. `NAV_ITEMS` agora inclui Notícias, Novidades UNO, Artigos, Materiais, Dashboard UNO (só `is_uno_client`), Hub e Moderação (staff) |
 | `utils/formatters.js` | `formatCurrency`, `formatPrice`, `formatDateRange`, `formatModality`, `formatSessionTime`, `formatReminder`, `formatReminderUnit`, `formatReminderMinutes`, `minutesToReminder` | Cards, detalhe, sessoes, lembretes e testes |
 | `utils/events.js` | `enrichEvents` | Adiciona capa, datas min/max, status e proxima sessao aos eventos brutos; recebe `eventCategories` para popular `category_ids` |
 | `utils/eventForm.js` | `parseDateTime`, `formatDateTime`, `calculateDelta`, `applyDelta`, `emptySession`, `validate` | Parsing/format de data/hora, cálculo de delta entre sessões, sessão vazia padrão, validação do formulário (exige ao menos uma categoria) |
 | `utils/filterEvents.js` | `filterEvents`, `normalizeDate` | Filtro e ordenação de arrays de eventos (busca, categorias via `category_ids`, modalidade, preço, estado, presets de data e range personalizado `dateFrom`/`dateTo` com overlap — aceita só início, só fim ou ambos) |
 | `utils/dateFilters.js` | `getMonthRange`, `applyDatePresets`, `normalizeDate`, `eventMatchesDatePresets`, `eventMatchesDateRange` | Presets de data (este/próximo mês) e overlap de intervalo de datas (com suporte a filtro parcial) |
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
+| `utils/markdown.js` | `markdownToBlocks`, `parseInline` | Parser de Markdown próprio (títulos, listas, parágrafos, ênfase, links) que devolve blocos consumidos pelo `Markdown.jsx`; sem dependência externa |
+| `utils/hub.js` | `formatHubDate`, `formatHubDateTime`, `UNO_UPDATE_TYPES`, `VISIBILITY_OPTIONS`, `formatFileSize` | Formatação e constantes das seções do hub (artigos, notícias, novidades UNO, materiais) |
+| `utils/uno.js` | `asArray`, `pickField`, `normalizeFunds`, `summarizeFunds`, `normalizeEvolution`, `normalizeDashboardMetrics`, `dateFromRow`, `evolutionLabel`, `monthRange`, `monthsAgoRange`, `yearRange`, `rangeForPeriod` | Normaliza a resposta da API do UNO para o Dashboard (tolerante a variação de nomes de campo; datas sempre em hora local — evita o shift de fuso de `new Date('yyyy-mm-dd')` que roda como UTC) |
 | `hooks/useUserData.js` | `refresh`, `loading` | Hook genérico: escuta `onAuthStateChange`, chama `fetchFn(userId)` sempre que o auth muda |
 | `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS (usa `useUserData`) |
 | `hooks/useReminders.js` | `remindersByEvent`, `hasRemindersForEvent`, `saveReminders`, `removeReminders`, `removeOneReminder`, `refresh` | Gerencia lembretes no Supabase (usa `useUserData`) |
@@ -590,7 +624,40 @@ Novos termos de domínio em `CONTEXT.md` (Cliente Lema, Visibilidade, Artigo,
 Notícia de Mercado, Novidade UNO, Material de Apoio, Dashboard UNO, Curtida,
 Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 
-### Schema previsto
+### Fases implementadas
+
+- **Fase 1 — Fundação**: `profiles.is_uno_client` (flag manual no Painel
+  Admin) + helper `is_uno_client()` no banco e `isUnoClient` no frontend.
+- **Fase 2 — Vitrine**: `news` (ingestão via Edge Function `news-ingest`,
+  NewsAPI) e `uno_updates` (escrita staff). Páginas, cards e Feed agregado
+  (`/`).
+- **Fase 3 — Diferenciais**: `articles` e `materials` com `visibility`
+  (`public`/`lema_client`); bucket privado `materials` com URL assinada;
+  parser de Markdown próprio (`utils/markdown.js` + `Markdown.jsx`) e gestão
+  do hub (`/gestao/hub` com abas Artigos/Novidades UNO/Materiais/Notícias).
+  Limitação de visibilidade do arquivo: a policy de storage permite leitura a
+  qualquer usuário autenticado — o gate de `lema_client` está na RLS da tabela
+  (a URL assinada só é emitida para linhas legíveis); o objeto do bucket em si
+  não distingue visibilidade.
+- **Fase 4 — Social**: `likes` e `comments` polimórficos (artigo, evento,
+  notícia, novidade UNO — não existe em materiais) + fila de moderação
+  (`/moderacao`). Componente `Interactions` nos detalhes.
+- **Fase 5 — Push novo**: outbox `hub_notification_outbox` populado por
+  triggers (novidade UNO publicada → audiência `all`; artigo exclusivo
+  criado/publicado → audiência `uno_clients`). `send-push` ganha `resolveAudience`
+  (`push_enabled` ∩ `is_uno_client`) e `notification-scheduler` processa o
+  outbox com a mesma janela do motor de eventos.
+- **Fase 6 — Trunfo**: Edge Function `uno-proxy` (valida JWT do usuário +
+  `is_uno_client`; força `client_id` do perfil demo 192; whitelist de
+  endpoints da `outer_api`) e página `DashboardUno` (`/dashboard-uno`,
+  `requireUnoClient`): 5 cards de resumo (Patrimônio, Rentabilidade, Meta,
+  Gap, VaR) + gráfico "Evolução do Patrimônio" (recharts) com pills de
+  período (Ano, 12–60 meses) e botão **Gerar Relatório** (`window.print()`
+  via `src/pages/dashboardPrint.css`, paleta do UNO forçada na impressão).
+  Normalização dos dados em `utils/uno.js` (tolerante a variação de campo,
+  datas em hora local).
+
+### Schema
 
 - `profiles.is_uno_client boolean default false` — Cliente Lema (flag manual
   no Painel Admin; passa a ser derivada do vínculo UNO na integração).
@@ -606,23 +673,82 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 - `likes` e `comments` — polimórficas por `(content_type, content_id)`:
   `article`, `event`, `news`, `uno_update`. Comentários têm `hidden` (fila de
   moderação pós-publicação).
+- `hub_notification_outbox` — fila de push do hub, `UNIQUE(content_type,
+  content_id)` para não duplicar disparo.
 
-### Edge Functions previstas
+### Edge Functions
 
 - `news-ingest` — busca notícias na NewsAPI (secret `NEWSAPI_KEY`) e grava em
-  `news`; agendada via `pg_cron` (padrão do `notification-scheduler`).
-- `uno-proxy` — autentica na `outer_api` do UNO (JWT `x-access-token` em
-  secret) e devolve os dados do dashboard para o `client_id` solicitado.
-  Verifica `is_uno_client` do chamador.
+  `news`. O job do cron **não é versionado** (padrão do
+  `notification-scheduler` em `push-notifications.md`): registrado no deploy
+  com a service role key:
 
-### Rotas previstas
+  ```sql
+  SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'radar-news-ingest';
 
-- `/noticias`, `/artigos`, `/artigo/:id`, `/novidades-uno`, `/materiais`,
-  `/dashboard-uno` (Clientes Lema), `/moderacao` (staff).
-- `/` passa a ser o **Feed** agregado (próximos eventos, notícias, artigos,
-  novidades UNO).
+  SELECT cron.schedule(
+    'radar-news-ingest',
+    '0 */4 * * *',
+    'SELECT net.http_post(
+      url := ''https://SEU-PROJETO.supabase.co/functions/v1/news-ingest'',
+      headers := jsonb_build_object(
+        ''Content-Type'', ''application/json'',
+        ''Authorization'', ''Bearer SUA_SERVICE_ROLE_KEY''
+      ),
+      body := ''{}''
+    ) AS request_id;'
+  );
+  ```
+- `uno-proxy` — valida o JWT do usuário do Radar (via `auth.getUser`), exige
+  `is_uno_client` e repassa requisições GET para a `outer_api` do UNO com o
+  token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
+  `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192). Whitelist de
+  endpoints e parâmetros; `verify_jwt = true`.
+- `send-push` / `notification-scheduler` — estendidos com `audience`
+  (`all` | `uno_clients`) e processamento de `v_hub_notification_outbox`.
+
+### Rotas
+
+- `/noticias`, `/noticia/:id`, `/novidades-uno`, `/novidade/:id`, `/artigos`,
+  `/artigo/:id`, `/materiais`, `/moderacao` (staff), `/dashboard-uno`
+  (Clientes Lema), `/gestao/hub` + formulários do hub (staff).
+- `/` é o **Feed** agregado (próximos eventos, notícias, artigos, novidades
+  UNO); a listagem de eventos mudou para `/eventos`.
+
+> ⚠️ Antes de testar as páginas remotas: `supabase db push` (migrations
+> 0030–0034 não aplicadas) + secrets `NEWSAPI_KEY`/`UNO_ACCESS_TOKEN` +
+> `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`. Rotacionar o token do UNO
+> (exposto em `api_uno.yml`, agora no `.gitignore`). Deno não disponível
+> localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-13** — Implementação do Hub da Lema (Fases 1–6, branch `feat/lema-hub`):
+  - **Fase 1**: `profiles.is_uno_client` + toggle "Cliente Lema" no Painel
+    Admin (`admin-users` + `AdminDashboard`) e helper `isUnoClient`.
+  - **Fase 2**: migrations `news`/`uno_updates`, Edge Function `news-ingest`
+    (NewsAPI), serviços e páginas de Notícias/Novidades UNO; `/` virou o Feed
+    agregado e a listagem de eventos passou para `/eventos`.
+  - **Fase 3**: migrations `articles`/`materials` + bucket privado
+    `materials`; parser de Markdown próprio (`markdownToBlocks`/`parseInline`,
+    renderizado por `Markdown.jsx` sem `dangerouslySetInnerHTML`); páginas e
+    formulários; `ManageHub` (`/gestao/hub`) com abas.
+  - **Fase 4**: migrations `likes`/`comments` (polimórficos) + view de
+    moderação; serviço `interactionsData` e componente `Interactions` nos 4
+    detalhes; página `Moderation` (`/moderacao`).
+  - **Fase 5**: outbox `hub_notification_outbox` + triggers (novidade UNO e
+    artigo exclusivo); `send-push` com `resolveAudience('all'|'uno_clients')`
+    e `notification-scheduler` processando o outbox do hub.
+  - **Fase 6**: Edge Function `uno-proxy` (JWT + `is_uno_client` + client_id
+    demo forçado) e `DashboardUno` replicando o design do dashboard UNO
+    (5 cards, pills de período, gráfico recharts) com relatório via
+    `window.print()` (`dashboardPrint.css`). Normalização tolerante em
+    `utils/uno.js` (corrigido shift de fuso de datas ISO que rodam como UTC).
+  - **Qualidade**: 132 testes Vitest passando (incl. novos `hubData`,
+    `markdown`, `articlesData`, `interactionsData`, `uno`), lint limpo, build
+    OK. Migrations 0030–0034 **não aplicadas** (sem Docker/`db push`) — rodar
+    `supabase db push` antes dos testes remotos. Secrets pendentes:
+    `NEWSAPI_KEY`, `UNO_ACCESS_TOKEN` (rotacionar o exposto no `api_uno.yml`).
 
 - **2026-08-13** — Início do Hub da Lema (branch `feat/lema-hub`):
   - Sessão de grill (grilling + domain-modeling) com decisões de produto para

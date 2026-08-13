@@ -37,6 +37,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { safeUrl } from '../utils/safeUrl'
 import MapEmbed from '../components/MapEmbed'
+import Interactions from '../components/Interactions'
 import {
   formatDateRange,
   formatModality,
@@ -473,6 +474,8 @@ export default function EventDetail() {
           </Stack>
         )}
       </Dialog>
+
+      <Interactions contentType="event" contentId={event.id} />
     </Container>
   )
 }

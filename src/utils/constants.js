@@ -1,4 +1,4 @@
-import { isStaffTier, isSuperAdmin } from './auth'
+import { isStaffTier, isSuperAdmin, isUnoClient } from './auth'
 
 export const URL_PARAMS = {
   SEARCH: 'q',
@@ -42,11 +42,18 @@ export const UFs = [
 ]
 
 export const NAV_ITEMS = [
-  { label: 'Eventos', path: '/', icon: 'CalendarDays', show: () => true },
+  { label: 'Eventos', path: '/eventos', icon: 'CalendarDays', show: () => true },
+  { label: 'Notícias', path: '/noticias', icon: 'Newspaper', show: () => true },
+  { label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone', show: () => true },
+  { label: 'Artigos', path: '/artigos', icon: 'BookOpen', show: () => true },
+  { label: 'Materiais', path: '/materiais', icon: 'FileStack', show: () => true },
+  { label: 'Dashboard UNO', path: '/dashboard-uno', icon: 'LineChart', show: (user) => isUnoClient(user) },
   { label: 'Favoritos', path: '/favoritos', icon: 'Heart', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
   { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },
   { label: 'Categorias', path: '/categorias', icon: 'FolderTree', show: (user) => isStaffTier(user), group: 'staff' },
   { label: 'Gestão', path: '/gestao', icon: 'UserCog', show: (user) => isStaffTier(user), group: 'staff' },
+  { label: 'Hub', path: '/gestao/hub', icon: 'LayoutGrid', show: (user) => isStaffTier(user), group: 'staff' },
+  { label: 'Moderação', path: '/moderacao', icon: 'ShieldAlert', show: (user) => isStaffTier(user), group: 'staff' },
   { label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck', show: (user) => isSuperAdmin(user), group: 'admin' }
 ]

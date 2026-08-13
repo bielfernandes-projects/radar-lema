@@ -1,0 +1,55 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #uno-dashboard-report,
+  #uno-dashboard-report * {
+    visibility: visible;
+  }
+
+  #uno-dashboard-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f6f8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #uno-dashboard-report .report-card {
+    background-color: #ffffff;
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+  }
+
+  #uno-dashboard-report,
+  #uno-dashboard-report * {
+    color: #11233d;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  #uno-dashboard-report .report-title {
+    color: #1967d2;
+  }
+
+  #uno-dashboard-report .report-label,
+  #uno-dashboard-report .report-sub-label {
+    color: #6c757d;
+  }
+
+  #uno-dashboard-report .value-positive {
+    color: #1fb74b;
+  }
+
+  #uno-dashboard-report .value-negative {
+    color: #dc3545;
+  }
+
+  #uno-dashboard-report .report-button {
+    display: none;
+  }
+}

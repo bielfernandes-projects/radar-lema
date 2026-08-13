@@ -15,6 +15,7 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputLabel,
@@ -22,6 +23,7 @@ import {
   Select,
   Snackbar,
   Stack,
+  Switch,
   TextField,
   Tooltip as MuiTooltip,
   Typography
@@ -83,6 +85,7 @@ export default function AdminDashboard() {
   const [editUser, setEditUser] = useState(null)
   const [editName, setEditName] = useState('')
   const [editType, setEditType] = useState('client')
+  const [editIsUnoClient, setEditIsUnoClient] = useState(false)
   const [editBusy, setEditBusy] = useState(false)
 
   const [resetUser, setResetUser] = useState(null)
@@ -111,7 +114,7 @@ export default function AdminDashboard() {
 
     const { data: usersData, error: usersError } = await supabase
       .from('profiles')
-      .select('id, email, name, user_type, role, created_at')
+      .select('id, email, name, user_type, role, is_uno_client, created_at')
       .order('created_at', { ascending: false })
 
     if (usersError) {
@@ -165,13 +168,19 @@ export default function AdminDashboard() {
     setEditUser(user)
     setEditName(user.name || '')
     setEditType(user.user_type)
+    setEditIsUnoClient(user.is_uno_client === true)
   }
 
   const handleEdit = async () => {
     if (!editUser) return
     setEditBusy(true)
     const ok = await runAction(
-      () => adminApi.update({ user_id: editUser.id, name: editName, user_type: editType }),
+      () => adminApi.update({
+        user_id: editUser.id,
+        name: editName,
+        user_type: editType,
+        is_uno_client: editIsUnoClient
+      }),
       'Usuário atualizado.'
     )
     setEditBusy(false)
@@ -346,6 +355,9 @@ export default function AdminDashboard() {
                         {isSelf(user.id) && (
                           <Chip label="Você" size="small" color="primary" />
                         )}
+                        {user.is_uno_client === true && (
+                          <Chip label="Cliente Lema" size="small" color="secondary" />
+                        )}
                       </Stack>
                       <Typography variant="body2" color="text.secondary">
                         {user.email} • {USER_TYPE_LABELS[user.user_type]} •{' '}
@@ -481,6 +493,18 @@ export default function AdminDashboard() {
             </FormControl>
             <Typography variant="caption" color="text.secondary">
               Role: {ROLE_BY_USER_TYPE[editType]}
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editIsUnoClient}
+                  onChange={(e) => setEditIsUnoClient(e.target.checked)}
+                />
+              }
+              label="Cliente Lema (acesso exclusivo)"
+            />
+            <Typography variant="caption" color="text.secondary">
+              Libera artigos/materiais exclusivos e o Dashboard UNO para esta conta.
             </Typography>
           </Stack>
         </DialogContent>

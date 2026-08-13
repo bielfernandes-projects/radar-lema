@@ -46,6 +46,31 @@ async function sendOne(row: SubscriptionRow, payload: PushPayload): Promise<stri
   }
 }
 
+// Resolve os usuarios-alvo de um audience do hub.
+//   - 'all': todos os usuarios com push ativo (notification_settings.push_enabled)
+//   - 'uno_clients': apenas os que tambem sao Clientes Lema (is_uno_client)
+async function resolveAudience(audience: "all" | "uno_clients"): Promise<string[]> {
+  const { data: settings } = await supabase
+    .from("notification_settings")
+    .select("user_id")
+    .eq("push_enabled", true);
+
+  const enabledIds = new Set((settings || []).map((s) => s.user_id as string));
+
+  if (audience === "all") {
+    return Array.from(enabledIds);
+  }
+
+  const { data: unoClients } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("is_uno_client", true);
+
+  return (unoClients || [])
+    .map((p) => p.id as string)
+    .filter((id) => enabledIds.has(id));
+}
+
 Deno.serve(async (req) => {
   if (req.headers.get("Authorization") !== `Bearer ${serviceRole}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -54,6 +79,7 @@ Deno.serve(async (req) => {
   let body: {
     userIds?: string[];
     eventCategoryIds?: string[];
+    audience?: "all" | "uno_clients";
     payload: PushPayload;
   };
   try {
@@ -62,21 +88,22 @@ Deno.serve(async (req) => {
     return new Response("JSON invalido", { status: 400 });
   }
 
-  const { eventCategoryIds, payload } = body;
+  const { eventCategoryIds, audience, payload } = body;
 
   if (!payload?.title) {
     return new Response("payload.title e obrigatorio", { status: 400 });
   }
 
-  // SEC-004: exige um alvo explicito. Sem userIds nem categories, recusa em vez
-  // de fazer broadcast global para todos os inscritos do app.
+  // SEC-004: exige um alvo explicito. Sem userIds, categories nem audience,
+  // recusa em vez de fazer broadcast global para todos os inscritos do app.
   const hasUserIds = Array.isArray(body.userIds) && body.userIds.length > 0;
   const hasCategoryIds =
     Array.isArray(eventCategoryIds) && eventCategoryIds.length > 0;
+  const hasAudience = audience === "all" || audience === "uno_clients";
 
-  if (!hasUserIds && !hasCategoryIds) {
+  if (!hasUserIds && !hasCategoryIds && !hasAudience) {
     return new Response(
-      "Informe userIds ou eventCategoryIds para evitar broadcast global",
+      "Informe userIds, eventCategoryIds ou audience para evitar broadcast global",
       { status: 400 }
     );
   }
@@ -108,6 +135,12 @@ Deno.serve(async (req) => {
       return Response.json({ sent: 0, gone: 0, failed: 0, total: 0 });
     }
     targetUserIds = Array.from(targeted);
+  } else if (hasAudience) {
+    const resolved = await resolveAudience(audience!);
+    if (resolved.length === 0) {
+      return Response.json({ sent: 0, gone: 0, failed: 0, total: 0 });
+    }
+    targetUserIds = resolved;
   }
 
   if (targetUserIds && targetUserIds.length > MAX_RECIPIENTS) {
