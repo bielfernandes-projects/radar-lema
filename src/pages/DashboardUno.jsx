@@ -8,7 +8,8 @@ import {
   Skeleton,
   ToggleButton,
   ToggleButtonGroup,
-  Typography
+  Typography,
+  useTheme
 } from '@mui/material'
 import { Printer, Info } from 'lucide-react'
 import {
@@ -40,10 +41,6 @@ const PERIODS = [
   { key: '60', label: '60 meses' }
 ]
 
-const PRIMARY_BLUE = '#0d6efd'
-const SUCCESS_GREEN = '#1fb74b'
-const DANGER_RED = '#dc3545'
-
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
   return new Intl.NumberFormat('pt-BR', {
@@ -60,12 +57,13 @@ function compactCurrency(value) {
 }
 
 function SummaryCard({ label, info, children }) {
+  const theme = useTheme()
   return (
     <Paper
       className="report-card"
       variant="outlined"
       sx={{
-        borderRadius: '12px',
+        borderRadius: 1.4,
         boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
         p: 2,
         minHeight: 160,
@@ -79,7 +77,7 @@ function SummaryCard({ label, info, children }) {
         <Typography variant="body2" color="text.secondary">
           {label}
         </Typography>
-        {info && <Info size={14} style={{ color: PRIMARY_BLUE }} />}
+        {info && <Info size={14} style={{ color: theme.palette.primary.main }} />}
       </Box>
       {children}
     </Paper>
@@ -87,6 +85,7 @@ function SummaryCard({ label, info, children }) {
 }
 
 function BigValue({ value }) {
+  const theme = useTheme()
   if (value === null || value === undefined) {
     return (
       <Typography variant="h5" sx={{ color: 'text.disabled' }}>
@@ -99,7 +98,7 @@ function BigValue({ value }) {
   const currency = spaceIndex >= 0 ? formatted.slice(0, spaceIndex) : ''
   const amount = spaceIndex >= 0 ? formatted.slice(spaceIndex + 1) : formatted
   return (
-    <Typography className="value-positive" sx={{ fontSize: 34, fontWeight: 600, color: SUCCESS_GREEN, letterSpacing: '-0.5px', textAlign: 'center' }}>
+    <Typography className="value-positive" sx={{ fontSize: 34, fontWeight: 600, color: theme.palette.primary.main, letterSpacing: '-0.02em', textAlign: 'center' }}>
       <Box component="span" sx={{ fontSize: 20, fontWeight: 400, mr: 0.5 }}>
         {currency}
       </Box>
@@ -109,17 +108,18 @@ function BigValue({ value }) {
 }
 
 function MetricBlock({ label, value, unit, negative, info }) {
+  const theme = useTheme()
   return (
     <Box sx={{ textAlign: 'center' }}>
       <Box className="report-sub-label" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.25, mb: 0.5 }}>
-        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
           {label}
         </Typography>
-        {info && <Info size={12} style={{ color: PRIMARY_BLUE }} />}
+        {info && <Info size={12} style={{ color: theme.palette.primary.main }} />}
       </Box>
       <Typography
         className={negative ? 'value-negative' : 'value-positive'}
-        sx={{ fontSize: 24, fontWeight: 600, color: negative ? DANGER_RED : SUCCESS_GREEN, textAlign: 'center' }}
+        sx={{ fontSize: 24, fontWeight: 700, color: negative ? theme.palette.error.main : theme.palette.primary.main, textAlign: 'center' }}
       >
         {value}
         {unit && (
@@ -142,6 +142,7 @@ function DualMetricCard({ first, second }) {
 }
 
 export default function DashboardUno() {
+  const theme = useTheme()
   const now = new Date()
   const [period, setPeriod] = useState('36')
   const [year] = useState(now.getFullYear())
@@ -209,7 +210,7 @@ export default function DashboardUno() {
             mb: 3
           }}
         >
-          <Typography className="report-title" variant="h5" sx={{ fontWeight: 600, color: '#1967d2' }}>
+          <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
             Dashboard
           </Typography>
 
@@ -223,11 +224,11 @@ export default function DashboardUno() {
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: '50px',
+                borderRadius: 999,
                 p: 0.5,
                 gap: 0.5,
                 '& .MuiToggleButtonGroup-grouped': {
-                  borderRadius: '50px !important',
+                  borderRadius: '999px !important',
                   border: 'none',
                   textTransform: 'none',
                   px: { xs: 1.25, md: 2 },
@@ -235,12 +236,12 @@ export default function DashboardUno() {
                   fontSize: 14,
                   color: 'text.primary',
                   '&.Mui-selected': {
-                    backgroundColor: PRIMARY_BLUE,
+                    backgroundColor: theme.palette.primary.main,
                     color: '#ffffff',
                     fontWeight: 600
                   },
                   '&.Mui-selected:hover': {
-                    backgroundColor: PRIMARY_BLUE
+                    backgroundColor: theme.palette.primary.main
                   }
                 }
               }}
@@ -258,15 +259,15 @@ export default function DashboardUno() {
               onClick={handlePrint}
               startIcon={<Printer size={18} />}
               sx={{
-                borderRadius: '50px',
-                textTransform: 'uppercase',
+                borderRadius: 999,
+                
                 fontWeight: 600,
                 fontSize: 13,
-                letterSpacing: 0.5,
+                
                 px: 3,
                 py: 1.2,
-                bgcolor: PRIMARY_BLUE,
-                '&:hover': { bgcolor: '#0b5ed7' }
+                bgcolor: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.primary.dark }
               }}
             >
               Gerar Relatório
@@ -283,9 +284,9 @@ export default function DashboardUno() {
             }}
           >
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={160} sx={{ borderRadius: '12px' }} />
+              <Skeleton key={i} variant="rounded" height={160} sx={{ borderRadius: 1.4 }} />
             ))}
-            <Skeleton variant="rounded" height={480} sx={{ borderRadius: '12px', gridColumn: '1 / -1' }} />
+            <Skeleton variant="rounded" height={480} sx={{ borderRadius: 1.4, gridColumn: '1 / -1' }} />
           </Box>
         ) : error ? (
           <Alert
@@ -347,7 +348,7 @@ export default function DashboardUno() {
                 </>
               }
             >
-              <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: SUCCESS_GREEN }}>
+              <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
                 {formatPt(metrics.varValue, 4) ?? '—'}
                 {metrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
               </Typography>
@@ -358,7 +359,7 @@ export default function DashboardUno() {
               variant="outlined"
               sx={{
                 gridColumn: '1 / -1',
-                borderRadius: '12px',
+                borderRadius: 1.4,
                 boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                 p: { xs: 2, md: 3 }
               }}
@@ -367,24 +368,27 @@ export default function DashboardUno() {
                 Evolução do Patrimônio
               </Typography>
               {evolution.length === 0 ? (
-                <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography color="text.secondary">
+                <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
+                  <Typography color="text.secondary" align="center">
                     Sem dados de evolução para o período selecionado.
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled" align="center">
+                    Tente um período maior (24 ou 36 meses) para visualizar o histórico.
                   </Typography>
                 </Box>
               ) : (
                 <Box sx={{ height: 360, width: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={evolution} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6c757d' }} minTickGap={28} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} minTickGap={28} />
                       <YAxis
                         tickFormatter={compactCurrency}
-                        tick={{ fontSize: 12, fill: '#6c757d' }}
+                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
                         width={90}
                       />
                       <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Bar dataKey="valor" name="Patrimônio" fill={PRIMARY_BLUE} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="valor" name="Patrimônio" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>

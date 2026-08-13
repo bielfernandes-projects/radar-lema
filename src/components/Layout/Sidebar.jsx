@@ -95,14 +95,6 @@ const navStructure = [
       { key: 'admin', label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck' }
     ],
     show: (user) => user && user.user_type === 'super_admin'
-  },
-  {
-    group: 'logout',
-    label: '',
-    items: [
-      { key: 'logout', label: 'Sair', icon: 'LogOut', action: 'logout' }
-    ],
-    show: (user) => !!user
   }
 ]
 
@@ -145,7 +137,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
         bgcolor: 'background.default',
         borderRight: 1,
         borderColor: 'divider',
-        transition: theme.transitions.create('width'),
+        transition: theme.transitions.create(['opacity']),
         overflow: 'hidden'
       }}
     >
@@ -184,10 +176,8 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                   px: 2,
                   mb: 0.5,
                   display: 'block',
-                  textTransform: 'uppercase',
                   fontWeight: 600,
-                  fontSize: '0.7rem',
-                  letterSpacing: '0.5px'
+                  fontSize: '0.75rem'
                 }}
               >
                 {section.label}
@@ -207,7 +197,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                       <ListItemButton
                         onClick={() => toggleGroup(item.key)}
                         sx={{
-                          borderRadius: '8px',
+                          borderRadius: 1,
                           px: 1.5,
                           py: 0.75,
                           backgroundColor: active ? 'action.selected' : 'transparent',
@@ -255,7 +245,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                               selected={isActive(location.pathname, child.path)}
                               onClick={() => handleNavClick(child.path)}
                               sx={{
-                                borderRadius: '6px',
+                                borderRadius: 1,
                                 px: 1.5,
                                 py: 0.5,
                                 backgroundColor: isActive(location.pathname, child.path) ? 'action.selected' : 'transparent',
@@ -281,28 +271,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                 }
 
                 if (item.action === 'logout') {
-                  return (
-                    <ListItemButton
-                      key={item.key}
-                      onClick={handleLogout}
-                      sx={{
-                        borderRadius: '8px',
-                        px: 1.5,
-                        py: 0.75,
-                        color: 'error.main',
-                        '&:hover': { backgroundColor: 'error.light', color: 'white' },
-                        '& .MuiListItemIcon-root': { color: 'inherit' }
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 40, display: 'flex', justifyContent: 'center' }}>
-                        <LogOut size={20} />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{ fontWeight: 500, fontSize: '0.875rem' }}
-                      />
-                    </ListItemButton>
-                  )
+                  return null
                 }
 
                 return (
@@ -311,7 +280,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                     selected={active}
                     onClick={() => handleNavClick(item.path)}
                     sx={{
-                      borderRadius: '8px',
+                      borderRadius: 1,
                       px: 1.5,
                       py: 0.75,
                       backgroundColor: active ? 'action.selected' : 'transparent',
@@ -345,6 +314,30 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
           </Box>
         ))}
       </Box>
+
+      {user && (
+        <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider', mt: 'auto' }}>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 1,
+              px: 1.5,
+              py: 0.75,
+              color: 'error.main',
+              '&:hover': { backgroundColor: 'error.light', color: 'white' },
+              '& .MuiListItemIcon-root': { color: 'inherit' }
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 40, display: 'flex', justifyContent: 'center' }}>
+              <LogOut size={20} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Sair"
+              primaryTypographyProps={{ fontWeight: 500, fontSize: '0.875rem' }}
+            />
+          </ListItemButton>
+        </Box>
+      )}
     </Box>
   )
 

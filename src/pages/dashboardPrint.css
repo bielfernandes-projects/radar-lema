@@ -15,7 +15,7 @@
     width: 100%;
     margin: 0;
     padding: 0;
-    background-color: #f4f6f8;
+    background-color: #f6f7f9;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -23,30 +23,30 @@
   #uno-dashboard-report .report-card {
     background-color: #ffffff;
     box-shadow: none;
-    border: 1px solid #dee2e6;
+    border: 1px solid #dfe2ea;
   }
 
   #uno-dashboard-report,
   #uno-dashboard-report * {
-    color: #11233d;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    font-family: 'Manrope', 'Segoe UI', Helvetica, Arial, sans-serif;
   }
 
   #uno-dashboard-report .report-title {
-    color: #1967d2;
+    color: #1976d2;
   }
 
   #uno-dashboard-report .report-label,
   #uno-dashboard-report .report-sub-label {
-    color: #6c757d;
+    color: #5f6b7e;
   }
 
   #uno-dashboard-report .value-positive {
-    color: #1fb74b;
+    color: #1976d2;
   }
 
   #uno-dashboard-report .value-negative {
-    color: #dc3545;
+    color: #c62828;
   }
 
   #uno-dashboard-report .report-button {
