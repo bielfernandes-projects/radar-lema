@@ -82,9 +82,12 @@ CREATE INDEX idx_comments_content ON public.comments (content_type, content_id);
 CREATE INDEX idx_comments_hidden ON public.comments (hidden) WHERE hidden = true;
 
 -- ---------------------------------------------------------------------------
--- v_comments_with_content (fila de moderação)
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW public.v_comments_with_content AS
+-- v_comments_with_content (fila de moderação).
+-- security_invoker: a view roda com as permissoes do chamador, entao as RLS
+-- das tabelas base valem aqui — a fila so mostra `hidden` para staff via
+-- `comments_select`, e o titulo de conteudo exclusivo segue a RLS dele.
+CREATE OR REPLACE VIEW public.v_comments_with_content
+WITH (security_invoker = true) AS
 SELECT
   c.id,
   c.content_type,
@@ -101,10 +104,3 @@ LEFT JOIN public.articles a ON c.content_type = 'article' AND a.id = c.content_i
 LEFT JOIN public.events e ON c.content_type = 'event' AND e.id = c.content_id
 LEFT JOIN public.news n ON c.content_type = 'news' AND n.id = c.content_id
 LEFT JOIN public.uno_updates u ON c.content_type = 'uno_update' AND u.id = c.content_id;
-
-ALTER VIEW public.v_comments_with_content ENABLE ROW LEVEL SECURITY;
-
--- Somente staff acessa a fila de moderação.
-CREATE POLICY v_comments_with_content_staff ON public.v_comments_with_content
-  FOR SELECT
-  USING (public.is_staff());

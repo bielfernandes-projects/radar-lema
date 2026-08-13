@@ -15,9 +15,17 @@ const supabase = createClient(supabaseUrl, serviceRole, {
 });
 
 const NEWS_API_URL = "https://newsapi.org/v2/everything";
-const QUERY = '"previdência social" OR RPPS OR "investimentos públicos"';
+const QUERY = '"previdência social" OR RPPS OR "investimentos públicos" OR "economia" OR "CMN" OR "previdência complementar"';
 const LANGUAGE = "pt";
 const PAGE_SIZE = 50;
+
+const TOPIC_KEYWORDS: Record<string, string[]> = {
+  rpps: ["rpps", "previdência social", "regime próprio", "previdência complementar", "fundo de pensão"],
+  economia: ["economia", "pib", "inflação", "selic", "juros", "câmbio", "fiscal", "déficit", "superávit"],
+  investimentos: ["investimento", "fundo", "carteira", "rentabilidade", "alocação", "ativo", "renda fixa", "renda variável", "multimercado"],
+  regulamentacao: ["cmn", "conselho monetário", "resolução", "normativa", "instrução cvm", "bacen", "previc"],
+  mercado: ["mercado", "bolsa", "b3", "ações", "títulos", "debêntures", "crédito privado", "fii"]
+};
 
 interface NewsApiArticle {
   title?: string;
@@ -35,6 +43,7 @@ interface NewsRow {
   image_url: string | null;
   source: string | null;
   published_at: string;
+  topic: string;
 }
 
 async function fetchNews(): Promise<NewsRow[]> {
@@ -57,18 +66,28 @@ async function fetchNews(): Promise<NewsRow[]> {
   const body = (await res.json()) as { articles?: NewsApiArticle[] };
   const articles = body.articles || [];
 
+function classifyTopic(text: string): string {
+  const lower = text.toLowerCase();
+  for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+    if (keywords.some(k => lower.includes(k))) return topic;
+  }
+  return "outros";
+}
+
   const rows: NewsRow[] = [];
   for (const a of articles) {
     const title = (a.title || "").trim();
     const url = (a.url || "").trim();
     if (!title || !url) continue;
+    const text = `${title} ${a.description || ""}`;
     rows.push({
       title,
       description: (a.description || "").trim() || null,
       url,
       image_url: (a.urlToImage || "").trim() || null,
       source: (a.source?.name || "").trim() || null,
-      published_at: a.publishedAt || new Date().toISOString()
+      published_at: a.publishedAt || new Date().toISOString(),
+      topic: classifyTopic(text)
     });
   }
 

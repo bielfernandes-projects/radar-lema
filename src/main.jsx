@@ -6,7 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from './theme/theme'
 import { AuthProvider } from './contexts/AuthContext'
 import { ColorModeProvider, useColorMode } from './contexts/ColorModeContext'
-import { routes } from './App.jsx'
+import { routes } from './routes.jsx'
 
 const router = createBrowserRouter(routes)
 
