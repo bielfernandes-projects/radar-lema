@@ -324,7 +324,7 @@ Todas as tabelas têm RLS habilitado:
 | Componente | Responsabilidade | Onde usado |
 |---|---|---|
 | `AuthContext` | Estado de autenticação e perfil | Envolve toda a app |
-| `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Detecta `prefers-color-scheme` quando não há preferência salva; sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
+| `ColorModeContext` | Estado do tema (light/dark) por usuário, persistido em `localStorage` com chave `theme-mode:{email}`. Padrão **light mode**; dark apenas se o usuário escolher no toggle. Sincroniza atributo `data-theme` no `<html>` para variáveis CSS. | Dentro de `AuthProvider`, envolve `ThemeProvider` |
 | `ProtectedRoute` | Protege rotas por autenticação; `requireStaff` exige tier staff (staff/super_admin) e `requireAdmin` exige super admin | `App.jsx` |
 | `Navbar` | Navegação: desktop com abas condicionais (itens de client, grupo staff com borda `primary.light` para Categorias+Gestão e Painel Admin com fundo azul claro + borda branca) + toggle de tema; mobile com Drawer lateral (hambúrguer) listando as mesmas seções com ícones (separadas por `Divider` por grupo), tema e Sair/Entrar no rodapé. Logo (favicon 32×32) à esquerda do nome "Radar Lema", clicável para voltar à home | `App.jsx` |
 | `Login` | Formulário de login com "Esqueci minha senha" (Dialog que envia link de recuperação), botão "Criar Conta" (link para `/criar-conta`) e toggle de tema respeitando o `ColorModeContext`. Card centralizado verticalmente (sem scroll) com ícone de instalação no canto superior direito (`InstallAppIcon`) | Rota `/login` |
@@ -357,7 +357,7 @@ Todas as tabelas têm RLS habilitado:
 | `useNotificationSettings` | Hook para carregar/salvar configuracoes de notificacao. Usa `useUserData` para o listener de auth. | `Settings` |
 | `ReminderDialog` | Dialog de lembretes com offset livre (campo numerico **sem spinners +/−** + unidades Minuto/Hora/Dia/Semana/Mes) e canal por lembrete (push/email). Toast de confirmacao/erro com 3s e botao fechar | `EventCard`, `EventDetail`, `Settings` |
 | `AdminDashboard` | Painel Admin: cards com totais (usuários/eventos/favoritos), gráficos mensais (recharts) de crescimento de usuários e favoritos com barras centralizadas no card (margens balanceadas com a faixa do eixo Y), e gestão de usuários (criar com senha escolhida, editar tipo/role, redefinir senha, excluir). Previne excluir/editar a própria conta | Rota `/admin` |
-| `Settings` | Configurações: alterar senha (atual/nova/confirmação), notificações push, teste de notificação, instalar app e lista de lembretes | Rota `/configuracoes` |
+| `Settings` | Configurações: primeira seção **Perfil** (nome editável via RPC `update_my_profile_name`, e-mail inalterável e alteração de senha), depois notificações push, teste de notificação, lembretes e, por último, **Instalar App** | Rota `/configuracoes` |
 | `Markdown` | Renderiza Markdown (títulos, parágrafos, listas, itálico/negrito, links com `safeUrl`) em blocos MUI — sem `dangerouslySetInnerHTML` (XSS-safe) | `ArticleDetail`, `UnoUpdateDetail` |
 | `Interactions` | Curtida (ícone + contador) e comentários (lista, form, exclusão do autor) para conteúdos de leitura | `ArticleDetail`, `EventDetail`, `NewsDetail`, `UnoUpdateDetail` |
 | `ExclusiveBadge` | Badge "Exclusivo Cliente Lema" | `ArticleCard`, `MaterialCard`, detalhes |
@@ -389,7 +389,7 @@ Todas as tabelas têm RLS habilitado:
 | `/novidades-uno` · `/novidade/:id` | `UnoUpdates` · `UnoUpdateDetail` | Autenticado |
 | `/artigos` · `/artigo/:id` | `Articles` · `ArticleDetail` | Autenticado (detalhe de `lema_client` exige Cliente Lema via RLS) |
 | `/materiais` | `Materials` | Autenticado (listagem filtra por `visibility` no cliente) |
-| `/gestao/hub` | `ManageHub` | Staff (gestão de artigos, novidades UNO, materiais e notícias) |
+| `/gestao/hub` | `ManageHub` | Staff (gestão de artigos, novidades UNO, materiais e notícias — as notícias são listadas da ingestão e podem ser **excluídas** pelo staff, sem edição) |
 | `/gestao/artigos/novo` · `/gestao/artigos/:id/editar` | `ArticleFormPage` | Staff |
 | `/gestao/materiais/novo` · `/gestao/materiais/:id/editar` | `MaterialFormPage` | Staff |
 | `/gestao/novidades-uno/novo` · `/gestao/novidades-uno/:id/editar` | `UnoUpdateFormPage` | Staff |
@@ -542,7 +542,7 @@ O helper `filterEvents(events, filters, categories, options)` em `utils/filterEv
   do UNO nesta fase.
 - Todas as configurações do Supabase via CLI/migrations; zero Dashboard web.
 - Tema MUI com paleta institucional azul/cinza e fonte Manrope.
-- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial também respeita `prefers-color-scheme` do sistema quando o usuário ainda não escolheu manualmente. O atributo `data-theme` no `<html>` é sincronizado por compatibilidade, mas o tema é 100% MUI (via `createAppTheme(mode)` + `CssBaseline`); não há mais `index.css` com variáveis CSS próprias.
+- Dark mode: `ColorModeContext` (dentro de `AuthProvider`) expõe `{ mode, toggleColorMode }`. A preferência é salva no `localStorage` com chave `theme-mode:{email}`, isolada por usuário — cada conta tem o próprio tema, independente. O toggle fica no `Navbar`, acessível de qualquer página em mobile e desktop. O tema inicial é **light mode** (dark somente se o usuário escolher). O atributo `data-theme` no `<html>` é sincronizado por compatibilidade, mas o tema é 100% MUI (via `createAppTheme(mode)` + `CssBaseline`); não há mais `index.css` com variáveis CSS próprias.
 - Eventos "Não definido" (`is_confirmed`): eventos cadastrados mas não
   confirmados ficam visíveis apenas para staff, em todas as listagens, com
   badge "A definir" e banner no detalhe. A visibilidade é garantida no banco
@@ -584,6 +584,9 @@ Fluxo completo de notificações push:
 3. **Desfavoritar**: ao desfavoritar, os lembretes **não são removidos** —
    permanecem no banco para quando o usuário refavoritar.
 4. **Configurações**: a tela `/configuracoes` permite:
+   - **Editar o nome** exibido no perfil (RPC `update_my_profile_name`,
+     SECURITY DEFINER, porque a RLS bloqueia UPDATE direto em `profiles`);
+     o e-mail é inalterável. A troca de senha fica na mesma seção Perfil.
    - Ativar/desativar notificações push **de verdade**: o toggle chama
      `Notification.requestPermission()` + `PushManager.subscribe()` com a chave
      pública VAPID e grava a subscription em `push_subscriptions`
@@ -629,9 +632,9 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 
 - **Fase 1 — Fundação**: `profiles.is_uno_client` (flag manual no Painel
   Admin) + helper `is_uno_client()` no banco e `isUnoClient` no frontend.
-- **Fase 2 — Vitrine**: `news` (ingestão via Edge Function `news-ingest`,
-  NewsAPI) e `uno_updates` (escrita staff). Páginas, cards e Feed agregado
-  (`/`).
+- **Fase 2 — Vitrine**: `news` (ingestão via Edge Function `news-ingest` —
+  hoje um agregador RSS próprio, ver ADR `0009`) e `uno_updates` (escrita
+  staff). Páginas, cards e Feed agregado (`/`).
 - **Fase 3 — Diferenciais**: `articles` e `materials` com `visibility`
   (`public`/`lema_client`); bucket privado `materials` com URL assinada
   (download via `createSignedUrl(..., { download: fileName })`);
@@ -693,8 +696,8 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 - `articles` — título, subtítulo, autor, corpo (Markdown), capa, `visibility`
   (`public`/`lema_client`), `source_url` (LinkedIn original, opcional),
   `created_by`, timestamps.
-- `news` — notícias de mercado ingeridas da NewsAPI (título, descrição, URL,
-  imagem, fonte, `published_at`, `ingested_at`).
+- `news` — notícias de mercado ingeridas pelo agregador RSS próprio (título,
+  descrição, URL, imagem, fonte, `published_at`, `ingested_at`, `topic`).
 - `uno_updates` — novidades do sistema UNO escritas pelo staff (título, corpo,
   tipo: atualização/manutenção/bug/instabilidade).
 - `materials` — materiais de apoio com `visibility`, metadados e arquivo no
@@ -707,17 +710,21 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 
 ### Edge Functions
 
-- `news-ingest` — busca notícias na NewsAPI (secret `NEWSAPI_KEY`) e grava em
-  `news`. O job do cron **não é versionado** (padrão do
-  `notification-scheduler` em `push-notifications.md`): registrado no deploy
-  com a service role key:
+- `news-ingest` — agregador RSS: baixa os feeds institucionais (Investidor
+  Institucional, ABIPEM, Gov.br/Previdência, Banco Central) e os Google
+  Alerts (`RPPS`, `Regime Próprio de Previdência`, `CMN 5.272`, `CMN 4.963`),
+  parseia com `fast-xml-parser`, normaliza e grava em `news` com **upsert
+  dedupe pela URL final da matéria** (extrai o `q=` do redirect do Google
+  Alerts). Sem key externa. Detalhes na ADR `0009`. O job do cron **não é
+  versionado** (padrão do `notification-scheduler` em `push-notifications.md`):
+  registrado no deploy com a service role key:
 
   ```sql
   SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'radar-news-ingest';
 
   SELECT cron.schedule(
     'radar-news-ingest',
-    '0 */4 * * *',
+    '0 * * * *',
     'SELECT net.http_post(
       url := ''https://SEU-PROJETO.supabase.co/functions/v1/news-ingest'',
       headers := jsonb_build_object(
@@ -728,6 +735,14 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
     ) AS request_id;'
   );
   ```
+- `news-ingest` retorna `{ inserted, fetched, skipped, feeds: [...] }` — cada
+  feed reporta `{ name, fetched, valid, error? }`; erros de feed não derrubam
+  a rodada (`Promise.allSettled`).
+- **Gov.br/Previdência**: a URL
+  `https://www.gov.br/previdencia/pt-br/assuntos/noticias/RSS` está retornando
+  **404** (o gov.br deixou de servir RSS nos caminhos `/RSS`). A entrada fica
+  na lista e o erro aparece no report da rodada; precisa de uma URL funcional
+  (ver ADR `0009`).
 - `uno-proxy` — valida o JWT do usuário do Radar (via `auth.getUser`), exige
   `is_uno_client` e repassa requisições GET para a `outer_api` do UNO com o
   token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
@@ -749,12 +764,47 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   UNO); a listagem de eventos mudou para `/eventos`.
 
 > ⚠️ Antes de testar as páginas remotas: `supabase db push` (migrations
-> 0030–0034 não aplicadas) + secrets `NEWSAPI_KEY`/`UNO_ACCESS_TOKEN` +
+> 0030–0034 não aplicadas) + secrets `UNO_ACCESS_TOKEN` +
 > `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`. Rotacionar o token do UNO
 > (exposto em `api_uno.yml`, agora no `.gitignore`). Deno não disponível
 > localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-14** — Refinamentos de UI/UX e de gestão do hub (pós-agregador RSS):
+  - **Perfil na Configurações**: nova primeira seção "Perfil" em
+    `/configuracoes` — nome editável (RPC `update_my_profile_name` na
+    migration `20260814000003`, SECURITY DEFINER pois a RLS bloqueia UPDATE
+    direto em `profiles`; `AuthContext` ganhou `refreshProfile`), e-mail
+    inalterável e troca de senha na mesma seção (senha atual com
+    `autoComplete="new-password"` para o navegador não autopreenchê-la).
+    A seção "Instalar App" passou a ser a **última** da página.
+  - **Gestão de notícias em `/gestao/hub`**: a aba Notícias agora lista as
+    notícias ingeridas (ordenadas por `published_at` desc) com a **busca
+    filtrando por título/fonte** e ação de **excluir** (a RLS `news_write`
+    FOR ALL já permitia ao staff). Sem botão "Novo"/"Editar" — notícias são
+    automáticas; o texto avisa que itens ainda presentes no feed voltam na
+    próxima ingestão.
+  - **Light mode padrão**: `ColorModeContext` não consulta mais
+    `prefers-color-scheme` — todo usuário começa em light e o dark só se
+    liga se escolher no toggle.
+  - **Notícias em lista vertical**: página `/noticias` e a seção de notícias
+    do Feed (`/`) usam o novo `NewsCard layout="list"` (título + fonte + data,
+    sem thumbnail lateral); `NewsDetail` sem imagem (só texto + "Ler matéria
+    original").
+  - **Sidebar fechada por padrão**: os grupos de navegação (clientes, staff)
+    iniciam recolhidos em vez de expandidos.
+
+- **2026-08-14** — Notícias de Mercado migradas de NewsAPI para agregador RSS
+  próprio (ADR `0009`):
+  - `news-ingest` reescrita: parseia feeds institucionais (Investidor
+    Institucional, ABIPEM, Gov.br/Previdência, Banco Central) + Google Alerts
+    (`RPPS`, `Regime Próprio de Previdência`, `CMN 5.272`, `CMN 4.963`) com
+    `fast-xml-parser`; dedupe pela URL final (extrai o `q=` do redirect do
+    Google Alerts); thumbnail melhor esforço; `topic` com novo vocabulário.
+  - Cron do `radar-news-ingest` ajustado para **1h** (`0 * * * *`).
+  - Secret `NEWSAPI_KEY` removido do fluxo (pode ser desvinculado no
+    Supabase). Frontend e tabela `news` inalterados.
 
 - **2026-08-14** — Correções pós-publicação (validadas em local, antes de
   subir):
@@ -807,8 +857,9 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   - **Fase 1**: `profiles.is_uno_client` + toggle "Cliente Lema" no Painel
     Admin (`admin-users` + `AdminDashboard`) e helper `isUnoClient`.
   - **Fase 2**: migrations `news`/`uno_updates`, Edge Function `news-ingest`
-    (NewsAPI), serviços e páginas de Notícias/Novidades UNO; `/` virou o Feed
-    agregado e a listagem de eventos passou para `/eventos`.
+    (agregador RSS — ver ADR `0009`), serviços e páginas de Notícias/Novidades
+    UNO; `/` virou o Feed agregado e a listagem de eventos passou para
+    `/eventos`.
   - **Fase 3**: migrations `articles`/`materials` + bucket privado
     `materials`; parser de Markdown próprio (`markdownToBlocks`/`parseInline`,
     renderizado por `Markdown.jsx` sem `dangerouslySetInnerHTML`); páginas e
@@ -828,12 +879,13 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
     `markdown`, `articlesData`, `interactionsData`, `uno`), lint limpo, build
     OK. Migrations 0030–0034 **não aplicadas** (sem Docker/`db push`) — rodar
     `supabase db push` antes dos testes remotos. Secrets pendentes:
-    `NEWSAPI_KEY`, `UNO_ACCESS_TOKEN` (rotacionar o exposto no `api_uno.yml`).
+    `UNO_ACCESS_TOKEN` (rotacionar o exposto no `api_uno.yml`).
 
 - **2026-08-13** — Início do Hub da Lema (branch `feat/lema-hub`):
   - Sessão de grill (grilling + domain-modeling) com decisões de produto para
     expandir o Radar de centralizador de eventos para hub da Lema: Artigos,
-    Notícias de Mercado (NewsAPI via ingestão agendada), Novidades UNO,
+    Notícias de Mercado (NewsAPI via ingestão agendada — posteriormente
+    substituída pelo agregador RSS, ver ADR `0009`), Novidades UNO,
     Materiais de Apoio, Dashboard UNO (API real, perfil demo 192), Curtidas &
     Comentários com moderação pós-publicação, home como feed agregado e push
     para novidades UNO/artigos exclusivos. Detalhes e fases em `PLAN.md`.
@@ -842,8 +894,8 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   - ADRs 0006–0009 registrados em `docs/adr/`.
   - ⚠️ Segurança: `api_uno.yml` contém secrets (JWT do `x-access-token`,
     `x-api-key`, credenciais comdinheiro) — adicionado ao `.gitignore` para
-    não ser commitado; rotacionar os tokens e trocar a NewsAPI key (exposta
-    no chat).
+    não ser commitado; rotacionar os tokens (a antiga key da NewsAPI, exposta
+    no chat, foi descartada com a migração para o agregador RSS).
 
 - **2026-08-10** — Correção da validação de categorias no formulário de eventos:
   - O campo Categorias (`Autocomplete` `multiple`) exibia os chips corretamente,

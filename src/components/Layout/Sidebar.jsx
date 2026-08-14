@@ -120,7 +120,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
   const theme = useTheme()
-  const [expandedGroups, setExpandedGroups] = useState({ events: true, eventsMgmt: true })
+  const [expandedGroups, setExpandedGroups] = useState({})
   const [clientModalOpen, setClientModalOpen] = useState(false)
 
   const visibleSections = navStructure.filter(section => !section.show || section.show(profile))

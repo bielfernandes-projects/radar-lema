@@ -141,7 +141,7 @@ download no canto superior direito do card (`InstallAppIcon`); na Config, um
 botão "Instalar App". Usa o evento nativo `beforeinstallprompt`; quando o
 navegador não suporta, abre um modal com as instruções ("Adicionar à Tela de
 Início" no iOS/Android ou "Instalar aplicativo" no desktop). Oculto quando o
-app já está instalado.
+app já está instalado. Na Config é a última seção da página.
 _Avoid_: Download, add-to-standalone, bookmark
 
 **Realizado**:
@@ -197,8 +197,11 @@ _Avoid_: Post, matéria, blog
 
 **Notícia de Mercado**:
 Item noticioso externo sobre RPPS e investimentos, ingerido automaticamente
-da API de notícias (NewsAPI) por uma Edge Function agendada e gravado na
-tabela `news`. Não tem autor Lema nem visibilidade restrita — é `public`.
+por um agregador de feeds RSS próprio (feeds institucionais + Google Alerts)
+numa Edge Function agendada e gravado na tabela `news`. Não tem autor Lema
+nem visibilidade restrita — é `public`. No Gestão do hub (`/gestao/hub`,
+aba Notícias) o staff pode **excluir** notícias que não fazem sentido — sem
+edição; itens ainda presentes no feed voltam na próxima ingestão.
 _Avoid_: Feed, clipping, matéria
 
 **Novidade UNO**:

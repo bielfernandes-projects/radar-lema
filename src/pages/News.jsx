@@ -8,7 +8,8 @@ export default function News() {
     <ListPage
       title="Notícias de Mercado"
       fetchData={fetchNews}
-      renderItem={(news) => <NewsCard news={news} />}
+      renderItem={(news) => <NewsCard news={news} layout="list" />}
+      variant="list"
       emptyIcon={Newspaper}
       emptyTitle="Nenhuma notícia ainda"
       emptyMessage="As notícias de mercado sobre RPPS e investimentos aparecem aqui automaticamente, atualizadas ao longo do dia."

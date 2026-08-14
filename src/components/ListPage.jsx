@@ -20,6 +20,7 @@ export default function ListPage({
   emptyMessage,
   countLabel,
   errorMessage,
+  variant = 'grid',
   skeletonHeight = 260,
   skeletonCount = 6
 }) {
@@ -89,9 +90,9 @@ export default function ListPage({
               {items.length} {countLabel(items.length)}
             </Typography>
           )}
-          <Grid container spacing={3}>
+          <Grid container spacing={variant === 'list' ? 1.5 : 3}>
             {items.map((item) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
+              <Grid size={variant === 'list' ? 12 : { xs: 12, sm: 6, md: 4 }} key={item.id}>
                 {renderItem(item)}
               </Grid>
             ))}

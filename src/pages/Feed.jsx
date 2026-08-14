@@ -146,11 +146,11 @@ export default function Feed() {
             As notícias mais recentes sobre RPPS e investimentos aparecem aqui.
           </Typography>
         ) : (
-          <HorizontalScroller>
-            {news.slice(0, 3).map((item) => (
-              <NewsCard key={item.id} news={item} />
+          <Stack spacing={1.5}>
+            {news.slice(0, 5).map((item) => (
+              <NewsCard key={item.id} news={item} layout="list" />
             ))}
-          </HorizontalScroller>
+          </Stack>
         )}
       </Box>
 

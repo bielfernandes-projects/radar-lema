@@ -138,9 +138,10 @@ export function AuthProvider({ children }) {
       loading,
       signIn,
       signOut,
-      signUp
+      signUp,
+      refreshProfile: () => loadProfile(user?.id)
     }),
-    [user, profile, loading, signIn, signOut, signUp]
+    [user, profile, loading, signIn, signOut, signUp, loadProfile]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

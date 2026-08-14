@@ -41,7 +41,7 @@ export default function ManageHub() {
   const [articles, setArticles] = useState([])
   const [updates, setUpdates] = useState([])
   const [materials, setMaterials] = useState([])
-  const [newsCount, setNewsCount] = useState(null)
+  const [news, setNews] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -67,12 +67,15 @@ export default function ManageHub() {
         fetchArticles(),
         fetchUnoUpdates(),
         fetchMaterials(),
-        supabase.from('news').select('id', { count: 'exact', head: true })
+        supabase
+          .from('news')
+          .select('id, title, source, published_at')
+          .order('published_at', { ascending: false })
       ])
       setArticles(articlesData)
       setUpdates(updatesData)
       setMaterials(materialsData)
-      setNewsCount(newsRows.count ?? 0)
+      setNews(newsRows.data ?? [])
     } catch {
       setError('Erro ao carregar o conteúdo do hub.')
     }
@@ -97,6 +100,13 @@ export default function ManageHub() {
         await deleteMaterial(item.id)
         await deleteMaterialFile(item.storage_path).catch(() => {})
         setMaterials((prev) => prev.filter((m) => m.id !== item.id))
+      } else if (kind === 'news') {
+        const { error: deleteError } = await supabase
+          .from('news')
+          .delete()
+          .eq('id', item.id)
+        if (deleteError) throw deleteError
+        setNews((prev) => prev.filter((n) => n.id !== item.id))
       }
       setDeleteSnackbar(true)
     } catch {
@@ -114,13 +124,16 @@ export default function ManageHub() {
   const visibleArticles = filterByTerm(articles, ['title', 'author'])
   const visibleUpdates = filterByTerm(updates, ['title'])
   const visibleMaterials = filterByTerm(materials, ['title', 'description'])
+  const visibleNews = filterByTerm(news, ['title', 'source'])
 
   const visibleItems =
     tab === 'articles'
       ? visibleArticles
       : tab === 'uno_updates'
         ? visibleUpdates
-        : visibleMaterials
+        : tab === 'materials'
+          ? visibleMaterials
+          : visibleNews
 
   if (loading) {
     return (
@@ -139,6 +152,7 @@ export default function ManageHub() {
         <Button
           variant="contained"
           startIcon={<Plus size={20} />}
+          disabled={tab === 'news'}
           onClick={() => {
             if (tab === 'articles') navigate('/gestao/artigos/novo')
             else if (tab === 'uno_updates') navigate('/gestao/novidades-uno/novo')
@@ -185,17 +199,23 @@ export default function ManageHub() {
         sx={{ mb: 2 }}
       />
 
-      {tab === 'news' ? (
+      {visibleItems.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
-          {newsCount ?? 0} notícias ingeridas automaticamente da API de notícias.
-          Elas não são gerenciadas manualmente.
-        </Typography>
-      ) : visibleItems.length === 0 ? (
-        <Typography variant="body1" color="text.secondary">
-          Nenhum item encontrado.
+          {tab === 'news'
+            ? news.length === 0
+              ? 'Nenhuma notícia ingerida ainda.'
+              : 'Nenhuma notícia encontrada para esta busca.'
+            : 'Nenhum item encontrado.'}
         </Typography>
       ) : (
         <Stack spacing={2}>
+          {tab === 'news' && (
+            <Typography variant="body2" color="text.secondary">
+              {news.length} notícias ingeridas automaticamente dos feeds. Use a
+              busca para filtrar e exclua notícias que não fazem sentido — elas
+              voltarão na próxima ingestão se ainda estiverem no feed.
+            </Typography>
+          )}
           {visibleItems.map((item) => (
             <Card key={item.id} variant="outlined">
               <CardContent>
@@ -211,28 +231,35 @@ export default function ManageHub() {
                       {tab === 'uno_updates' && (
                         <Chip label={unoUpdateTypeLabel(item.type)} size="small" color="primary" />
                       )}
+                      {tab === 'news' && item.source && (
+                        <Chip label={item.source} size="small" variant="outlined" />
+                      )}
                       {item.visibility === 'lema_client' && (
                         <Chip label="Exclusivo Cliente Lema" size="small" color="secondary" />
                       )}
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {itemMeta(item)}
+                      {tab === 'news'
+                        ? formatHubDate(item.published_at)
+                        : itemMeta(item)}
                     </Typography>
                   </Box>
 
                   <Stack direction="row" spacing={1}>
-                    <Tooltip title="Editar">
-                      <IconButton
-                        onClick={() => {
-                          if (tab === 'articles') navigate(`/gestao/artigos/${item.id}/editar`)
-                          else if (tab === 'uno_updates') navigate(`/gestao/novidades-uno/${item.id}/editar`)
-                          else if (tab === 'materials') navigate(`/gestao/materiais/${item.id}/editar`)
-                        }}
-                        aria-label="Editar"
-                      >
-                        <Pencil size={20} />
-                      </IconButton>
-                    </Tooltip>
+                    {tab !== 'news' && (
+                      <Tooltip title="Editar">
+                        <IconButton
+                          onClick={() => {
+                            if (tab === 'articles') navigate(`/gestao/artigos/${item.id}/editar`)
+                            else if (tab === 'uno_updates') navigate(`/gestao/novidades-uno/${item.id}/editar`)
+                            else if (tab === 'materials') navigate(`/gestao/materiais/${item.id}/editar`)
+                          }}
+                          aria-label="Editar"
+                        >
+                          <Pencil size={20} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Excluir">
                       <IconButton
                         onClick={() => setDeleteTarget({ kind: tab, item })}

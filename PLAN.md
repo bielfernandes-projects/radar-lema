@@ -27,7 +27,7 @@ ficam para depois.
 | Q2 | Cliente Lema | Flag `is_uno_client` em `profiles`, alternada pelo super admin no Painel Admin |
 | Q3 | Visibilidade | Campo `visibility` (`public`/`lema_client`) em Artigos e Materiais; mantém `is_confirmed` p/ Eventos |
 | Q4 | Artigos | Agregado próprio, staff publica manualmente; `source_url` opcional p/ LinkedIn |
-| Q5 | Notícias | Ingestão agendada (Edge + cron) → tabela `news`; API = NewsAPI |
+| Q5 | Notícias | Ingestão agendada (Edge + cron) → tabela `news`; agregador RSS próprio (feeds institucionais + Google Alerts) |
 | Q6 | Novidades UNO | Agregado próprio `uno_updates`, escrito pelo staff |
 | Q7 | Materiais | Upload no app: bucket `materials` + tabela `materials` |
 | Q8/Q9 | Dashboard UNO | Edge Function proxy → `unoapp.com.br`, perfil demo `client_id=192`, token JWT em secret |
@@ -41,7 +41,7 @@ ficam para depois.
 | # | Fase | Conteúdo |
 |---|---|---|
 | 1 | Fundação | `profiles.is_uno_client` + helper `is_uno_client()` + RLS; switch "Cliente Lema" no Painel Admin; glossário + ADRs |
-| 2 | Vitrine | Tabelas `news` e `uno_updates`; Edge `news-ingest` (NewsAPI + cron); páginas Notícias e Novidades UNO; home feed agregado; rework da navbar/rotas |
+| 2 | Vitrine | Tabelas `news` e `uno_updates`; Edge `news-ingest` (agregador RSS + cron); páginas Notícias e Novidades UNO; home feed agregado; rework da navbar/rotas |
 | 3 | Diferenciais 1 e 2 | Tabelas `articles` e `materials` (+ bucket); formulário staff (editor Markdown + upload); listagens públicas e restritas; badges "Exclusivo Lema" |
 | 4 | Social | Tabelas `likes` e `comments` polimórficas (`content_type` + `content_id`); componente de interação; página/aba Moderação p/ staff |
 | 5 | Push novo | Estender `send-push`/outbox: novidades UNO (todos com push) e artigos `lema_client` (só Clientes Lema) |

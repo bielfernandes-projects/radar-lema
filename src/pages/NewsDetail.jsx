@@ -2,17 +2,15 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
-  Box,
   Button,
   Chip,
   Container,
   IconButton,
-  Paper,
   Stack,
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft, ExternalLink, Newspaper } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { fetchNewsById } from '../services/newsData'
 import { safeUrl } from '../utils/safeUrl'
 import { formatHubDateTime } from '../utils/hub'
@@ -25,7 +23,6 @@ export default function NewsDetail() {
   const [news, setNews] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [imgFailed, setImgFailed] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,22 +64,6 @@ export default function NewsDetail() {
           </IconButton>
         </Tooltip>
       </Stack>
-
-      <Paper elevation={2} sx={{ overflow: 'hidden', mb: 2, bgcolor: 'grey.200' }}>
-        {news.image_url && !imgFailed ? (
-          <Box
-            component="img"
-            src={news.image_url}
-            alt={news.title}
-            onError={() => setImgFailed(true)}
-            sx={{ width: '100%', height: { xs: 220, md: 320 }, objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <Stack sx={{ height: 200, alignItems: 'center', justifyContent: 'center', color: 'text.disabled' }}>
-            <Newspaper size={48} />
-          </Stack>
-        )}
-      </Paper>
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
         {news.source && <Chip label={news.source} size="small" variant="outlined" />}

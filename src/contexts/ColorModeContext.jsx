@@ -12,9 +12,6 @@ function getStoredMode(storageKey) {
 function getInitialMode(storageKey) {
   const stored = getStoredMode(storageKey)
   if (stored) return stored
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark'
-  }
   return 'light'
 }
 
@@ -36,19 +33,6 @@ export function ColorModeProvider({ children }) {
       document.documentElement.removeAttribute('data-theme')
     }
   }, [mode])
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (event) => {
-      const stored = getStoredMode(storageKey)
-      if (!stored) {
-        setMode(event.matches ? 'dark' : 'light')
-      }
-    }
-
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [storageKey])
 
   const value = useMemo(
     () => ({

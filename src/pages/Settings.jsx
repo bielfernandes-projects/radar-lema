@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
   List,
   ListItem,
   ListItemText,
@@ -37,7 +38,7 @@ import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 export default function Settings() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const {
     remindersByEvent,
     removeReminders,
@@ -67,6 +68,10 @@ export default function Settings() {
   const [passwordMessage, setPasswordMessage] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordBusy, setPasswordBusy] = useState(false)
+  const [displayName, setDisplayName] = useState('')
+  const [nameBusy, setNameBusy] = useState(false)
+  const [nameMessage, setNameMessage] = useState('')
+  const [nameError, setNameError] = useState('')
 
   useEffect(() => {
     supabase
@@ -77,6 +82,10 @@ export default function Settings() {
         if (!error) setCategories(data || [])
       })
   }, [])
+
+  useEffect(() => {
+    setDisplayName(profile?.name || '')
+  }, [profile])
 
   useEffect(() => {
     if (settings && categories.length > 0) {
@@ -234,6 +243,29 @@ export default function Settings() {
     }
   }
 
+  const handleSaveName = async () => {
+    setNameError('')
+    setNameMessage('')
+    const name = displayName.trim()
+    if (!name) {
+      setNameError('Informe seu nome.')
+      return
+    }
+
+    setNameBusy(true)
+    const { error } = await supabase.rpc('update_my_profile_name', {
+      new_name: name
+    })
+    setNameBusy(false)
+
+    if (error) {
+      setNameError('Erro ao salvar o nome. Tente novamente.')
+    } else {
+      setNameMessage('Nome atualizado com sucesso.')
+      refreshProfile()
+    }
+  }
+
   const reminderEntries = useMemo(() => {
     return Array.from(remindersByEvent.entries()).map(([eventId, entries]) => ({
       eventId,
@@ -261,16 +293,50 @@ export default function Settings() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Alterar senha
+            Perfil
           </Typography>
           <Stack spacing={2}>
+            <TextField
+              label="Nome"
+              fullWidth
+              value={displayName}
+              onChange={(e) => {
+                setDisplayName(e.target.value)
+                setNameMessage('')
+                setNameError('')
+              }}
+              autoComplete="name"
+            />
+            {nameError && <Alert severity="error">{nameError}</Alert>}
+            {nameMessage && <Alert severity="success">{nameMessage}</Alert>}
+            <Button
+              variant="contained"
+              sx={{ alignSelf: 'flex-start' }}
+              onClick={handleSaveName}
+              disabled={nameBusy}
+            >
+              {nameBusy ? <CircularProgress size={24} /> : 'Salvar nome'}
+            </Button>
+
+            <TextField
+              label="E-mail"
+              fullWidth
+              disabled
+              value={profile?.email || user?.email || ''}
+            />
+
+            <Divider sx={{ my: 1 }} />
+
+            <Typography variant="subtitle1" fontWeight={600}>
+              Alterar senha
+            </Typography>
             <TextField
               label="Senha atual"
               type={showCurrentPassword ? 'text' : 'password'}
               fullWidth
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete="new-password"
               InputProps={{
                 endAdornment: (
                   <PasswordToggle
@@ -326,19 +392,6 @@ export default function Settings() {
               {passwordBusy ? <CircularProgress size={24} /> : 'Alterar senha'}
             </Button>
           </Stack>
-        </CardContent>
-      </Card>
-
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Instalar App
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Instale o Radar Lema na tela inicial para acessar como um
-            aplicativo.
-          </Typography>
-          <InstallAppButton />
         </CardContent>
       </Card>
 
@@ -511,6 +564,19 @@ export default function Settings() {
               ))}
             </List>
           )}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Instalar App
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Instale o Radar Lema na tela inicial para acessar como um
+            aplicativo.
+          </Typography>
+          <InstallAppButton />
         </CardContent>
       </Card>
 
