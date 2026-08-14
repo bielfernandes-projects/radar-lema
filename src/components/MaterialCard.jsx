@@ -22,15 +22,15 @@ export default function MaterialCard({ material }) {
     setDownloading(true)
     setError('')
     try {
-      const url = await getMaterialUrl(material.storage_path)
+      const url = await getMaterialUrl(material.storage_path, material.file_name)
       const link = document.createElement('a')
       link.href = url
       link.download = material.file_name || 'material'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-    } catch {
-      setError('Não foi possível baixar o material.')
+    } catch (err) {
+      setError(err?.message || 'Não foi possível baixar o material.')
     }
     setDownloading(false)
   }

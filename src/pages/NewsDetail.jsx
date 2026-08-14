@@ -25,6 +25,7 @@ export default function NewsDetail() {
   const [news, setNews] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [imgFailed, setImgFailed] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,11 +69,12 @@ export default function NewsDetail() {
       </Stack>
 
       <Paper elevation={2} sx={{ overflow: 'hidden', mb: 2, bgcolor: 'grey.200' }}>
-        {news.image_url ? (
+        {news.image_url && !imgFailed ? (
           <Box
             component="img"
             src={news.image_url}
             alt={news.title}
+            onError={() => setImgFailed(true)}
             sx={{ width: '100%', height: { xs: 220, md: 320 }, objectFit: 'cover', display: 'block' }}
           />
         ) : (

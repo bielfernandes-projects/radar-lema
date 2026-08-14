@@ -26,10 +26,14 @@ import {
   ShieldAlert,
   ShieldCheck,
   ChevronDown,
-  LogOut
+  LogOut,
+  LineChart,
+  Lock
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { isStaffTier, isSuperAdmin, isUnoClient } from '../../utils/auth'
+import LockedClientModal from '../LockedClientModal'
 
 const ICONS = {
   Home,
@@ -44,7 +48,8 @@ const ICONS = {
   FolderTree,
   UserCog,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  LineChart
 }
 
 const navStructure = [
@@ -57,6 +62,13 @@ const navStructure = [
       { key: 'articles', label: 'Artigos', path: '/artigos', icon: 'BookOpen' },
       { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone' },
       { key: 'materials', label: 'Materiais de Apoio', path: '/materiais', icon: 'FileStack' },
+      {
+        key: 'dashboardUno',
+        label: 'Dashboard UNO',
+        path: '/dashboard-uno',
+        icon: 'LineChart',
+        unoClientOnly: true
+      },
       {
         key: 'events',
         label: 'Eventos',
@@ -86,7 +98,7 @@ const navStructure = [
       },
       { key: 'moderation', label: 'Moderação', path: '/moderacao', icon: 'ShieldAlert' }
     ],
-    show: (user) => user && (user.user_type === 'staff' || user.user_type === 'super_admin')
+    show: (profile) => isStaffTier(profile)
   },
   {
     group: 'admin',
@@ -94,7 +106,7 @@ const navStructure = [
     items: [
       { key: 'admin', label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck' }
     ],
-    show: (user) => user && user.user_type === 'super_admin'
+    show: (profile) => isSuperAdmin(profile)
   }
 ]
 
@@ -106,11 +118,12 @@ const isActive = (pathname, itemPath) => {
 export default function Sidebar({ open, onClose, variant = 'permanent', width = 280 }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const theme = useTheme()
-  const [expandedGroups, setExpandedGroups] = useState({ eventos: true, eventsMgmt: true })
+  const [expandedGroups, setExpandedGroups] = useState({ events: true, eventsMgmt: true })
+  const [clientModalOpen, setClientModalOpen] = useState(false)
 
-  const visibleSections = navStructure.filter(section => !section.show || section.show(user))
+  const visibleSections = navStructure.filter(section => !section.show || section.show(profile))
 
   const toggleGroup = (groupKey) => {
     setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))
@@ -191,6 +204,52 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                 const hasChildren = item.children && item.children.length > 0
                 const isExpanded = expandedGroups[item.key]
 
+                if (item.unoClientOnly) {
+                  const locked = !isUnoClient(profile)
+                  return (
+                    <ListItemButton
+                      key={item.key}
+                      selected={active}
+                      aria-disabled={locked}
+                      onClick={() => (locked ? setClientModalOpen(true) : handleNavClick(item.path))}
+                      sx={{
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.75,
+                        opacity: locked ? 0.55 : 1,
+                        backgroundColor: active ? 'action.selected' : 'transparent',
+                        '&:hover': { backgroundColor: active ? 'action.selected' : 'action.hover' }
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 40,
+                          color: locked ? 'text.disabled' : active ? 'primary.main' : 'text.secondary',
+                          display: 'flex',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <IconComponent size={20} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.label}
+                        primaryTypographyProps={{
+                          fontWeight: active ? 700 : 500,
+                          fontSize: '0.875rem',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      />
+                      {locked && (
+                        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', color: 'text.disabled' }}>
+                          <Lock size={16} />
+                        </Box>
+                      )}
+                    </ListItemButton>
+                  )
+                }
+
                 if (hasChildren) {
                   return (
                     <Box key={item.key}>
@@ -253,7 +312,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                               }}
                             >
                               <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
-                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'text.secondary', mt: 7 }} />
+                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'text.secondary', mt: 0 }} />
                               </ListItemIcon>
                               <ListItemText
                                 primary={child.label}
@@ -338,6 +397,8 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
           </ListItemButton>
         </Box>
       )}
+
+      <LockedClientModal open={clientModalOpen} onClose={() => setClientModalOpen(false)} />
     </Box>
   )
 

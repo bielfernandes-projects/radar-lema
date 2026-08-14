@@ -30,6 +30,7 @@ const Moderation = lazy(() => import('./pages/Moderation'))
 const DashboardUno = lazy(() => import('./pages/DashboardUno'))
 
 import Layout from './components/Layout/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function PageFallback() {
   return (
@@ -99,8 +100,16 @@ export const routes = [
       { path: 'gestao/novidades-uno/:id/editar', element: <PageRoute Component={UnoUpdateFormPage} /> },
       { path: 'moderacao', element: <PageRoute Component={Moderation} /> },
       { path: 'categorias', element: <PageRoute Component={Categories} /> },
-      { path: 'dashboard-uno', element: <PageRoute Component={DashboardUno} /> },
-      { path: 'admin', element: <PageRoute Component={AdminDashboard} /> }
+      {
+        path: 'dashboard-uno',
+        element: <ProtectedRoute requireUnoClient />,
+        children: [{ index: true, element: <PageRoute Component={DashboardUno} /> }]
+      },
+      {
+        path: 'admin',
+        element: <ProtectedRoute requireAdmin />,
+        children: [{ index: true, element: <PageRoute Component={AdminDashboard} /> }]
+      }
     ]
   },
   {

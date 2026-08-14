@@ -114,7 +114,7 @@ describe('services/materialsData', () => {
     expect(upload).toHaveBeenCalled()
   })
 
-  it('getMaterialUrl devolve signedUrl', async () => {
+  it('getMaterialUrl devolve signedUrl com download', async () => {
     const createSignedUrl = vi.fn(async () => ({
       data: { signedUrl: 'https://signed' },
       error: null
@@ -122,9 +122,9 @@ describe('services/materialsData', () => {
     const supabase = fakeSupabase({
       storage: { materials: { createSignedUrl } }
     })
-    const url = await getMaterialUrl('path', { supabase })
+    const url = await getMaterialUrl('path', 'arquivo.pdf', { supabase })
     expect(url).toBe('https://signed')
-    expect(createSignedUrl).toHaveBeenCalledWith('path', 3600)
+    expect(createSignedUrl).toHaveBeenCalledWith('path', 3600, { download: 'arquivo.pdf' })
   })
 
   it('deleteMaterialFile remove arquivo', async () => {

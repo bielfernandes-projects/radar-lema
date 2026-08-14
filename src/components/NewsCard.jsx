@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Card, CardActionArea, CardContent, CardMedia, Chip, Stack, Typography } from '@mui/material'
 import { Newspaper } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -5,20 +6,19 @@ import { formatHubDate } from '../utils/hub'
 
 export default function NewsCard({ news }) {
   const navigate = useNavigate()
+  const [imgFailed, setImgFailed] = useState(false)
 
   return (
     <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea onClick={() => navigate(`/noticia/${news.id}`)} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-        {news.image_url ? (
+        {news.image_url && !imgFailed ? (
           <CardMedia
             component="img"
             image={news.image_url}
             alt={news.title}
             sx={{ height: 160, objectFit: 'cover' }}
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <Stack

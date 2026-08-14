@@ -26,6 +26,7 @@ export default function ArticleDetail() {
   const [article, setArticle] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [imgFailed, setImgFailed] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,12 +69,13 @@ export default function ArticleDetail() {
         </Tooltip>
       </Stack>
 
-      {article.cover_url ? (
+      {article.cover_url && !imgFailed ? (
         <Paper elevation={2} sx={{ overflow: 'hidden', mb: 2, bgcolor: 'grey.200' }}>
           <Box
             component="img"
             src={safeUrl(article.cover_url) ?? article.cover_url}
             alt={article.title}
+            onError={() => setImgFailed(true)}
             sx={{ width: '100%', height: { xs: 220, md: 320 }, objectFit: 'cover', display: 'block' }}
           />
         </Paper>

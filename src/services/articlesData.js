@@ -33,3 +33,16 @@ export async function deleteArticle(id, { supabase } = { supabase: _supabase }) 
   const { error } = await supabase.from('articles').delete().eq('id', id)
   if (error) throw error
 }
+
+export async function uploadArticleCover(file, { supabase } = { supabase: _supabase }) {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `articles/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage
+    .from('article-covers')
+    .upload(path, file)
+  if (error) throw error
+  const {
+    data: { publicUrl }
+  } = supabase.storage.from('article-covers').getPublicUrl(path)
+  return publicUrl
+}

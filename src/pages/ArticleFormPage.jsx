@@ -16,7 +16,7 @@ import {
   Typography
 } from '@mui/material'
 import { ArrowLeft } from 'lucide-react'
-import { fetchArticleById, saveArticle } from '../services/articlesData'
+import { fetchArticleById, saveArticle, uploadArticleCover } from '../services/articlesData'
 import { VISIBILITY_OPTIONS } from '../utils/hub'
 import { safeUrl } from '../utils/safeUrl'
 import PageSkeleton from '../components/PageSkeleton'
@@ -58,6 +58,8 @@ export default function ArticleFormPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState(EMPTY_FORM)
+  const [coverFile, setCoverFile] = useState(null)
+  const [coverPreview, setCoverPreview] = useState('')
 
   useEffect(() => {
     if (!isEdit) return
@@ -83,6 +85,23 @@ export default function ArticleFormPage() {
 
   const updateForm = (fields) => setForm((prev) => ({ ...prev, ...fields }))
 
+  const handleCoverSelect = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (coverPreview) URL.revokeObjectURL(coverPreview)
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
+    updateForm({ cover_url: '' })
+  }
+
+  const handleCoverRemove = () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview)
+    setCoverFile(null)
+    setCoverPreview('')
+    updateForm({ cover_url: '' })
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -98,13 +117,18 @@ export default function ArticleFormPage() {
 
     setSaving(true)
     try {
+      let coverUrl = form.cover_url
+      if (coverFile) {
+        coverUrl = await uploadArticleCover(coverFile)
+      }
+
       const payload = {
         ...(id ? { id } : {}),
         title: form.title.trim(),
         subtitle: form.subtitle.trim() || null,
         author: form.author.trim() || null,
         body: form.body,
-        cover_url: form.cover_url.trim() || null,
+        cover_url: (coverUrl || '').trim() || null,
         visibility: form.visibility,
         source_url: safeUrl(form.source_url) || null,
         created_by: user?.id
@@ -166,14 +190,41 @@ export default function ArticleFormPage() {
               value={form.author}
               onChange={(e) => updateForm({ author: e.target.value })}
             />
-            <TextField
-              label="URL da capa"
-              fullWidth
-              type="url"
-              helperText="Imagem de capa hospedada externamente."
-              value={form.cover_url}
-              onChange={(e) => updateForm({ cover_url: e.target.value })}
-            />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Capa
+              </Typography>
+              {(coverPreview || form.cover_url) && (
+                <Box sx={{ position: 'relative', width: '100%', maxWidth: 360, mb: 1 }}>
+                  <Box
+                    component="img"
+                    src={coverPreview || form.cover_url}
+                    alt="Prévia da capa"
+                    sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1, display: 'block' }}
+                  />
+                </Box>
+              )}
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Button variant="outlined" component="label" sx={{ alignSelf: 'flex-start' }}>
+                  {coverPreview || form.cover_url ? 'Trocar imagem' : 'Escolher imagem'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={handleCoverSelect}
+                  />
+                </Button>
+                {(coverPreview || form.cover_url) && (
+                  <Button size="small" color="error" onClick={handleCoverRemove}>
+                    Remover
+                  </Button>
+                )}
+              </Stack>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                A capa é hospedada no Supabase (bucket article-covers). Evite links
+                externos, que costumam quebrar.
+              </Typography>
+            </Box>
             <TextField
               label="Link original (LinkedIn)"
               fullWidth

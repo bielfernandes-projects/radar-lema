@@ -43,10 +43,14 @@ export async function uploadMaterialFile(file, { supabase } = { supabase: _supab
   return path
 }
 
-export async function getMaterialUrl(storagePath, { supabase } = { supabase: _supabase }) {
+export async function getMaterialUrl(
+  storagePath,
+  fileName,
+  { supabase } = { supabase: _supabase }
+) {
   const { data, error } = await supabase.storage
     .from('materials')
-    .createSignedUrl(storagePath, 3600)
+    .createSignedUrl(storagePath, 3600, { download: fileName ?? true })
   if (error) throw error
   return data?.signedUrl
 }

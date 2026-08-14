@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Container,
-  Grid,
   Paper,
   Skeleton,
   Stack,
@@ -21,6 +20,7 @@ import EventCard from '../components/EventCard'
 import NewsCard from '../components/NewsCard'
 import UnoUpdateCard from '../components/UnoUpdateCard'
 import ArticleCard from '../components/ArticleCard'
+import HorizontalScroller from '../components/HorizontalScroller'
 import { useFavorites } from '../hooks/useFavorites'
 
 function SectionHeader({ icon: Icon, title, to, onMore }) {
@@ -88,13 +88,11 @@ export default function Feed() {
     return (
       <Container maxWidth="lg" sx={{ py: 2 }}>
         <Skeleton variant="rounded" height={200} sx={{ mb: 3 }} />
-        <Grid container spacing={3}>
+        <HorizontalScroller>
           {Array.from({ length: 4 }).map((_, i) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
-              <Skeleton variant="rounded" height={380} />
-            </Grid>
+            <Skeleton key={i} variant="rounded" height={380} />
           ))}
-        </Grid>
+        </HorizontalScroller>
       </Container>
     )
   }
@@ -128,17 +126,16 @@ export default function Feed() {
             Nenhum evento confirmado por enquanto.
           </Typography>
         ) : (
-          <Grid container spacing={3}>
+          <HorizontalScroller columns={{ md: 3, lg: 4 }}>
             {upcomingEvents.map((event) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={event.id}>
-                <EventCard
-                  event={event}
-                  isFavorite={favoriteIds.has(event.id)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              </Grid>
+              <EventCard
+                key={event.id}
+                event={event}
+                isFavorite={favoriteIds.has(event.id)}
+                onToggleFavorite={toggleFavorite}
+              />
             ))}
-          </Grid>
+          </HorizontalScroller>
         )}
       </Box>
 
@@ -149,13 +146,11 @@ export default function Feed() {
             As notícias mais recentes sobre RPPS e investimentos aparecem aqui.
           </Typography>
         ) : (
-          <Grid container spacing={3}>
+          <HorizontalScroller>
             {news.slice(0, 3).map((item) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
-                <NewsCard news={item} />
-              </Grid>
+              <NewsCard key={item.id} news={item} />
             ))}
-          </Grid>
+          </HorizontalScroller>
         )}
       </Box>
 
@@ -170,13 +165,11 @@ export default function Feed() {
             Análises e estudos da Lema sobre RPPS e investimentos.
           </Typography>
         ) : (
-          <Grid container spacing={3}>
+          <HorizontalScroller>
             {articles.slice(0, 3).map((article) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={article.id}>
-                <ArticleCard article={article} />
-              </Grid>
+              <ArticleCard key={article.id} article={article} />
             ))}
-          </Grid>
+          </HorizontalScroller>
         )}
       </Box>
 
@@ -191,13 +184,11 @@ export default function Feed() {
             Avisos do sistema UNO — atualizações, manutenções e instabilidades.
           </Typography>
         ) : (
-          <Grid container spacing={3}>
+          <HorizontalScroller>
             {updates.slice(0, 3).map((update) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={update.id}>
-                <UnoUpdateCard update={update} />
-              </Grid>
+              <UnoUpdateCard key={update.id} update={update} />
             ))}
-          </Grid>
+          </HorizontalScroller>
         )}
       </Box>
     </Container>
