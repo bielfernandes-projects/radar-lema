@@ -104,6 +104,15 @@ describe('services/materialsData', () => {
     expect(supabase.from).toHaveBeenCalledWith('materials')
   })
 
+  it('fetchMaterials seleciona storage_path (necessario p/ download)', async () => {
+    const select = vi.fn(() => ({
+      order: vi.fn(() => ({ data: [{ id: 'm1' }], error: null }))
+    }))
+    const supabase = fakeSupabase({ materials: { select } })
+    await fetchMaterials({ supabase })
+    expect(select.mock.calls[0][0]).toContain('storage_path')
+  })
+
   it('uploadMaterialFile sobe arquivo com path uuid', async () => {
     const upload = vi.fn(async () => ({ error: null }))
     const supabase = fakeSupabase({

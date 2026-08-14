@@ -18,16 +18,52 @@ export async function callUnoProxy(endpoint, params = {}) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
+    let message
     if (res.status === 403) {
-      throw new Error('Acesso restrito a Clientes Lema.')
+      message = 'Acesso restrito a Clientes Lema.'
+    } else if (res.status === 401) {
+      message = 'Sessão expirada. Faça login novamente.'
+    } else {
+      message = extractUnoErrorMessage(text) || 'Erro ao consultar a API do UNO.'
     }
-    if (res.status === 401) {
-      throw new Error('Sessão expirada. Faça login novamente.')
-    }
-    throw new Error(text || 'Erro ao consultar a API do UNO.')
+    const error = new Error(message)
+    error.status = res.status
+    throw error
   }
 
   return res.json()
+}
+
+function extractUnoErrorMessage(text) {
+  if (!text) return ''
+  try {
+    const parsed = JSON.parse(text)
+    return typeof parsed?.message === 'string' ? parsed.message : ''
+  } catch {
+    return text
+  }
+}
+
+// O demonstrativo mensal so existe para meses fechados: enquanto o mes
+// corrente ainda nao fechou, `demonstrativoFundosCliente` devolve 400 (a UNO
+// repassa o erro do Comdinheiro ao consultar data futura). Faz fallback para
+// o ultimo mes fechado quando o mes corrente responde 400.
+async function fetchDemonstrativo(month, year) {
+  const params = { consulting_id: '1', mes: String(month), ano: String(year) }
+  try {
+    return await callUnoProxy('demonstrativoFundosCliente', params)
+  } catch (err) {
+    if (err?.status === 400) {
+      const previous = new Date(year, month - 1, 1)
+      previous.setMonth(previous.getMonth() - 1)
+      return callUnoProxy('demonstrativoFundosCliente', {
+        consulting_id: '1',
+        mes: String(previous.getMonth() + 1),
+        ano: String(previous.getFullYear())
+      })
+    }
+    throw err
+  }
 }
 
 export async function fetchUnoDashboard(period) {
@@ -39,11 +75,7 @@ export async function fetchUnoDashboard(period) {
 
   const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta] =
     await Promise.all([
-      callUnoProxy('demonstrativoFundosCliente', {
-        consulting_id: '1',
-        mes: String(period.month),
-        ano: String(period.year)
-      }),
+      fetchDemonstrativo(period.month, period.year),
       callUnoProxy('fundosCliente', rangeParams),
       callUnoProxy('movimentacoesCliente', rangeParams),
       callUnoProxy('titulosAnalise', rangeParams),
