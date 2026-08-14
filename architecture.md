@@ -732,7 +732,11 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   `is_uno_client` e repassa requisições GET para a `outer_api` do UNO com o
   token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
   `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192). Whitelist de
-  endpoints e parâmetros; `verify_jwt = true`.
+  endpoints e parâmetros; `verify_jwt = true`. CORS no padrão SEC-008
+  (`corsHeaders` + `APP_ORIGINS` + preflight OPTIONS, sem expor `*`), como
+  `admin-users`. O `demonstrativoFundosCliente` da `outer_api` só responde
+  para meses fechados — o mês corrente devolve 400 e o app faz fallback para o
+  último mês fechado nesse card (ver Histórico).
 - `send-push` / `notification-scheduler` — estendidos com `audience`
   (`all` | `uno_clients`) e processamento de `v_hub_notification_outbox`.
 
@@ -751,6 +755,26 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 > localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-14** — Correções pós-publicação (validadas em local, antes de
+  subir):
+  - **Download de material quebrado**: `fetchMaterials` não selecionava
+    `storage_path` → `createSignedUrl(undefined, ...)` explodia no
+    supabase-js (`.replace` em undefined). Select corrigido em
+    `src/services/materialsData.js` + teste de regressão em
+    `tests/articlesData.test.js`.
+  - **Dashboard UNO com "NetworkError"**: `uno-proxy` não tinha CORS —
+    chamadas cross-origin (local/Vercel → função) falhavam. Adicionado CORS
+    no padrão SEC-008 do `admin-users` (`corsHeaders`, `APP_ORIGINS`,
+    `isAllowedOrigin`, `withCors`, preflight OPTIONS) e função redeployada
+    (`supabase functions deploy uno-proxy`).
+  - **Dashboard UNO com erro 400**: a `outer_api` do UNO repassa o erro do
+    Comdinheiro — `demonstrativoFundosCliente` do **mês corrente (não
+    fechado)** devolve 400. `callUnoProxy` anexa `status` ao erro e
+    `fetchUnoDashboard` faz fallback do demonstrativo para o **último mês
+    fechado** (`src/services/unoProxy.js`); os demais cards seguem no range
+    atual. Testes em `tests/unoProxy.test.js`.
+  - **Qualidade**: 141 testes Vitest passando, lint limpo, build OK.
 
 - **2026-08-14** — Refinamentos do hub e publicação na `main`:
   - **Navegação**: `Sidebar` com item "Dashboard UNO" (ícone `LineChart`);

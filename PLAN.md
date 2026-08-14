@@ -64,6 +64,11 @@ integração, nunca refazendo o que já existe.
   `titulosAnalise`, `enquadramentosCliente`, `metaClientePorAno`,
   `disponibilidadesCliente`
 - Perfil de demonstração: `client_id=192` ("DEMONSTRAÇÃO - LEMA")
+- ⚠️ `demonstrativoFundosCliente` responde apenas para **meses fechados** — o
+  mês corrente (ainda aberto) devolve 400 (erro do Comdinheiro repassado pela
+  `outer_api`). `fetchUnoDashboard` faz fallback para o último mês fechado
+  nesse card; os demais endpoints (range de datas) seguem no período
+  selecionado. Implementado em 14/08/2026 (`src/services/unoProxy.js`).
 - ⚠️ O `api_uno.yml` contém secrets (JWT, `x-api-key`, credenciais
   comdinheiro) — rotacionar e manter fora do git (ver `.gitignore`)
 

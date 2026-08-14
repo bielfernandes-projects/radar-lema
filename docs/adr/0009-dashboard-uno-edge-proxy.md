@@ -26,6 +26,13 @@ Supabase) e devolve os dados. Segue o padrão já usado por `send-push` e
 - Credencial do UNO isolada no servidor (Edge Function + secret).
 - A troca do perfil demo (192) pelo vínculo individual por e-mail, na
   integração plena, é uma mudança na `uno-proxy` — a UI do dashboard não muda.
+- CORS na `uno-proxy` no padrão SEC-008 (origens Vercel + localhost, preflight
+  OPTIONS), sem expor `*` — a função roda em `*.supabase.co` e o app em outra
+  origem.
+- `demonstrativoFundosCliente` só responde para **meses fechados**: o mês
+  corrente (ainda aberto) devolve 400, erro do Comdinheiro repassado pela
+  `outer_api`. O front faz fallback para o último mês fechado nesse endpoint;
+  os demais (range de datas) seguem no período selecionado.
 - ⚠️ O `api_uno.yml` que documenta a API contém secrets (JWT, `x-api-key`,
   credenciais comdinheiro) — está fora do git (`.gitignore`) e os tokens
   devem ser rotacionados.
