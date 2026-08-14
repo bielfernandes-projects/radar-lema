@@ -1,17 +1,18 @@
 # Plano de Implementação — Radar Lema
 
-> **Status:** Eventos implementados; **hub da Lema em andamento** (branch
-> `feat/lema-hub`)  
-> **Data:** 2026-07-08 (original) · 2026-08-13 (hub)  
+> **Status:** Eventos implementados; **hub da Lema concluído e publicado** na
+> `main` em 2026-08-14.  
+> **Data:** 2026-07-08 (original) · 2026-08-13 (hub) · 2026-08-14 (produção)  
 > **Autor:** Gabriel (PO) + opencode
 
 ---
 
-## Hub da Lema (em andamento — branch `feat/lema-hub`)
+## Hub da Lema (concluído — publicado na `main` em 2026-08-14)
 
-> Nada do hub vai para produção até a conclusão. O trabalho vive na branch
-> `feat/lema-hub`; a `main` permanece como está no deploy da Vercel. Os
-> testes são feitos localmente.
+> O hub foi desenvolvido na branch `feat/lema-hub` e consolidado na `main` em
+> 14/08/2026, indo a produção via Vercel. As seções abaixo registram as
+> decisões tomadas durante o grill; o estado atual da arquitetura está em
+> `architecture.md`.
 
 O Radar Lema está sendo expandido de centralizador de eventos para um **hub
 da Lema**: eventos, artigos, notícias de mercado, novidades UNO, materiais de

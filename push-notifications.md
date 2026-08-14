@@ -145,6 +145,37 @@ este runbook documenta o passo a passo, mas **não há rotação agendada**:
 avaliado em 10/08/2026 e considerado desnecessário por enquanto (OneDrive
 institucional, sem indício de vazamento). Roteie apenas se houver suspeita.
 
+### Rotação executada em 14/08/2026 (VAPID) + reconciliação da service role key
+
+- **Motivo**: `VITE_VAPID_PUBLIC_KEY` não existia no `.env.local` (só no
+  Vercel), impossibilitando testar push em build/preview local. Como
+  `push_subscriptions` estava vazia (0 linhas), a rotação não invalidou
+  inscrição alguma.
+- **Como foi feito (tudo via CLI, sem Dashboard)**:
+  1. `npx web-push generate-vapid-keys --json`
+  2. `supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT="mailto:alerts@lema.com.br"`
+  3. `supabase functions deploy send-push notification-scheduler`
+  4. `vercel env add VITE_VAPID_PUBLIC_KEY production --value ... --force --sensitive --yes`
+     (idem `preview` com `--non-interactive`, que pula o prompt de branch)
+  5. `VITE_VAPID_PUBLIC_KEY` adicionado ao `.env.local`.
+- **Atenção (novo aprendizado)**: a **Management API mascara o valor** de
+  chaves secretas criadas via API — `api_key` retorna como
+  `sb_secret_<prefixo>···`, só o prefixo é legível. Não é possível criar uma
+  secret key pelo CLI e ler o valor completo; é preciso gerar/copiar no
+  Dashboard ou recuperar de onde ela já está armazenada. Neste projeto, a
+  service role key válida foi recuperada do comando do cron
+  (`cron.job.command`, via `supabase db query`), que a guarda em texto puro
+  na chamada `net.http_post`.
+- **Reconciliação**: `SUPABASE_SERVICE_ROLE_KEY` do `.env.local` estava
+  inválida (401 em `rest/v1`). Corrigida para a mesma chave usada pelo cron do
+  scheduler (validação: o `notification-scheduler` retorna 200 a cada minuto e
+  uma query via supabase-js funciona). As secret keys órfãs criadas durante o
+  teste (valores mascarados) foram deletadas pela Management API.
+- **Estado atual**: Vercel, secrets das Edge Functions e `.env.local` usam o
+  mesmo par VAPID novo; scheduler saudável (200s). Para testar de ponta a
+  ponta, ativar o toggle de push no app em produção e conferir a linha em
+  `push_subscriptions` antes do envio.
+
 > **Modelo de chaves:** o projeto usa as **novas API Keys** do Supabase
 > (`sb_secret_...` = secret key no lugar da antiga `service_role`). Nesse
 > modelo **não existe botão "Regenerate"** — a rotação é *criar uma nova chave,

@@ -381,7 +381,7 @@ Todas as tabelas têm RLS habilitado:
 | `/gestao/novo` | `EventFormPage` | Staff (staff/super_admin) |
 | `/gestao/:id/editar` | `EventFormPage` | Staff (staff/super_admin) |
 | `/categorias` | `Categories` | Staff (staff/super_admin) |
-| `/admin` | `AdminDashboard` | Super admin (`ROLE_SUPER_ADMIN`) |
+| `/admin` | `AdminDashboard` | Super admin (`ROLE_SUPER_ADMIN`, via `ProtectedRoute requireAdmin`) |
 | `/configuracoes` | `Settings` | Autenticado |
 | `/` | `Feed` (hub) | Autenticado |
 | `/eventos` | `EventList` | Autenticado |
@@ -394,7 +394,7 @@ Todas as tabelas têm RLS habilitado:
 | `/gestao/materiais/novo` · `/gestao/materiais/:id/editar` | `MaterialFormPage` | Staff |
 | `/gestao/novidades-uno/novo` · `/gestao/novidades-uno/:id/editar` | `UnoUpdateFormPage` | Staff |
 | `/moderacao` | `Moderation` | Staff (fila de comentários) |
-| `/dashboard-uno` | `DashboardUno` | Cliente Lema (`requireUnoClient`) |
+| `/dashboard-uno` | `DashboardUno` | Cliente Lema (`ProtectedRoute requireUnoClient`) |
 
 ## PWA
 
@@ -614,10 +614,11 @@ Canal **E-mail** do lembrete ainda não é enviado ("em breve").
 Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy das functions, secrets e registro do job).
 
-## Hub da Lema (em desenvolvimento — branch `feat/lema-hub`)
+## Hub da Lema (publicado — `main` em 14/08/2026)
 
-> Nada do hub vai para produção até a conclusão. A `main` permanece como está
-> no deploy da Vercel; os testes são feitos localmente na branch.
+> O hub foi desenvolvido na branch `feat/lema-hub` e publicado na `main` em
+> 14/08/2026 (deploy da Vercel). As fases abaixo registram o escopo
+> implementado; detalhes operacionais de push em `push-notifications.md`.
 
 Decisões de produto e plano detalhado em `PLAN.md` (seção "Hub da Lema").
 Novos termos de domínio em `CONTEXT.md` (Cliente Lema, Visibilidade, Artigo,
@@ -632,8 +633,11 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   NewsAPI) e `uno_updates` (escrita staff). Páginas, cards e Feed agregado
   (`/`).
 - **Fase 3 — Diferenciais**: `articles` e `materials` com `visibility`
-  (`public`/`lema_client`); bucket privado `materials` com URL assinada;
-  parser de Markdown próprio (`utils/markdown.js` + `Markdown.jsx`) e gestão
+  (`public`/`lema_client`); bucket privado `materials` com URL assinada
+  (download via `createSignedUrl(..., { download: fileName })`);
+  capa de artigo em bucket público `article-covers` (escrita/delete staff)
+  com uploader no formulário; parser de Markdown próprio
+  (`utils/markdown.js` + `Markdown.jsx`) e gestão
   do hub (`/gestao/hub` com abas Artigos/Novidades UNO/Materiais/Notícias).
   Limitação de visibilidade do arquivo: a policy de storage permite leitura a
   qualquer usuário autenticado — o gate de `lema_client` está na RLS da tabela
@@ -656,6 +660,31 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   via `src/pages/dashboardPrint.css`, paleta do UNO forçada na impressão).
   Normalização dos dados em `utils/uno.js` (tolerante a variação de campo,
   datas em hora local).
+
+### Refinamentos de UI/UX e segurança (2026-08-14)
+
+- **Feed em carrossel**: as seções da home (`/`) — Eventos, Notícias, Artigos
+  e Novidades UNO — renderizam em carrossel horizontal no mobile
+  (`src/components/HorizontalScroller.jsx`, scroll-snap, cards ~80% da tela
+  com "peek" do próximo) e voltam a ser grade no desktop (mesmas quebras de
+  antes), mantendo a mesma quantidade de itens e a mesma altura de seção.
+- **Dashboard UNO na navegação**: item próprio no `Sidebar` (ícone
+  `LineChart`); usuários não Clientes Lema veem o item em cinza com cadeado,
+  abrindo o `LockedClientModal` (CTA `mailto:comercial@lemaef.com.br`).
+  Conteúdo `lema_client` continua invisível via RLS para não-clientes — o
+  modal é só o "gancho" comercial no menu.
+- **Rotas protegidas**: `/dashboard-uno` com `ProtectedRoute requireUnoClient`
+  e `/admin` com `ProtectedRoute requireAdmin` (defesa além do gate de UI no
+  `Sidebar`).
+- **Capa de artigo**: bucket público `article-covers` (escrita/delete staff
+  via policy `is_staff()`) + uploader no `ArticleFormPage`
+  (`uploadArticleCover` em `articlesData`); o campo "URL da capa" foi
+  substituído pelo upload.
+- **Download de material**: URL assinada com `{ download: fileName }` no
+  `createSignedUrl` (abre o download com o nome original do arquivo).
+- **Fallback de imagem**: `NewsCard`/`NewsDetail` e `ArticleCard`/
+  `ArticleDetail` exibem ícone (`Newspaper`/`BookOpen`) quando a imagem
+  externa falha (`imgFailed`).
 
 ### Schema
 
@@ -722,6 +751,33 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 > localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-14** — Refinamentos do hub e publicação na `main`:
+  - **Navegação**: `Sidebar` com item "Dashboard UNO" (ícone `LineChart`);
+    para não Clientes Lema o item aparece cinza com cadeado e abre o
+    `LockedClientModal` (CTA `mailto:comercial@lemaef.com.br`); itens por
+    seção passam a usar o perfil via `isStaffTier`/`isSuperAdmin`/
+    `isUnoClient`; accordion de gestão corrigido (chave `events`/`eventsMgmt`,
+    bullet `mt: 0`).
+  - **Rotas**: `/dashboard-uno` (`requireUnoClient`) e `/admin`
+    (`requireAdmin`) protegidas por `ProtectedRoute` com rotas filhas.
+  - **Materiais**: download via URL assinada com `{ download: fileName }`
+    (`createSignedUrl`).
+  - **Imagens**: fallback (ícone) em `NewsCard`/`NewsDetail`/`ArticleCard`/
+    `ArticleDetail` quando a imagem externa falha.
+  - **Capa de artigo**: bucket `article-covers` (leitura pública, escrita e
+    delete staff) + uploader no `ArticleFormPage`; migration
+    `20260814000001_article_covers_bucket.sql` aplicada via `supabase db push`.
+  - **Feed**: seções em carrossel horizontal no mobile (`HorizontalScroller`,
+    scroll-snap) e grade no desktop, mantendo a mesma quantidade de itens;
+    skeletons de loading também em carrossel.
+  - **Qualidade**: lint limpo, 136 testes Vitest passando, build OK.
+  - **Ops/envs**: par VAPID rotacionado (`.env.local` + Vercel + secrets das
+    Edge Functions, funções redeployadas) e `SUPABASE_SERVICE_ROLE_KEY` do
+    `.env.local` corrigida (estava inválida/401). `push_subscriptions` estava
+    com 0 linhas — nenhum aparelho inscrito. Detalhes em
+    `push-notifications.md`.
+  - **Publicação**: hub consolidado na `main` e enviado a produção (Vercel).
 
 - **2026-08-13** — Implementação do Hub da Lema (Fases 1–6, branch `feat/lema-hub`):
   - **Fase 1**: `profiles.is_uno_client` + toggle "Cliente Lema" no Painel

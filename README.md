@@ -4,9 +4,11 @@ PWA standalone que reúne o ecossistema da Lema para RPPS — eventos, artigos,
 notícias de mercado, novidades do sistema UNO, materiais de apoio e o
 dashboard de investimentos do UNO — para clientes e staff da Lema.
 
-> **Em evolução para o Hub da Lema** (branch `feat/lema-hub`): novas seções
-> de conteúdo estão em desenvolvimento e **não vão para produção** até a
-> conclusão. A `main` continua sendo o que está publicado.
+> **Hub da Lema publicado em 14/08/2026**: o app passou de centralizador de
+> eventos para hub da Lema — artigos, notícias de mercado, novidades UNO,
+> materiais de apoio, curtidas/comentários com moderação, push por audiência
+> e Dashboard UNO para Clientes Lema. O desenvolvimento do hub viveu na
+> branch `feat/lema-hub` e foi consolidado na `main`.
 
 ## Stack
 

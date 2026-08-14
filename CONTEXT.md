@@ -8,11 +8,12 @@ de investimentos do UNO — para clientes e staff da Lema.
 > pacote (`package.json`/`package-lock.json`) e repo do GitHub foram renomeados
 > para `radar-lema`, bem como o projeto no Supabase e na Vercel.
 >
-> Nota 2: em andamento (branch `feat/lema-hub`) — o app está sendo expandido
-> de "centralizador de eventos" para um **hub da Lema** (nome e identidade
-> visual ainda não definidos). Novos conteúdos: Artigos, Notícias de Mercado,
-> Novidades UNO, Materiais de Apoio, Dashboard UNO, Curtidas e Comentários.
-> Nada disso vai para produção até a conclusão.
+> Nota 2: o app foi expandido de "centralizador de eventos" para um **hub da
+> Lema** (nome e identidade visual ainda não definidos) e o trabalho foi
+> **publicado na `main` em 14/08/2026**, indo a produção. Novos conteúdos:
+> Artigos, Notícias de Mercado, Novidades UNO, Materiais de Apoio, Dashboard
+> UNO, Curtidas e Comentários. O branch `feat/lema-hub` foi o de
+> desenvolvimento; mudanças seguem direto na `main`.
 
 ## Language
 
