@@ -163,10 +163,10 @@ export default function DashboardUno() {
           month: now.getMonth() + 1,
           year
         })
-        console.log('[DashboardUNO] raw result:', result)
-        console.log('[DashboardUNO] metaAnual:', result.metaAnual)
-        console.log('[DashboardUNO] meta:', result.meta)
-        console.log('[DashboardUNO] demonstrativo:', result.demonstrativo)
+        console.log('[DashboardUNO] metaAnual[0]:', JSON.stringify(result.metaAnual?.[0], null, 2))
+        console.log('[DashboardUNO] meta[0]:', JSON.stringify(result.meta?.[0], null, 2))
+        console.log('[DashboardUNO] demonstrativo[0]:', JSON.stringify(result.demonstrativo?.[0], null, 2))
+        console.log('[DashboardUNO] fundos[:3]:', JSON.stringify(result.fundos?.slice(0, 3), null, 2))
         setData(result)
       } catch (err) {
         setError(err.message || 'Erro ao carregar o dashboard do UNO.')
