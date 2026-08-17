@@ -23,12 +23,11 @@ import {
 } from 'recharts'
 import { fetchUnoDashboard } from '../services/unoProxy'
 import {
-  normalizeDiaryPls,
-  normalizeRents,
-  normalizeInflationRates,
   normalizeFunds,
   normalizeClientName,
-  computeDashboardMetrics,
+  summarizeFunds,
+  asArray,
+  parseCommaNumber,
   rangeForPeriod
 } from '../utils/uno'
 import { formatCurrency } from '../utils/formatters'
@@ -175,33 +174,84 @@ export default function DashboardUno() {
   }, [period, year, reload])
 
   const funds = normalizeFunds(data?.demonstrativo)
+  const summary = summarizeFunds(funds)
+  const totalSaldo = summary.totalSaldo
 
-  const diaryPlsMonthly = normalizeDiaryPls(data?.diaryPls)
-  const rents = normalizeRents(data?.diaryPls)
-  const inflation = normalizeInflationRates(data?.inflationRates)
-  const metrics = computeDashboardMetrics(diaryPlsMonthly, rents, inflation, funds, period)
-  const patrimonio = metrics.patrimonio
-  const rentabilidadeMes = metrics.rentabilidadeMes
-  const rentabilidadeAcum = metrics.rentabilidadeAcum
-  const metaMes = metrics.metaMes
-  const metaAcum = metrics.metaAcum
-  const gapMes = metrics.gapMes
-  const gapAcum = metrics.gapAcum
-  const varValue = metrics.varValue
-  const varLabel = metrics.varLabel
+  const fundsCliente = asArray(data?.fundos)
+  const metaAnualRows = asArray(data?.metaAnual)
+  const metaAnualRow = metaAnualRows.length > 0 ? metaAnualRows[0] : {}
+
+  const patrimonio = totalSaldo > 0 ? totalSaldo : null
+
+  const rentabilidadeMes = totalSaldo > 0
+    ? funds.reduce((acc, f) => acc + f.percentual * (f.saldo / totalSaldo), 0)
+    : null
+
+  const varValue = totalSaldo > 0
+    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / totalSaldo), 0)
+    : null
+
+  const expectedRent = parseCommaNumber(metaAnualRow?.rentabilidade_esperada_ano ?? metaAnualRow?.taxa_ano)
+  const metaMes = expectedRent > 0 ? expectedRent / 12 : null
+
+  const monthCount = Number(period) || 12
+  const metaAcum = expectedRent > 0
+    ? (Math.pow(1 + expectedRent / 100, monthCount / 12) - 1) * 100
+    : null
+
+  const rentabilidadeAcum = (() => {
+    if (fundsCliente.length < 2) return null
+    const byMonth = new Map()
+    for (const row of fundsCliente) {
+      const key = `${row.year}-${row.month}`
+      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
+      if (pl > 0) byMonth.set(key, pl)
+    }
+    const sorted = Array.from(byMonth.values())
+    if (sorted.length < 2) return null
+    return ((sorted[sorted.length - 1] / sorted[0]) - 1) * 100
+  })()
+
+  const rentMesFromFunds = (() => {
+    if (fundsCliente.length === 0) return null
+    const latest = fundsCliente.reduce((best, row) => {
+      const key = `${row.year}-${row.month}`
+      const bestKey = `${best.year}-${best.month}`
+      return key > bestKey ? row : best
+    }, fundsCliente[0])
+    return parseCommaNumber(latest?.rentabilidade_mes)
+  })()
+
+  const rentFinal = rentMesFromFunds !== null ? rentMesFromFunds : rentabilidadeMes
+
+  const gapMes = (metaMes !== null && rentFinal !== null) ? metaMes - rentFinal : null
+  const gapAcum = (metaAcum !== null && rentabilidadeAcum !== null) ? metaAcum - rentabilidadeAcum : null
 
   const computedMetrics = {
-    rentabilidadeMes,
+    rentabilidadeMes: rentFinal,
     rentabilidadeAcum,
     metaMes,
     metaAcum,
     gapMes,
     gapAcum,
     varValue,
-    varLabel
+    varLabel: ''
   }
 
-  const evolution = diaryPlsMonthly
+  const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+  const evolution = (() => {
+    if (fundsCliente.length === 0) return []
+    const byMonth = new Map()
+    for (const row of fundsCliente) {
+      const key = `${row.year}-${row.month}`
+      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
+      if (pl > 0) byMonth.set(key, { year: Number(row.year), month: Number(row.month), valor: pl })
+    }
+    return Array.from(byMonth.values())
+      .sort((a, b) => a.year - b.year || a.month - b.month)
+      .map((e) => ({ label: `${MONTH_ABBR[e.month - 1]}/${e.year}`, valor: e.valor }))
+  })()
   const clientName = normalizeClientName(data?.metaAnual, data?.meta)
 
   const renderMetrics = (base, first, second) => {

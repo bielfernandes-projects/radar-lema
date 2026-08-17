@@ -82,11 +82,7 @@ export async function fetchUnoDashboard(period) {
     end_date: period.endDate
   }
 
-  const [
-    demonstrativo, fundos, movimentacoes, titulos, enquadramentos,
-    disponibilidades, meta, metaAnual,
-    diaryPls, rents, inflationRates
-  ] =
+  const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta, metaAnual] =
     await Promise.all([
       fetchDemonstrativo(period.month, period.year),
       callUnoProxy('fundosCliente', rangeParams),
@@ -95,16 +91,7 @@ export async function fetchUnoDashboard(period) {
       callUnoProxy('enquadramentosCliente', rangeParams),
       callUnoProxy('disponibilidadesCliente', rangeParams),
       callUnoProxy('metaCliente', rangeParams),
-      callUnoProxy('metaClientePorAno', { ano: String(period.year) }),
-      callUnoProxyPost('getClientDiaryPlsByRange', {
-        start_date: period.startDate,
-        end_date: period.endDate
-      }),
-      callUnoProxyPost('getClientPortfolioRentsByLimit', {
-        limit: 252,
-        end_date: period.endDate
-      }),
-      callUnoProxy('inflationRates')
+      callUnoProxy('metaClientePorAno', { ano: String(period.year) })
     ])
 
   return {
@@ -115,9 +102,6 @@ export async function fetchUnoDashboard(period) {
     enquadramentos,
     disponibilidades,
     meta,
-    metaAnual,
-    diaryPls,
-    rents,
-    inflationRates
+    metaAnual
   }
 }
