@@ -145,11 +145,9 @@ export function normalizeClientName(...payloads) {
   return ''
 }
 
-export function monthsAgoRange(months) {
-  const end = new Date()
-  const start = new Date()
-  start.setMonth(start.getMonth() - (months - 1))
-  start.setDate(1)
+export function monthsAgoRange(months, refMonth, refYear) {
+  const end = new Date(refYear, refMonth, 0)
+  const start = new Date(refYear, refMonth - months, 1)
   return {
     startDate: `${pad2(start.getDate())}/${pad2(start.getMonth() + 1)}/${start.getFullYear()}`,
     endDate: `${pad2(end.getDate())}/${pad2(end.getMonth() + 1)}/${end.getFullYear()}`
@@ -163,8 +161,8 @@ export function yearRange(year) {
   }
 }
 
-export function rangeForPeriod(period, year) {
-  return period === 'ano' ? yearRange(year) : monthsAgoRange(Number(period))
+export function rangeForPeriod(period, refMonth, refYear) {
+  return period === 'ano' ? yearRange(refYear) : monthsAgoRange(Number(period), refMonth, refYear)
 }
 
 /**

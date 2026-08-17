@@ -248,10 +248,16 @@ describe('normalizeClientName', () => {
 })
 
 describe('ranges de período', () => {
-  it('monthsAgoRange monta janela terminando hoje', () => {
-    const range = monthsAgoRange(36)
-    expect(range.endDate).toMatch(/^\d{2}\/\d{2}\/\d{4}$/)
-    expect(range.startDate).toMatch(/^\d{2}\/\d{2}\/\d{4}$/)
+  it('monthsAgoRange monta janela a partir da data de referência', () => {
+    const range = monthsAgoRange(36, 8, 2026)
+    expect(range.startDate).toBe('01/09/2023')
+    expect(range.endDate).toBe('31/08/2026')
+  })
+
+  it('monthsAgoRange 12 meses termina no último dia do mês de referência', () => {
+    const range = monthsAgoRange(12, 7, 2026)
+    expect(range.startDate).toBe('01/08/2025')
+    expect(range.endDate).toBe('31/07/2026')
   })
 
   it('yearRange cobre o ano inteiro', () => {
@@ -262,8 +268,8 @@ describe('ranges de período', () => {
   })
 
   it('rangeForPeriod escolhe entre ano e meses', () => {
-    expect(rangeForPeriod('ano', 2025)).toEqual(yearRange(2025))
-    expect(rangeForPeriod('24', 2025)).toEqual(monthsAgoRange(24))
+    expect(rangeForPeriod('ano', 6, 2025)).toEqual(yearRange(2025))
+    expect(rangeForPeriod('24', 6, 2025)).toEqual(monthsAgoRange(24, 6, 2025))
   })
 })
 

@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
   Button,
   Container,
+  FormControl,
+  MenuItem,
   Paper,
+  Select,
   Skeleton,
   ToggleButton,
   ToggleButtonGroup,
@@ -16,6 +19,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  ComposedChart,
+  Line,
   CartesianGrid,
   Tooltip,
   XAxis,
@@ -41,6 +46,26 @@ const PERIODS = [
   { key: '48', label: '48 meses' },
   { key: '60', label: '60 meses' }
 ]
+
+const MONTHS = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' }
+]
+
+const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+const CURRENT_YEAR = new Date().getFullYear()
+const YEARS = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - 5 + i)
 
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
@@ -142,11 +167,23 @@ function DualMetricCard({ first, second }) {
   )
 }
 
+function selectStyles(theme) {
+  return {
+    bgcolor: 'background.paper',
+    borderRadius: 1,
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.main },
+    '& .Mui-select': { py: 1 }
+  }
+}
+
 export default function DashboardUno() {
   const theme = useTheme()
   const now = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [period, setPeriod] = useState('36')
-  const [year] = useState(now.getFullYear())
+  const [chartMode, setChartMode] = useState('mensal')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -157,11 +194,11 @@ export default function DashboardUno() {
       setLoading(true)
       setError('')
       try {
-        const range = rangeForPeriod(period, year)
+        const range = rangeForPeriod(period, selectedMonth, selectedYear)
         const result = await fetchUnoDashboard({
           ...range,
-          month: now.getMonth() + 1,
-          year
+          month: selectedMonth,
+          year: selectedYear
         })
         setData(result)
       } catch (err) {
@@ -171,7 +208,7 @@ export default function DashboardUno() {
     }
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, year, reload])
+  }, [period, selectedMonth, selectedYear, reload])
 
   const funds = normalizeFunds(data?.demonstrativo)
   const summary = summarizeFunds(funds)
@@ -238,20 +275,59 @@ export default function DashboardUno() {
     varLabel: ''
   }
 
-  const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-
-  const evolution = (() => {
+  const evolution = useMemo(() => {
     if (fundsCliente.length === 0) return []
     const byMonth = new Map()
     for (const row of fundsCliente) {
-      const key = `${row.year}-${row.month}`
+      const key = `${row.year}-${String(row.month).padStart(2, '0')}`
       const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
       if (pl > 0) byMonth.set(key, { year: Number(row.year), month: Number(row.month), valor: pl })
     }
     return Array.from(byMonth.values())
       .sort((a, b) => a.year - b.year || a.month - b.month)
       .map((e) => ({ label: `${MONTH_ABBR[e.month - 1]}/${e.year}`, valor: e.valor }))
-  })()
+  }, [fundsCliente])
+
+  const comparisonData = useMemo(() => {
+    if (fundsCliente.length === 0) return []
+
+    const byMonth = new Map()
+    for (const row of fundsCliente) {
+      const key = `${row.year}-${String(row.month).padStart(2, '0')}`
+      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
+      if (pl <= 0) continue
+      const entry = byMonth.get(key) || { year: Number(row.year), month: Number(row.month), pl: 0 }
+      entry.pl += pl
+      byMonth.set(key, entry)
+    }
+
+    const sorted = Array.from(byMonth.values()).sort(
+      (a, b) => a.year - b.year || a.month - b.month
+    )
+    if (sorted.length === 0) return []
+
+    const monthlyMeta = expectedRent > 0 ? expectedRent / 12 : 0
+    let acumRent = 0
+    let acumMeta = 0
+    const firstPL = sorted[0].pl
+
+    return sorted.map((entry, i) => {
+      const label = `${MONTH_ABBR[entry.month - 1]}/${entry.year}`
+      const prevPL = i > 0 ? sorted[i - 1].pl : entry.pl
+      const rentMes = prevPL > 0 ? ((entry.pl / prevPL) - 1) * 100 : 0
+      acumRent = firstPL > 0 ? ((entry.pl / firstPL) - 1) * 100 : 0
+      acumMeta += monthlyMeta
+
+      return {
+        label,
+        rentMes: Number(rentMes.toFixed(4)),
+        rentAcum: Number(acumRent.toFixed(4)),
+        metaMes: Number(monthlyMeta.toFixed(4)),
+        metaAcum: Number(acumMeta.toFixed(4))
+      }
+    })
+  }, [fundsCliente, expectedRent])
+
   const clientName = normalizeClientName(data?.metaAnual, data?.meta)
 
   const renderMetrics = (base, first, second) => {
@@ -272,9 +348,44 @@ export default function DashboardUno() {
 
   const handlePrint = () => window.print()
 
+  const isMensal = chartMode === 'mensal'
+
   return (
     <Box id="uno-dashboard-report" sx={{ bgcolor: 'background.default' }}>
       <Container maxWidth="lg" sx={{ py: 3 }}>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <Select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              sx={selectStyles(theme)}
+            >
+              {MONTHS.map((m) => (
+                <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <Select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              sx={selectStyles(theme)}
+            >
+              {YEARS.map((y) => (
+                <MenuItem key={y} value={y}>{y}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {clientName && (
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              {clientName}
+            </Typography>
+          )}
+        </Box>
+
         <Box
           sx={{
             display: 'flex',
@@ -285,16 +396,9 @@ export default function DashboardUno() {
             mb: 3
           }}
         >
-          <Box>
-            <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-              Dashboard
-            </Typography>
-            {clientName && (
-              <Typography variant="subtitle1" sx={{ color: 'text.secondary', mt: -0.5 }}>
-                {clientName}
-              </Typography>
-            )}
-          </Box>
+          <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+            Dashboard
+          </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <ToggleButtonGroup
@@ -342,10 +446,8 @@ export default function DashboardUno() {
               startIcon={<Printer size={18} />}
               sx={{
                 borderRadius: 999,
-                
                 fontWeight: 600,
                 fontSize: 13,
-                
                 px: 3,
                 py: 1.2,
                 bgcolor: theme.palette.primary.main,
@@ -368,7 +470,8 @@ export default function DashboardUno() {
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} variant="rounded" height={160} sx={{ borderRadius: 1.4 }} />
             ))}
-            <Skeleton variant="rounded" height={480} sx={{ borderRadius: 1.4, gridColumn: '1 / -1' }} />
+            <Skeleton variant="rounded" height={400} sx={{ borderRadius: 1.4, gridColumn: '1 / -1' }} />
+            <Skeleton variant="rounded" height={400} sx={{ borderRadius: 1.4, gridColumn: '1 / -1' }} />
           </Box>
         ) : error ? (
           <Alert
@@ -383,64 +486,65 @@ export default function DashboardUno() {
             {error}
           </Alert>
         ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
-              gap: 2
-            }}
-          >
-            <SummaryCard label="Patrimônio">
-              <BigValue value={patrimonio} />
-            </SummaryCard>
-
-            <SummaryCard label="Rentabilidade" info>
-              {renderMetrics(
-                computedMetrics,
-                { key: 'rentabilidadeMes', label: 'Mês', unit: '%', info: true },
-                { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%' }
-              )}
-            </SummaryCard>
-
-            <SummaryCard label="Meta">
-              {renderMetrics(
-                computedMetrics,
-                { key: 'metaMes', label: 'Mês', unit: '%' },
-                { key: 'metaAcum', label: 'Acum.', unit: '%' }
-              )}
-            </SummaryCard>
-
-            <SummaryCard label="Gap" info>
-              {renderMetrics(
-                computedMetrics,
-                { key: 'gapMes', label: 'Mês', unit: ' P.P.', negative: 'auto' },
-                { key: 'gapAcum', label: 'Acum.', unit: ' P.P.', negative: 'auto' }
-              )}
-            </SummaryCard>
-
-            <SummaryCard
-              label={
-                <>
-                  VaR
-                  {computedMetrics.varLabel && (
-                    <Box component="span" sx={{ fontSize: '0.7em', verticalAlign: 'sub' }}>
-                      {computedMetrics.varLabel}
-                    </Box>
-                  )}
-                </>
-              }
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+                gap: 2
+              }}
             >
-              <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
-                {formatPt(computedMetrics.varValue, 4) ?? '—'}
-                {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
-              </Typography>
-            </SummaryCard>
+              <SummaryCard label="Patrimônio">
+                <BigValue value={patrimonio} />
+              </SummaryCard>
+
+              <SummaryCard label="Rentabilidade" info>
+                {renderMetrics(
+                  computedMetrics,
+                  { key: 'rentabilidadeMes', label: 'Mês', unit: '%', info: true },
+                  { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%' }
+                )}
+              </SummaryCard>
+
+              <SummaryCard label="Meta">
+                {renderMetrics(
+                  computedMetrics,
+                  { key: 'metaMes', label: 'Mês', unit: '%' },
+                  { key: 'metaAcum', label: 'Acum.', unit: '%' }
+                )}
+              </SummaryCard>
+
+              <SummaryCard label="Gap" info>
+                {renderMetrics(
+                  computedMetrics,
+                  { key: 'gapMes', label: 'Mês', unit: ' P.P.', negative: 'auto' },
+                  { key: 'gapAcum', label: 'Acum.', unit: ' P.P.', negative: 'auto' }
+                )}
+              </SummaryCard>
+
+              <SummaryCard
+                label={
+                  <>
+                    VaR
+                    {computedMetrics.varLabel && (
+                      <Box component="span" sx={{ fontSize: '0.7em', verticalAlign: 'sub' }}>
+                        {computedMetrics.varLabel}
+                      </Box>
+                    )}
+                  </>
+                }
+              >
+                <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
+                  {formatPt(computedMetrics.varValue, 4) ?? '—'}
+                  {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
+                </Typography>
+              </SummaryCard>
+            </Box>
 
             <Paper
               className="report-card"
               variant="outlined"
               sx={{
-                gridColumn: '1 / -1',
                 borderRadius: 1.4,
                 boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                 p: { xs: 2, md: 3 }
@@ -472,6 +576,102 @@ export default function DashboardUno() {
                       <Tooltip formatter={(value) => formatCurrency(value)} />
                       <Bar dataKey="valor" name="Patrimônio" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
                     </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
+            </Paper>
+
+            <Paper
+              className="report-card"
+              variant="outlined"
+              sx={{
+                borderRadius: 1.4,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                p: { xs: 2, md: 3 }
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="h6">
+                  Rentabilidade x Meta
+                </Typography>
+                <ToggleButtonGroup
+                  value={chartMode}
+                  exclusive
+                  size="small"
+                  onChange={(_, value) => value && setChartMode(value)}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 999,
+                    p: 0.5,
+                    gap: 0.5,
+                    '& .MuiToggleButtonGroup-grouped': {
+                      borderRadius: '999px !important',
+                      border: 'none',
+                      textTransform: 'none',
+                      px: 2,
+                      py: 0.75,
+                      fontSize: 13,
+                      color: 'text.primary',
+                      '&.Mui-selected': {
+                        backgroundColor: theme.palette.primary.main,
+                        color: '#ffffff',
+                        fontWeight: 600
+                      },
+                      '&.Mui-selected:hover': {
+                        backgroundColor: theme.palette.primary.main
+                      }
+                    }
+                  }}
+                >
+                  <ToggleButton value="mensal">Mensal</ToggleButton>
+                  <ToggleButton value="acumulado">Acumulado</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {comparisonData.length === 0 ? (
+                <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
+                  <Typography color="text.secondary" align="center">
+                    Sem dados de rentabilidade para o período selecionado.
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled" align="center">
+                    Tente um período maior (24 ou 36 meses) para visualizar o histórico.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ height: 400, width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={comparisonData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} minTickGap={28} />
+                      <YAxis
+                        tickFormatter={(v) => `${formatPt(v, 1)}%`}
+                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+                        width={60}
+                      />
+                      <Tooltip
+                        formatter={(value, name) => [
+                          `${formatPt(value, 2)}%`,
+                          name === (isMensal ? 'rentMes' : 'rentAcum') ? 'Rentabilidade' : 'Meta'
+                        ]}
+                      />
+                      <Bar
+                        dataKey={isMensal ? 'rentMes' : 'rentAcum'}
+                        name={isMensal ? 'Rentabilidade' : 'Rentabilidade'}
+                        fill={theme.palette.primary.main}
+                        radius={[3, 3, 0, 0]}
+                        barSize={isMensal ? 24 : 32}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={isMensal ? 'metaMes' : 'metaAcum'}
+                        name="Meta"
+                        stroke={theme.palette.warning?.main || '#ed6c02'}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </Box>
               )}
