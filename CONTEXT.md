@@ -223,7 +223,7 @@ Reprodução da tela inicial do sistema UNO mostrando a situação dos
 investimentos do RPPS (alocação, rendimento, composição da carteira).
 Restrito a Clientes Lema (`is_uno_client`). No protótipo consome a API do
 UNO via Edge Function proxy apontando para o perfil de demonstração
-(`client_id = 192`); o vínculo por e-mail com a conta real do UNO fica para
+(`client_id = 192`, exceto `demonstrativoFundosCliente` que usa `cliente_id`); o vínculo por e-mail com a conta real do UNO fica para
 a fase de integração plena. O `demonstrativoFundosCliente` da API só
 responde para meses fechados — o mês corrente (ainda aberto) devolve 400; o
 app faz fallback para o último mês fechado nesse card, mantendo os demais no

@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
     const value = url.searchParams.get(key);
     if (value) query.set(key, value);
   }
+  // Todos os endpoints usam client_id. demonstrativoFundosCliente usa cliente_id.
   if (endpoint === "demonstrativoFundosCliente") {
     query.set("cliente_id", unoDemoClientId);
   } else {

@@ -26,6 +26,7 @@ import {
   normalizeEvolution,
   normalizeFunds,
   normalizeDashboardMetrics,
+  normalizeClientName,
   summarizeFunds,
   rangeForPeriod
 } from '../utils/uno'
@@ -162,6 +163,10 @@ export default function DashboardUno() {
           month: now.getMonth() + 1,
           year
         })
+        console.log('[DashboardUNO] raw result:', result)
+        console.log('[DashboardUNO] metaAnual:', result.metaAnual)
+        console.log('[DashboardUNO] meta:', result.meta)
+        console.log('[DashboardUNO] demonstrativo:', result.demonstrativo)
         setData(result)
       } catch (err) {
         setError(err.message || 'Erro ao carregar o dashboard do UNO.')
@@ -174,10 +179,11 @@ export default function DashboardUno() {
 
   const funds = normalizeFunds(data?.demonstrativo)
   const summary = summarizeFunds(funds)
-  const metrics = normalizeDashboardMetrics(data?.meta ?? data)
+  const metrics = normalizeDashboardMetrics(data?.metaAnual ?? data?.meta ?? data)
   const patrimonio =
     funds.length > 0 ? summary.totalSaldo : metrics.patrimonio
   const evolution = normalizeEvolution(data?.meta)
+  const clientName = normalizeClientName(data?.metaAnual, data?.meta)
 
   const renderMetrics = (base, first, second) => {
     const block = (cfg) => {
@@ -210,9 +216,16 @@ export default function DashboardUno() {
             mb: 3
           }}
         >
-          <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-            Dashboard
-          </Typography>
+          <Box>
+            <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+              Dashboard
+            </Typography>
+            {clientName && (
+              <Typography variant="subtitle1" sx={{ color: 'text.secondary', mt: -0.5 }}>
+                {clientName}
+              </Typography>
+            )}
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <ToggleButtonGroup

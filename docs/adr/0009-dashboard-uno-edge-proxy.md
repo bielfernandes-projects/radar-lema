@@ -6,7 +6,8 @@ O Dashboard UNO reproduz a tela inicial do sistema UNO (situação dos
 investimentos do RPPS) para Clientes Lema. A API do UNO (`outer_api` em
 `unoapp.com.br`) é autenticada por um JWT fixo compartilhado
 (`x-access-token`) — a mesma credencial para todas as chamadas. No protótipo,
-todos os Clientes Lema veem o perfil de demonstração (`client_id = 192`).
+todos os Clientes Lema veem o perfil de demonstração (`client_id = 192`, exceto
+`demonstrativoFundosCliente` que usa `cliente_id`).
 
 ## Decisão
 

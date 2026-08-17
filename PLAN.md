@@ -59,10 +59,11 @@ integração, nunca refazendo o que já existe.
 
 - Base: `https://unoapp.com.br/server/api/v1/outer_api/`
 - Auth: header `x-access-token` com JWT fixo (payload `{id:"userToOuterAPI"}`)
-- Endpoints p/ o dashboard (todos com `client_id` + datas):
-  `demonstrativoFundosCliente`, `fundosCliente`, `movimentacoesCliente`,
-  `titulosAnalise`, `enquadramentosCliente`, `metaClientePorAno`,
-  `disponibilidadesCliente`
+- Endpoints p/ o dashboard:
+  - `demonstrativoFundosCliente`: params `cliente_id` + `mes` + `ano` + `consulting_id`
+  - Demais (`fundosCliente`, `movimentacoesCliente`, `titulosAnalise`,
+    `enquadramentosCliente`, `metaClientePorAno`, `disponibilidadesCliente`):
+    params `client_id` + datas + `consulting_id`
 - Perfil de demonstração: `client_id=192` ("DEMONSTRAÇÃO - LEMA")
 - ⚠️ `demonstrativoFundosCliente` responde apenas para **meses fechados** — o
   mês corrente (ainda aberto) devolve 400 (erro do Comdinheiro repassado pela

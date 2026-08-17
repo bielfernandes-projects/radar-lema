@@ -73,7 +73,7 @@ export async function fetchUnoDashboard(period) {
     end_date: period.endDate
   }
 
-  const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta] =
+  const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta, metaAnual] =
     await Promise.all([
       fetchDemonstrativo(period.month, period.year),
       callUnoProxy('fundosCliente', rangeParams),
@@ -92,6 +92,7 @@ export async function fetchUnoDashboard(period) {
     titulos,
     enquadramentos,
     disponibilidades,
-    meta
+    meta,
+    metaAnual
   }
 }

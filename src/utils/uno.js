@@ -120,6 +120,17 @@ export function normalizeDashboardMetrics(payload) {
   }
 }
 
+export function normalizeClientName(...payloads) {
+  for (const payload of payloads) {
+    if (!payload) continue
+    const rows = asArray(payload)
+    const source = rows.length > 0 ? rows[0] : payload
+    const name = pickField(source, [/municipio/i, /cliente/i, /rpps/i, /nome/i, /razao/i, /razão/i, /empresa/i])
+    if (name) return String(name)
+  }
+  return ''
+}
+
 export function monthsAgoRange(months) {
   const end = new Date()
   const start = new Date()

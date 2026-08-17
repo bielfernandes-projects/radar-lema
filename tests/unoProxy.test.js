@@ -51,6 +51,26 @@ describe('services/unoProxy', () => {
     }
   })
 
+  it('fetchUnoDashboard: envia endpoint e params corretos em cada chamada', async () => {
+    const responses = Array.from({ length: 8 }, () => jsonResponse([]))
+    vi.mocked(fetch).mockImplementation(async () => responses.shift())
+
+    const period = { month: 6, year: 2026, startDate: '01/06/2026', endDate: '30/06/2026' }
+    await fetchUnoDashboard(period)
+
+    const calls = vi.mocked(fetch).mock.calls.map((c) => String(c[0]))
+    expect(calls[0]).toContain('endpoint=demonstrativoFundosCliente')
+    expect(calls[0]).toContain('mes=6')
+    expect(calls[0]).toContain('ano=2026')
+    expect(calls.some((u) => u.includes('endpoint=fundosCliente'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=movimentacoesCliente'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=titulosAnalise'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=enquadramentosCliente'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=disponibilidadesCliente'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=metaCliente&'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=metaClientePorAno'))).toBe(true)
+  })
+
   it('fetchUnoDashboard: demonstrativo do mes corrente com 400 faz fallback p/ mes anterior', async () => {
     const seq = [
       jsonResponse({ message: 'Request failed with status code 400' }, 400),
@@ -99,5 +119,25 @@ describe('services/unoProxy', () => {
     expect(calls[0]).toContain('mes=8')
     expect(calls.filter((u) => u.includes('mes=7'))).toHaveLength(0)
     expect(result.demonstrativo).toEqual([{ fund_id: 1 }])
+  })
+
+  it('fetchUnoDashboard: retorna metaAnual junto com os demais dados', async () => {
+    const seq = [
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([{ patrimonio: 100 }]),
+      jsonResponse([{ patrimonio: 200 }])
+    ]
+    vi.mocked(fetch).mockImplementation(async () => seq.shift())
+
+    const period = { month: 8, year: 2026, startDate: '14/07/2026', endDate: '14/08/2026' }
+    const result = await fetchUnoDashboard(period)
+
+    expect(result.meta).toEqual([{ patrimonio: 100 }])
+    expect(result.metaAnual).toEqual([{ patrimonio: 200 }])
   })
 })

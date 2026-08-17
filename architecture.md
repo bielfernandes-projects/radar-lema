@@ -746,7 +746,8 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 - `uno-proxy` — valida o JWT do usuário do Radar (via `auth.getUser`), exige
   `is_uno_client` e repassa requisições GET para a `outer_api` do UNO com o
   token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
-  `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192). Whitelist de
+  `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192), exceto
+  `demonstrativoFundosCliente` que usa `cliente_id`. Whitelist de
   endpoints e parâmetros; `verify_jwt = true`. CORS no padrão SEC-008
   (`corsHeaders` + `APP_ORIGINS` + preflight OPTIONS, sem expor `*`), como
   `admin-users`. O `demonstrativoFundosCliente` da `outer_api` só responde

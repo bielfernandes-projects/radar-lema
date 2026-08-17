@@ -10,6 +10,7 @@ import {
   evolutionLabel,
   normalizeEvolution,
   normalizeDashboardMetrics,
+  normalizeClientName,
   monthsAgoRange,
   yearRange,
   rangeForPeriod
@@ -198,6 +199,24 @@ describe('normalizeDashboardMetrics', () => {
   it('trata payload nulo', () => {
     const metrics = normalizeDashboardMetrics(null)
     expect(metrics.patrimonio).toBeNull()
+  })
+})
+
+describe('normalizeClientName', () => {
+  it('extrai nome de campo cliente', () => {
+    expect(normalizeClientName([{ cliente_nome: 'DEMONSTRAÇÃO - LEMA' }])).toBe('DEMONSTRAÇÃO - LEMA')
+  })
+
+  it('extrai nome de campo razao social', () => {
+    expect(normalizeClientName([{ razao_social: 'RPPS Municipal' }])).toBe('RPPS Municipal')
+  })
+
+  it('tenta primeiro payload, depois o segundo', () => {
+    expect(normalizeClientName([{}], [{ rpps: 'Previdência SC' }])).toBe('Previdência SC')
+  })
+
+  it('retorna string vazia para payloads vazios', () => {
+    expect(normalizeClientName(null, undefined, [])).toBe('')
   })
 })
 
