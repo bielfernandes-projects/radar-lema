@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   asArray,
   pickField,
+  parseCommaNumber,
   normalizeFunds,
   summarizeFunds,
   pad2,
@@ -53,18 +54,34 @@ describe('pickField', () => {
   })
 })
 
+describe('parseCommaNumber', () => {
+  it('converte string com virgula para numero', () => {
+    expect(parseCommaNumber('0,386579085174')).toBeCloseTo(0.3866, 4)
+  })
+
+  it('aceita numero direto', () => {
+    expect(parseCommaNumber(1.25)).toBe(1.25)
+  })
+
+  it('retorna 0 para undefined/null/vazio', () => {
+    expect(parseCommaNumber(undefined)).toBe(0)
+    expect(parseCommaNumber(null)).toBe(0)
+    expect(parseCommaNumber('')).toBe(0)
+  })
+})
+
 describe('normalizeFunds', () => {
   const payload = [
-    { nome_fundo: 'Fundo A', saldo: 1000, rendimentonoPeriodo: 12.5, percentual: 25 },
-    { nome_fundo: 'Fundo B', saldo: 3000, rendimentonoPeriodo: -5, percentual: 75 },
-    { nome_fundo: 'Fundo Zerado', saldo: 0, rendimentonoPeriodo: 0, percentual: 0 }
+    { fund_name: 'Fundo A', cotas_investidas: 1000, ultima_cota_mes: 50, rendimento_percentual_fundo_mes_carteira: 1.5, var_fundo: '0,25', volatilidade: '0,30' },
+    { fund_name: 'Fundo B', cotas_investidas: 2000, ultima_cota_mes: 10, rendimento_percentual_fundo_mes_carteira: -0.5, var_fundo: '0,10', volatilidade: '0,15' },
+    { fund_name: 'Fundo Zerado', cotas_investidas: 0, ultima_cota_mes: 0, rendimento_percentual_fundo_mes_carteira: 0, var_fundo: '0', volatilidade: '0' }
   ]
 
-  it('mapeia campos com nomes variáveis e filtra saldo zero', () => {
+  it('calcula saldo como cotas × cota e filtra saldo zero', () => {
     const funds = normalizeFunds(payload)
     expect(funds).toHaveLength(2)
-    expect(funds[0]).toEqual({ name: 'Fundo A', saldo: 1000, rendimento: 12.5, percentual: 25 })
-    expect(funds[1]).toEqual({ name: 'Fundo B', saldo: 3000, rendimento: -5, percentual: 75 })
+    expect(funds[0]).toEqual({ name: 'Fundo A', saldo: 50000, rendimento: 0, percentual: 1.5, varFundo: 0.25, volatilidade: 0.3 })
+    expect(funds[1]).toEqual({ name: 'Fundo B', saldo: 20000, rendimento: 0, percentual: -0.5, varFundo: 0.1, volatilidade: 0.15 })
   })
 
   it('aceita payload embrulhado em data', () => {
@@ -74,22 +91,28 @@ describe('normalizeFunds', () => {
   })
 
   it('usa nome genérico quando não há nome', () => {
-    const funds = normalizeFunds([{ saldo: 50 }])
+    const funds = normalizeFunds([{ cotas_investidas: 50, ultima_cota_mes: 10 }])
     expect(funds[0].name).toBe('Fundo')
+  })
+
+  it('aceita formato legado com campo saldo', () => {
+    const funds = normalizeFunds([{ nome_fundo: 'Fundo Legado', saldo: 1000, rendimentonoPeriodo: 12.5, percentual: 25 }])
+    expect(funds).toHaveLength(1)
+    expect(funds[0]).toEqual({ name: 'Fundo Legado', saldo: 1000, rendimento: 12.5, percentual: 25, varFundo: 0, volatilidade: 0 })
   })
 })
 
 describe('summarizeFunds', () => {
   it('soma saldo e rendimento e calcula percentual', () => {
     const funds = [
-      { name: 'A', saldo: 1000, rendimento: 100, percentual: 0 },
-      { name: 'B', saldo: 3000, rendimento: 50, percentual: 0 }
+      { name: 'A', saldo: 50000, rendimento: 0, percentual: 0 },
+      { name: 'B', saldo: 20000, rendimento: 0, percentual: 0 }
     ]
     expect(summarizeFunds(funds)).toEqual({
-      totalSaldo: 4000,
-      totalRendimento: 150,
+      totalSaldo: 70000,
+      totalRendimento: 0,
       quantidade: 2,
-      rendimentoPercentual: 3.75
+      rendimentoPercentual: 0
     })
   })
 

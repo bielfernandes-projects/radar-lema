@@ -163,10 +163,6 @@ export default function DashboardUno() {
           month: now.getMonth() + 1,
           year
         })
-        console.log('[DashboardUNO] metaAnual[0]:', JSON.stringify(result.metaAnual?.[0], null, 2))
-        console.log('[DashboardUNO] meta[0]:', JSON.stringify(result.meta?.[0], null, 2))
-        console.log('[DashboardUNO] demonstrativo[0]:', JSON.stringify(result.demonstrativo?.[0], null, 2))
-        console.log('[DashboardUNO] fundos[:3]:', JSON.stringify(result.fundos?.slice(0, 3), null, 2))
         setData(result)
       } catch (err) {
         setError(err.message || 'Erro ao carregar o dashboard do UNO.')
@@ -180,8 +176,34 @@ export default function DashboardUno() {
   const funds = normalizeFunds(data?.demonstrativo)
   const summary = summarizeFunds(funds)
   const metrics = normalizeDashboardMetrics(data?.metaAnual ?? data?.meta ?? data)
-  const patrimonio =
-    funds.length > 0 ? summary.totalSaldo : metrics.patrimonio
+  const totalSaldo = summary.totalSaldo
+  const patrimonio = totalSaldo > 0 ? totalSaldo : metrics.patrimonio
+
+  const rentabilidadeMes = totalSaldo > 0
+    ? funds.reduce((acc, f) => acc + f.percentual * (f.saldo / totalSaldo), 0)
+    : metrics.rentabilidadeMes
+  const rentabilidadeAcum = metrics.rentabilidadeAcum
+  const metaMes = metrics.metaMes
+  const metaAcum = metrics.metaAcum
+  const gapMes = (metaMes !== null && rentabilidadeMes !== null) ? metaMes - rentabilidadeMes : metrics.gapMes
+  const gapAcum = metrics.gapAcum
+  const varValue = totalSaldo > 0
+    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / totalSaldo), 0)
+    : metrics.varValue
+  const varLabel = metrics.varLabel
+
+  const computedMetrics = {
+    ...metrics,
+    rentabilidadeMes,
+    rentabilidadeAcum,
+    metaMes,
+    metaAcum,
+    gapMes,
+    gapAcum,
+    varValue,
+    varLabel
+  }
+
   const evolution = normalizeEvolution(data?.meta)
   const clientName = normalizeClientName(data?.metaAnual, data?.meta)
 
@@ -327,7 +349,7 @@ export default function DashboardUno() {
 
             <SummaryCard label="Rentabilidade" info>
               {renderMetrics(
-                metrics,
+                computedMetrics,
                 { key: 'rentabilidadeMes', label: 'Mês', unit: '%', info: true },
                 { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%' }
               )}
@@ -335,7 +357,7 @@ export default function DashboardUno() {
 
             <SummaryCard label="Meta">
               {renderMetrics(
-                metrics,
+                computedMetrics,
                 { key: 'metaMes', label: 'Mês', unit: '%' },
                 { key: 'metaAcum', label: 'Acum.', unit: '%' }
               )}
@@ -343,7 +365,7 @@ export default function DashboardUno() {
 
             <SummaryCard label="Gap" info>
               {renderMetrics(
-                metrics,
+                computedMetrics,
                 { key: 'gapMes', label: 'Mês', unit: ' P.P.', negative: 'auto' },
                 { key: 'gapAcum', label: 'Acum.', unit: ' P.P.', negative: 'auto' }
               )}
@@ -353,17 +375,17 @@ export default function DashboardUno() {
               label={
                 <>
                   VaR
-                  {metrics.varLabel && (
+                  {computedMetrics.varLabel && (
                     <Box component="span" sx={{ fontSize: '0.7em', verticalAlign: 'sub' }}>
-                      {metrics.varLabel}
+                      {computedMetrics.varLabel}
                     </Box>
                   )}
                 </>
               }
             >
               <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
-                {formatPt(metrics.varValue, 4) ?? '—'}
-                {metrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
+                {formatPt(computedMetrics.varValue, 4) ?? '—'}
+                {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
               </Typography>
             </SummaryCard>
 

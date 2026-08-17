@@ -19,14 +19,28 @@ export function pickField(record, patterns) {
   return undefined
 }
 
+export function parseCommaNumber(value) {
+  if (value === undefined || value === null || value === '') return 0
+  if (typeof value === 'number') return value
+  return Number(String(value).replace(',', '.')) || 0
+}
+
 export function normalizeFunds(rows) {
   return asArray(rows)
-    .map((row) => ({
-      name: String(pickField(row, [/nome/i, /fundo/i, /descricao/i]) ?? 'Fundo'),
-      saldo: Number(pickField(row, [/saldo/i]) ?? 0),
-      rendimento: Number(pickField(row, [/rendiment/i]) ?? 0),
-      percentual: Number(pickField(row, [/percentual/i]) ?? 0)
-    }))
+    .map((row) => {
+      const cotas = Number(row?.cotas_investidas ?? row?.qtd_quota ?? 0)
+      const cota = Number(row?.ultima_cota_mes ?? 0)
+      const saldoCalc = cotas * cota
+      const saldoDirect = Number(pickField(row, [/saldo/i]) ?? 0)
+      return {
+        name: String(pickField(row, [/fund_name/i, /nome/i, /fundo/i, /descricao/i]) ?? 'Fundo'),
+        saldo: saldoCalc > 0 ? saldoCalc : saldoDirect,
+        rendimento: parseCommaNumber(pickField(row, [/rendimento_financeiro/i, /rendimento(?!_percentual)/i])),
+        percentual: Number(pickField(row, [/rendimento_percentual/i, /percentual/i]) ?? 0),
+        varFundo: parseCommaNumber(pickField(row, [/^var/i])),
+        volatilidade: parseCommaNumber(pickField(row, [/volatilidade/i]))
+      }
+    })
     .filter((fund) => fund.saldo > 0)
 }
 
