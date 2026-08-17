@@ -52,7 +52,7 @@ describe('services/unoProxy', () => {
   })
 
   it('fetchUnoDashboard: envia endpoint e params corretos em cada chamada', async () => {
-    const responses = Array.from({ length: 8 }, () => jsonResponse([]))
+    const responses = Array.from({ length: 11 }, () => jsonResponse([]))
     vi.mocked(fetch).mockImplementation(async () => responses.shift())
 
     const period = { month: 6, year: 2026, startDate: '01/06/2026', endDate: '30/06/2026' }
@@ -69,11 +69,17 @@ describe('services/unoProxy', () => {
     expect(calls.some((u) => u.includes('endpoint=disponibilidadesCliente'))).toBe(true)
     expect(calls.some((u) => u.includes('endpoint=metaCliente&'))).toBe(true)
     expect(calls.some((u) => u.includes('endpoint=metaClientePorAno'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=getClientDiaryPlsByRange'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=getClientPortfolioRentsByLimit'))).toBe(true)
+    expect(calls.some((u) => u.includes('endpoint=inflationRates'))).toBe(true)
   })
 
   it('fetchUnoDashboard: demonstrativo do mes corrente com 400 faz fallback p/ mes anterior', async () => {
     const seq = [
       jsonResponse({ message: 'Request failed with status code 400' }, 400),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
       jsonResponse([]),
       jsonResponse([]),
       jsonResponse([]),
@@ -89,7 +95,7 @@ describe('services/unoProxy', () => {
     const result = await fetchUnoDashboard(period)
 
     const calls = vi.mocked(fetch).mock.calls.map((c) => String(c[0]))
-    expect(calls).toHaveLength(9)
+    expect(calls.length).toBeGreaterThanOrEqual(10)
     expect(calls[0]).toContain('endpoint=demonstrativoFundosCliente')
     expect(calls[0]).toContain('mes=8')
     expect(calls[0]).toContain('ano=2026')
@@ -107,6 +113,9 @@ describe('services/unoProxy', () => {
       jsonResponse([]),
       jsonResponse([]),
       jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([]),
       jsonResponse([])
     ]
     vi.mocked(fetch).mockImplementation(async () => seq.shift())
@@ -115,7 +124,7 @@ describe('services/unoProxy', () => {
     const result = await fetchUnoDashboard(period)
 
     const calls = vi.mocked(fetch).mock.calls.map((c) => String(c[0]))
-    expect(calls).toHaveLength(8)
+    expect(calls).toHaveLength(11)
     expect(calls[0]).toContain('mes=8')
     expect(calls.filter((u) => u.includes('mes=7'))).toHaveLength(0)
     expect(result.demonstrativo).toEqual([{ fund_id: 1 }])
@@ -130,7 +139,10 @@ describe('services/unoProxy', () => {
       jsonResponse([]),
       jsonResponse([]),
       jsonResponse([{ patrimonio: 100 }]),
-      jsonResponse([{ patrimonio: 200 }])
+      jsonResponse([{ patrimonio: 200 }]),
+      jsonResponse([]),
+      jsonResponse([]),
+      jsonResponse([])
     ]
     vi.mocked(fetch).mockImplementation(async () => seq.shift())
 

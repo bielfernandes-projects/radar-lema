@@ -14,7 +14,11 @@ import {
   normalizeClientName,
   monthsAgoRange,
   yearRange,
-  rangeForPeriod
+  rangeForPeriod,
+  normalizeDiaryPls,
+  normalizeRents,
+  normalizeInflationRates,
+  computeDashboardMetrics
 } from '../src/utils/uno'
 
 describe('asArray', () => {
@@ -260,5 +264,118 @@ describe('ranges de período', () => {
   it('rangeForPeriod escolhe entre ano e meses', () => {
     expect(rangeForPeriod('ano', 2025)).toEqual(yearRange(2025))
     expect(rangeForPeriod('24', 2025)).toEqual(monthsAgoRange(24))
+  })
+})
+
+describe('normalizeDiaryPls', () => {
+  it('agrupa registros diarios por mes e retorna PL', () => {
+    const payload = [
+      { new_pl: '100', month: 1, year: 2025 },
+      { new_pl: '101', month: 1, year: 2025 },
+      { new_pl: '105', month: 2, year: 2025 },
+      { new_pl: '110', month: 2, year: 2025 }
+    ]
+    const result = normalizeDiaryPls(payload)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({ label: 'Jan/2025', valor: 101 })
+    expect(result[1]).toEqual({ label: 'Fev/2025', valor: 110 })
+  })
+
+  it('retorna vazio para payload vazio', () => {
+    expect(normalizeDiaryPls([])).toEqual([])
+    expect(normalizeDiaryPls(null)).toEqual([])
+  })
+
+  it('ignora registros com PL invalido', () => {
+    const payload = [{ new_pl: '0', month: 1, year: 2025 }, { new_pl: '100', month: 2, year: 2025 }]
+    expect(normalizeDiaryPls(payload)).toHaveLength(1)
+  })
+})
+
+describe('normalizeRents', () => {
+  it('calcula rentabilidade mensal entre PLs consecutivos', () => {
+    const payload = [
+      { new_pl: '100', month: 1, year: 2025 },
+      { new_pl: '110', month: 2, year: 2025 },
+      { new_pl: '105', month: 3, year: 2025 }
+    ]
+    const result = normalizeRents(payload)
+    expect(result).toHaveLength(2)
+    expect(result[0].valor).toBeCloseTo(10.0, 1)
+    expect(result[1].valor).toBeCloseTo(-4.545, 1)
+  })
+
+  it('retorna vazio com menos de 2 meses', () => {
+    expect(normalizeRents([{ new_pl: '100', month: 1, year: 2025 }])).toEqual([])
+    expect(normalizeRents([])).toEqual([])
+  })
+})
+
+describe('normalizeInflationRates', () => {
+  it('extrai expected_rent e ipca do registro mais recente', () => {
+    const payload = [
+      { expected_rent: '9.0', ipca: '0.05', month: 6, year: 2025 },
+      { expected_rent: '10.5', ipca: '0.07', month: 7, year: 2026 }
+    ]
+    const result = normalizeInflationRates(payload)
+    expect(result.expectedRent).toBe(10.5)
+    expect(result.ipca).toBe(0.07)
+    expect(result.month).toBe(7)
+    expect(result.year).toBe(2026)
+  })
+
+  it('retorna null para payload vazio', () => {
+    expect(normalizeInflationRates([])).toBeNull()
+    expect(normalizeInflationRates(null)).toBeNull()
+  })
+})
+
+describe('computeDashboardMetrics', () => {
+  const diaryPls = [
+    { label: 'Jan/2025', valor: 200000000 },
+    { label: 'Fev/2025', valor: 202000000 },
+    { label: 'Mar/2025', valor: 247000000 }
+  ]
+  const rents = [
+    { label: 'Fev/2025', valor: 1.0 },
+    { label: 'Mar/2025', valor: 2.475 }
+  ]
+  const inflation = { expectedRent: 10.5, ipca: 0.07, month: 7, year: 2026 }
+  const funds = [
+    { saldo: 100000000, varFundo: 0.386 },
+    { saldo: 147000000, varFundo: 0.2 }
+  ]
+
+  it('calcula patrimonio a partir do ultimo PL', () => {
+    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
+    expect(m.patrimonio).toBe(247000000)
+  })
+
+  it('calcula rentabilidade mes do ultimo rent', () => {
+    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
+    expect(m.rentabilidadeMes).toBeCloseTo(2.475, 2)
+  })
+
+  it('calcula rentabilidade acum de PL', () => {
+    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
+    expect(m.rentabilidadeAcum).toBeCloseTo(23.5, 1)
+  })
+
+  it('calcula meta mes como expected_rent/12', () => {
+    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
+    expect(m.metaMes).toBeCloseTo(0.875, 3)
+  })
+
+  it('calcula var como media ponderada', () => {
+    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
+    const expected = (0.386 * 100 / 247) + (0.2 * 147 / 247)
+    expect(m.varValue).toBeCloseTo(expected, 3)
+  })
+
+  it('retorna nulls para dados vazios', () => {
+    const m = computeDashboardMetrics([], [], null, [], '36')
+    expect(m.patrimonio).toBeNull()
+    expect(m.rentabilidadeMes).toBeNull()
+    expect(m.metaMes).toBeNull()
   })
 })

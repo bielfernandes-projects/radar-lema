@@ -2,18 +2,19 @@ import { supabase } from '../lib/supabase'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
-export async function callUnoProxy(endpoint, params = {}) {
+async function fetchProxy(method, endpoint, params = {}, body = undefined) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
 
   const query = new URLSearchParams({ endpoint, ...params })
   const res = await fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
-    method: 'GET',
+    method,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session?.access_token || ''}`
-    }
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined
   })
 
   if (!res.ok) {
@@ -32,6 +33,14 @@ export async function callUnoProxy(endpoint, params = {}) {
   }
 
   return res.json()
+}
+
+export async function callUnoProxy(endpoint, params = {}) {
+  return fetchProxy('GET', endpoint, params)
+}
+
+export async function callUnoProxyPost(endpoint, body = {}) {
+  return fetchProxy('POST', endpoint, {}, body)
 }
 
 function extractUnoErrorMessage(text) {
@@ -73,7 +82,11 @@ export async function fetchUnoDashboard(period) {
     end_date: period.endDate
   }
 
-  const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta, metaAnual] =
+  const [
+    demonstrativo, fundos, movimentacoes, titulos, enquadramentos,
+    disponibilidades, meta, metaAnual,
+    diaryPls, rents, inflationRates
+  ] =
     await Promise.all([
       fetchDemonstrativo(period.month, period.year),
       callUnoProxy('fundosCliente', rangeParams),
@@ -82,7 +95,16 @@ export async function fetchUnoDashboard(period) {
       callUnoProxy('enquadramentosCliente', rangeParams),
       callUnoProxy('disponibilidadesCliente', rangeParams),
       callUnoProxy('metaCliente', rangeParams),
-      callUnoProxy('metaClientePorAno', { ano: String(period.year) })
+      callUnoProxy('metaClientePorAno', { ano: String(period.year) }),
+      callUnoProxyPost('getClientDiaryPlsByRange', {
+        start_date: period.startDate,
+        end_date: period.endDate
+      }),
+      callUnoProxyPost('getClientPortfolioRentsByLimit', {
+        limit: 252,
+        end_date: period.endDate
+      }),
+      callUnoProxy('inflationRates')
     ])
 
   return {
@@ -93,6 +115,9 @@ export async function fetchUnoDashboard(period) {
     enquadramentos,
     disponibilidades,
     meta,
-    metaAnual
+    metaAnual,
+    diaryPls,
+    rents,
+    inflationRates
   }
 }

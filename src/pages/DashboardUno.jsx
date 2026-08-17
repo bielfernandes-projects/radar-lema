@@ -23,11 +23,12 @@ import {
 } from 'recharts'
 import { fetchUnoDashboard } from '../services/unoProxy'
 import {
-  normalizeEvolution,
+  normalizeDiaryPls,
+  normalizeRents,
+  normalizeInflationRates,
   normalizeFunds,
-  normalizeDashboardMetrics,
   normalizeClientName,
-  summarizeFunds,
+  computeDashboardMetrics,
   rangeForPeriod
 } from '../utils/uno'
 import { formatCurrency } from '../utils/formatters'
@@ -174,26 +175,22 @@ export default function DashboardUno() {
   }, [period, year, reload])
 
   const funds = normalizeFunds(data?.demonstrativo)
-  const summary = summarizeFunds(funds)
-  const metrics = normalizeDashboardMetrics(data?.metaAnual ?? data?.meta ?? data)
-  const totalSaldo = summary.totalSaldo
-  const patrimonio = totalSaldo > 0 ? totalSaldo : metrics.patrimonio
 
-  const rentabilidadeMes = totalSaldo > 0
-    ? funds.reduce((acc, f) => acc + f.percentual * (f.saldo / totalSaldo), 0)
-    : metrics.rentabilidadeMes
+  const diaryPlsMonthly = normalizeDiaryPls(data?.diaryPls)
+  const rents = normalizeRents(data?.diaryPls)
+  const inflation = normalizeInflationRates(data?.inflationRates)
+  const metrics = computeDashboardMetrics(diaryPlsMonthly, rents, inflation, funds, period)
+  const patrimonio = metrics.patrimonio
+  const rentabilidadeMes = metrics.rentabilidadeMes
   const rentabilidadeAcum = metrics.rentabilidadeAcum
   const metaMes = metrics.metaMes
   const metaAcum = metrics.metaAcum
-  const gapMes = (metaMes !== null && rentabilidadeMes !== null) ? metaMes - rentabilidadeMes : metrics.gapMes
+  const gapMes = metrics.gapMes
   const gapAcum = metrics.gapAcum
-  const varValue = totalSaldo > 0
-    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / totalSaldo), 0)
-    : metrics.varValue
+  const varValue = metrics.varValue
   const varLabel = metrics.varLabel
 
   const computedMetrics = {
-    ...metrics,
     rentabilidadeMes,
     rentabilidadeAcum,
     metaMes,
@@ -204,7 +201,7 @@ export default function DashboardUno() {
     varLabel
   }
 
-  const evolution = normalizeEvolution(data?.meta)
+  const evolution = diaryPlsMonthly
   const clientName = normalizeClientName(data?.metaAnual, data?.meta)
 
   const renderMetrics = (base, first, second) => {

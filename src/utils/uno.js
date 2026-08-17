@@ -166,3 +166,158 @@ export function yearRange(year) {
 export function rangeForPeriod(period, year) {
   return period === 'ano' ? yearRange(year) : monthsAgoRange(Number(period))
 }
+
+/**
+ * normalizeDiaryPls: extrai o PL mensal a partir de dados diários
+ * (getClientDiaryPlsByRange). Cada registro tem { new_pl, date_quota, month, year }.
+ * Retorna array de { label, valor } ordenado cronologicamente.
+ */
+export function normalizeDiaryPls(payload) {
+  const rows = asArray(payload)
+  if (!rows.length) return []
+
+  const byMonth = new Map()
+  for (const row of rows) {
+    const key = `${row.year}-${row.month}`
+    const pl = Number(row.new_pl ?? row.pl ?? 0)
+    if (!Number.isFinite(pl) || pl <= 0) continue
+    byMonth.set(key, {
+      year: Number(row.year),
+      month: Number(row.month),
+      valor: pl
+    })
+  }
+
+  return Array.from(byMonth.values())
+    .sort((a, b) => a.year - b.year || a.month - b.month)
+    .map((entry) => ({
+      label: `${MONTH_ABBR[entry.month - 1]}/${entry.year}`,
+      valor: entry.valor
+    }))
+}
+
+/**
+ * normalizeDiaryPlsLatest: retorna o PL mais recente (new_pl da última linha).
+ */
+export function normalizeDiaryPlsLatest(payload) {
+  const rows = asArray(payload)
+  if (!rows.length) return null
+  const last = rows[rows.length - 1]
+  const pl = Number(last?.new_pl ?? last?.pl ?? 0)
+  return Number.isFinite(pl) && pl > 0 ? pl : null
+}
+
+/**
+ * normalizeRents: extrai rentabilidades mensais a partir de dados diários
+ * (getClientDiaryPlsByRange). Agrupa por mês e calcula a variação percentual
+ * do PL entre o fim do mês anterior e o fim do mês corrente.
+ * Retorna array de { label, valor } em percentual, ordenado cronologicamente.
+ */
+export function normalizeRents(payload) {
+  const rows = asArray(payload)
+  if (!rows.length) return []
+
+  const byMonth = new Map()
+  for (const row of rows) {
+    const key = `${row.year}-${row.month}`
+    const pl = Number(row.new_pl ?? row.pl ?? 0)
+    if (!Number.isFinite(pl) || pl <= 0) continue
+    byMonth.set(key, { year: Number(row.year), month: Number(row.month), pl })
+  }
+
+  const sorted = Array.from(byMonth.values()).sort(
+    (a, b) => a.year - b.year || a.month - b.month
+  )
+
+  const result = []
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1].pl
+    const curr = sorted[i].pl
+    if (prev > 0) {
+      result.push({
+        label: `${MONTH_ABBR[sorted[i].month - 1]}/${sorted[i].year}`,
+        valor: ((curr / prev) - 1) * 100
+      })
+    }
+  }
+  return result
+}
+
+/**
+ * normalizeInflationRates: extrai expected_rent (meta anual) e ipca mensal
+ * a partir de inflation_rates/getClientInflationRates.
+ * Retorna { expectedRent, ipca, month, year } do registro mais recente.
+ */
+export function normalizeInflationRates(payload) {
+  const rows = asArray(payload)
+  if (!rows.length) return null
+
+  const sorted = [...rows].sort((a, b) => {
+    const ya = Number(a.year) || 0
+    const yb = Number(b.year) || 0
+    const ma = Number(a.month) || 0
+    const mb = Number(b.month) || 0
+    return yb - ya || mb - ma
+  })
+
+  const latest = sorted[0]
+  const expectedRent = parseCommaNumber(latest?.expected_rent ?? latest?.rentabilidade_esperada_ano)
+  const ipca = parseCommaNumber(latest?.ipca)
+  const tax = parseCommaNumber(latest?.tax ?? latest?.taxa_ano)
+
+  return {
+    expectedRent,
+    ipca,
+    tax,
+    month: Number(latest?.month) || 0,
+    year: Number(latest?.year) || 0
+  }
+}
+
+/**
+ * computeDashboardMetrics: calcula as métricas do dashboard UNO a partir
+ * dos dados normalizados dos endpoints internos.
+ *
+ * @param {Array} diaryPls - normalizeDiaryPls (PL mensal)
+ * @param {Array} rents - normalizeRents (rentabilidade mensal %)
+ * @param {Object} inflation - normalizeInflationRates
+ * @param {Array} funds - normalizeFunds (fundos do demonstrativo)
+ * @param {string} period - período selecionado ('ano', '12', '24', '36', etc.)
+ */
+export function computeDashboardMetrics(diaryPls, rents, inflation, funds, period) {
+  const patrimonio = diaryPls.length > 0 ? diaryPls[diaryPls.length - 1].valor : null
+
+  const rentMes = rents.length > 0 ? rents[rents.length - 1].valor : null
+  const rentAcum = (() => {
+    if (diaryPls.length < 2) return null
+    const first = diaryPls[0].valor
+    const last = diaryPls[diaryPls.length - 1].valor
+    return first > 0 ? ((last / first) - 1) * 100 : null
+  })()
+
+  const metaMes = inflation?.expectedRent != null ? inflation.expectedRent / 12 : null
+  const months = Number(period) || 12
+  const metaAcum = inflation?.expectedRent != null
+    ? (Math.pow(1 + inflation.expectedRent / 100, months / 12) - 1) * 100
+    : null
+
+  const gapMes = (metaMes !== null && rentMes !== null) ? metaMes - rentMes : null
+  const gapAcum = (metaAcum !== null && rentAcum !== null) ? metaAcum - rentAcum : null
+
+  const totalSaldo = funds.reduce((acc, f) => acc + (f.saldo || 0), 0)
+  const varValue = totalSaldo > 0
+    ? funds.reduce((acc, f) => acc + (f.varFundo || 0) * ((f.saldo || 0) / totalSaldo), 0)
+    : null
+
+  return {
+    patrimonio,
+    rentabilidadeMes: rentMes,
+    rentabilidadeAcum: rentAcum,
+    metaMes,
+    metaAcum,
+    gapMes,
+    gapAcum,
+    varValue,
+    varLabel: ''
+  }
+}
