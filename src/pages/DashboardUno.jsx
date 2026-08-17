@@ -29,10 +29,10 @@ import {
 import { fetchUnoDashboard } from '../services/unoProxy'
 import {
   normalizeFunds,
-  normalizeClientName,
   summarizeFunds,
   asArray,
   parseCommaNumber,
+  parseDiaUltimaCota,
   rangeForPeriod
 } from '../utils/uno'
 import { formatCurrency } from '../utils/formatters'
@@ -66,6 +66,8 @@ const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - 5 + i)
+
+const CLIENT_NAMES = { 192: 'Demonstração Lema' }
 
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
@@ -133,7 +135,7 @@ function BigValue({ value }) {
   )
 }
 
-function MetricBlock({ label, value, unit, negative, info }) {
+function MetricBlock({ label, value, unit, negative }) {
   const theme = useTheme()
   return (
     <Box sx={{ textAlign: 'center' }}>
@@ -141,7 +143,6 @@ function MetricBlock({ label, value, unit, negative, info }) {
         <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
           {label}
         </Typography>
-        {info && <Info size={12} style={{ color: theme.palette.primary.main }} />}
       </Box>
       <Typography
         className={negative ? 'value-negative' : 'value-positive'}
@@ -214,9 +215,7 @@ export default function DashboardUno() {
   const summary = summarizeFunds(funds)
   const totalSaldo = summary.totalSaldo
 
-  const fundsCliente = asArray(data?.fundos)
-  const metaAnualRows = asArray(data?.metaAnual)
-  const metaAnualRow = metaAnualRows.length > 0 ? metaAnualRows[0] : {}
+  const clientName = CLIENT_NAMES[192] || ''
 
   const patrimonio = totalSaldo > 0 ? totalSaldo : null
 
@@ -228,44 +227,52 @@ export default function DashboardUno() {
     ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / totalSaldo), 0)
     : null
 
+  const metaAnualRows = asArray(data?.metaAnual)
+  const metaAnualRow = metaAnualRows.length > 0 ? metaAnualRows[0] : {}
   const expectedRent = parseCommaNumber(metaAnualRow?.rentabilidade_esperada_ano ?? metaAnualRow?.taxa_ano)
   const metaMes = expectedRent > 0 ? expectedRent / 12 : null
 
+  const fundsCliente = asArray(data?.fundos)
+
+  const evolution = useMemo(() => {
+    if (fundsCliente.length === 0) return []
+
+    const byMonth = new Map()
+    for (const row of fundsCliente) {
+      const dateInfo = parseDiaUltimaCota(row?.dia_ultima_cota)
+      if (!dateInfo) continue
+      const saldoStr = String(row?.saldo_final_carteira ?? '0')
+      const saldo = Number(saldoStr.replace(',', '.'))
+      if (!Number.isFinite(saldo) || saldo <= 1) continue
+      const key = `${dateInfo.year}-${String(dateInfo.month).padStart(2, '0')}`
+      const entry = byMonth.get(key) || { year: dateInfo.year, month: dateInfo.month, valor: 0 }
+      entry.valor += saldo
+      byMonth.set(key, entry)
+    }
+
+    return Array.from(byMonth.values())
+      .sort((a, b) => a.year - b.year || a.month - b.month)
+      .map((e) => ({ label: `${MONTH_ABBR[e.month - 1]}/${e.year}`, valor: e.valor, year: e.year, month: e.month }))
+  }, [fundsCliente])
+
   const monthCount = Number(period) || 12
+
+  const rentabilidadeAcum = useMemo(() => {
+    if (evolution.length < 2) return null
+    const first = evolution[0].valor
+    const last = evolution[evolution.length - 1].valor
+    return first > 0 ? ((last / first) - 1) * 100 : null
+  }, [evolution])
+
   const metaAcum = expectedRent > 0
     ? (Math.pow(1 + expectedRent / 100, monthCount / 12) - 1) * 100
     : null
 
-  const rentabilidadeAcum = (() => {
-    if (fundsCliente.length < 2) return null
-    const byMonth = new Map()
-    for (const row of fundsCliente) {
-      const key = `${row.year}-${row.month}`
-      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
-      if (pl > 0) byMonth.set(key, pl)
-    }
-    const sorted = Array.from(byMonth.values())
-    if (sorted.length < 2) return null
-    return ((sorted[sorted.length - 1] / sorted[0]) - 1) * 100
-  })()
-
-  const rentMesFromFunds = (() => {
-    if (fundsCliente.length === 0) return null
-    const latest = fundsCliente.reduce((best, row) => {
-      const key = `${row.year}-${row.month}`
-      const bestKey = `${best.year}-${best.month}`
-      return key > bestKey ? row : best
-    }, fundsCliente[0])
-    return parseCommaNumber(latest?.rentabilidade_mes)
-  })()
-
-  const rentFinal = rentMesFromFunds !== null ? rentMesFromFunds : rentabilidadeMes
-
-  const gapMes = (metaMes !== null && rentFinal !== null) ? metaMes - rentFinal : null
-  const gapAcum = (metaAcum !== null && rentabilidadeAcum !== null) ? metaAcum - rentabilidadeAcum : null
+  const gapMes = (metaMes !== null && rentabilidadeMes !== null) ? rentabilidadeMes - metaMes : null
+  const gapAcum = (rentabilidadeAcum !== null && metaAcum !== null) ? rentabilidadeAcum - metaAcum : null
 
   const computedMetrics = {
-    rentabilidadeMes: rentFinal,
+    rentabilidadeMes,
     rentabilidadeAcum,
     metaMes,
     metaAcum,
@@ -275,60 +282,28 @@ export default function DashboardUno() {
     varLabel: ''
   }
 
-  const evolution = useMemo(() => {
-    if (fundsCliente.length === 0) return []
-    const byMonth = new Map()
-    for (const row of fundsCliente) {
-      const key = `${row.year}-${String(row.month).padStart(2, '0')}`
-      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
-      if (pl > 0) byMonth.set(key, { year: Number(row.year), month: Number(row.month), valor: pl })
-    }
-    return Array.from(byMonth.values())
-      .sort((a, b) => a.year - b.year || a.month - b.month)
-      .map((e) => ({ label: `${MONTH_ABBR[e.month - 1]}/${e.year}`, valor: e.valor }))
-  }, [fundsCliente])
-
   const comparisonData = useMemo(() => {
-    if (fundsCliente.length === 0) return []
-
-    const byMonth = new Map()
-    for (const row of fundsCliente) {
-      const key = `${row.year}-${String(row.month).padStart(2, '0')}`
-      const pl = parseCommaNumber(row?.saldo_final_carteira ?? row?.pl_final_fundo)
-      if (pl <= 0) continue
-      const entry = byMonth.get(key) || { year: Number(row.year), month: Number(row.month), pl: 0 }
-      entry.pl += pl
-      byMonth.set(key, entry)
-    }
-
-    const sorted = Array.from(byMonth.values()).sort(
-      (a, b) => a.year - b.year || a.month - b.month
-    )
-    if (sorted.length === 0) return []
+    if (evolution.length === 0) return []
 
     const monthlyMeta = expectedRent > 0 ? expectedRent / 12 : 0
     let acumRent = 0
     let acumMeta = 0
-    const firstPL = sorted[0].pl
 
-    return sorted.map((entry, i) => {
-      const label = `${MONTH_ABBR[entry.month - 1]}/${entry.year}`
-      const prevPL = i > 0 ? sorted[i - 1].pl : entry.pl
-      const rentMes = prevPL > 0 ? ((entry.pl / prevPL) - 1) * 100 : 0
-      acumRent = firstPL > 0 ? ((entry.pl / firstPL) - 1) * 100 : 0
+    return evolution.map((entry, i) => {
+      const prevPL = i > 0 ? evolution[i - 1].valor : entry.valor
+      const rentMes = prevPL > 0 ? ((entry.valor / prevPL) - 1) * 100 : 0
+      acumRent = evolution[0].valor > 0 ? ((entry.valor / evolution[0].valor) - 1) * 100 : 0
       acumMeta += monthlyMeta
 
       return {
-        label,
+        label: entry.label,
         rentMes: Number(rentMes.toFixed(4)),
         rentAcum: Number(acumRent.toFixed(4)),
         metaMes: Number(monthlyMeta.toFixed(4)),
         metaAcum: Number(acumMeta.toFixed(4))
       }
     })
-  }, [fundsCliente, expectedRent])
-
-  const clientName = normalizeClientName(data?.metaAnual, data?.meta)
+  }, [evolution, expectedRent])
 
   const renderMetrics = (base, first, second) => {
     const block = (cfg) => {
@@ -339,8 +314,7 @@ export default function DashboardUno() {
         label: cfg.label,
         value: formatPt(raw, cfg.decimals) ?? '—',
         unit: cfg.unit,
-        negative: isNegative,
-        info: cfg.info
+        negative: isNegative
       }
     }
     return <DualMetricCard first={block(first)} second={block(second)} />
@@ -501,7 +475,7 @@ export default function DashboardUno() {
               <SummaryCard label="Rentabilidade" info>
                 {renderMetrics(
                   computedMetrics,
-                  { key: 'rentabilidadeMes', label: 'Mês', unit: '%', info: true },
+                  { key: 'rentabilidadeMes', label: 'Mês', unit: '%' },
                   { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%' }
                 )}
               </SummaryCard>
@@ -522,18 +496,7 @@ export default function DashboardUno() {
                 )}
               </SummaryCard>
 
-              <SummaryCard
-                label={
-                  <>
-                    VaR
-                    {computedMetrics.varLabel && (
-                      <Box component="span" sx={{ fontSize: '0.7em', verticalAlign: 'sub' }}>
-                        {computedMetrics.varLabel}
-                      </Box>
-                    )}
-                  </>
-                }
-              >
+              <SummaryCard label="VaR">
                 <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
                   {formatPt(computedMetrics.varValue, 4) ?? '—'}
                   {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
@@ -557,9 +520,6 @@ export default function DashboardUno() {
                 <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
                   <Typography color="text.secondary" align="center">
                     Sem dados de evolução para o período selecionado.
-                  </Typography>
-                  <Typography variant="caption" color="text.disabled" align="center">
-                    Tente um período maior (24 ou 36 meses) para visualizar o histórico.
                   </Typography>
                 </Box>
               ) : (
@@ -635,9 +595,6 @@ export default function DashboardUno() {
                   <Typography color="text.secondary" align="center">
                     Sem dados de rentabilidade para o período selecionado.
                   </Typography>
-                  <Typography variant="caption" color="text.disabled" align="center">
-                    Tente um período maior (24 ou 36 meses) para visualizar o histórico.
-                  </Typography>
                 </Box>
               ) : (
                 <Box sx={{ height: 400, width: '100%' }}>
@@ -653,12 +610,13 @@ export default function DashboardUno() {
                       <Tooltip
                         formatter={(value, name) => [
                           `${formatPt(value, 2)}%`,
-                          name === (isMensal ? 'rentMes' : 'rentAcum') ? 'Rentabilidade' : 'Meta'
+                          (isMensal ? ['rentMes', 'rentAcum'] : ['rentAcum', 'rentMes']).includes(name)
+                            ? 'Rentabilidade' : 'Meta'
                         ]}
                       />
                       <Bar
                         dataKey={isMensal ? 'rentMes' : 'rentAcum'}
-                        name={isMensal ? 'Rentabilidade' : 'Rentabilidade'}
+                        name={isMensal ? 'rentMes' : 'rentAcum'}
                         fill={theme.palette.primary.main}
                         radius={[3, 3, 0, 0]}
                         barSize={isMensal ? 24 : 32}
@@ -666,7 +624,7 @@ export default function DashboardUno() {
                       <Line
                         type="monotone"
                         dataKey={isMensal ? 'metaMes' : 'metaAcum'}
-                        name="Meta"
+                        name="metaMes"
                         stroke={theme.palette.warning?.main || '#ed6c02'}
                         strokeWidth={2}
                         dot={false}

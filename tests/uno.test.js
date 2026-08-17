@@ -18,7 +18,8 @@ import {
   normalizeDiaryPls,
   normalizeRents,
   normalizeInflationRates,
-  computeDashboardMetrics
+  computeDashboardMetrics,
+  parseDiaUltimaCota
 } from '../src/utils/uno'
 
 describe('asArray', () => {
@@ -383,5 +384,24 @@ describe('computeDashboardMetrics', () => {
     expect(m.patrimonio).toBeNull()
     expect(m.rentabilidadeMes).toBeNull()
     expect(m.metaMes).toBeNull()
+  })
+})
+
+describe('parseDiaUltimaCota', () => {
+  it('extrai month e year de formato DD/MM/YYYY', () => {
+    expect(parseDiaUltimaCota('31/12/2025')).toEqual({ year: 2025, month: 12 })
+    expect(parseDiaUltimaCota('01/08/2026')).toEqual({ year: 2026, month: 8 })
+    expect(parseDiaUltimaCota('15/06/2024')).toEqual({ year: 2024, month: 6 })
+  })
+
+  it('retorna null para formato invalido', () => {
+    expect(parseDiaUltimaCota('2025-12-31')).toBeNull()
+    expect(parseDiaUltimaCota('abc')).toBeNull()
+    expect(parseDiaUltimaCota(null)).toBeNull()
+    expect(parseDiaUltimaCota(undefined)).toBeNull()
+  })
+
+  it('aceita espacos extras', () => {
+    expect(parseDiaUltimaCota(' 31/12/2025 ')).toEqual({ year: 2025, month: 12 })
   })
 })

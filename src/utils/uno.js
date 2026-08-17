@@ -166,6 +166,16 @@ export function rangeForPeriod(period, refMonth, refYear) {
 }
 
 /**
+ * parseDiaUltimaCota: extrai { year, month } de "DD/MM/AAAA".
+ */
+export function parseDiaUltimaCota(dia) {
+  const str = String(dia ?? '').trim()
+  const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!m) return null
+  return { year: Number(m[3]), month: Number(m[2]) }
+}
+
+/**
  * normalizeDiaryPls: extrai o PL mensal a partir de dados diários
  * (getClientDiaryPlsByRange). Cada registro tem { new_pl, date_quota, month, year }.
  * Retorna array de { label, valor } ordenado cronologicamente.
