@@ -18,6 +18,7 @@ import { filterEvents } from '../utils/filterEvents'
 import { fetchPastEventsWithMeta } from '../services/eventData'
 import { URL_PARAMS } from '../utils/constants'
 import EventCard from '../components/EventCard'
+import { CARD_HEIGHT_WITH_MEDIA } from '../theme/cardLayout'
 import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
 import FilterSummary from '../components/FilterSummary'
@@ -125,7 +126,7 @@ export default function PastEvents() {
         <Grid container spacing={3}>
           {Array.from({ length: 8 }).map((_, i) => (
             <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
-              <Skeleton variant="rounded" height={380} />
+              <Skeleton variant="rounded" height={CARD_HEIGHT_WITH_MEDIA} />
             </Grid>
           ))}
         </Grid>

@@ -8,8 +8,10 @@ import {
   Paper,
   Skeleton,
   Stack,
-  Typography
+  Typography,
+  useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { ChevronRight, Newspaper, Megaphone, CalendarDays, BookOpen } from 'lucide-react'
 import { fetchAllEventsWithMeta } from '../services/eventData'
 import { fetchNews } from '../services/newsData'
@@ -21,7 +23,26 @@ import NewsCard from '../components/NewsCard'
 import UnoUpdateCard from '../components/UnoUpdateCard'
 import ArticleCard from '../components/ArticleCard'
 import HorizontalScroller from '../components/HorizontalScroller'
+import { CARD_HEIGHT_WITH_MEDIA } from '../theme/cardLayout'
 import { useFavorites } from '../hooks/useFavorites'
+
+/** Quantas noticias o feed mostra, no carrossel mobile e na lista desktop. */
+const NEWS_COUNT = 5
+
+/**
+ * Quantos itens cada carrossel mostra. No mobile e rolagem lateral, entao cabem
+ * 5. No desktop o carrossel quebra em grade, e a contagem tem que fechar a
+ * linha exatamente — 3 na faixa de 3 colunas, 4 na de 4 — senao sobra uma
+ * segunda linha incompleta.
+ */
+function useFeedItemCount() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isWide = useMediaQuery(theme.breakpoints.up('lg'))
+
+  if (isMobile) return 5
+  return isWide ? 4 : 3
+}
 
 function SectionHeader({ icon: Icon, title, to, onMore }) {
   const navigate = useNavigate()
@@ -51,6 +72,9 @@ function SectionHeader({ icon: Icon, title, to, onMore }) {
 
 export default function Feed() {
   const navigate = useNavigate()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const itemCount = useFeedItemCount()
   const { favoriteIds, toggleFavorite } = useFavorites()
   const [events, setEvents] = useState([])
   const [news, setNews] = useState([])
@@ -82,7 +106,9 @@ export default function Feed() {
     fetchData()
   }, [])
 
-  const upcomingEvents = filterEvents(events, {}, [], { excludePast: true }).slice(0, 4)
+  const upcomingEvents = filterEvents(events, {}, [], {
+    excludePast: true
+  }).slice(0, itemCount)
 
   if (loading) {
     return (
@@ -90,7 +116,7 @@ export default function Feed() {
         <Skeleton variant="rounded" height={200} sx={{ mb: 3 }} />
         <HorizontalScroller>
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={380} />
+            <Skeleton key={i} variant="rounded" height={CARD_HEIGHT_WITH_MEDIA} />
           ))}
         </HorizontalScroller>
       </Container>
@@ -145,9 +171,15 @@ export default function Feed() {
           <Typography variant="body2" color="text.secondary">
             As notícias mais recentes sobre RPPS e investimentos aparecem aqui.
           </Typography>
+        ) : isMobile ? (
+          <HorizontalScroller>
+            {news.slice(0, NEWS_COUNT).map((item) => (
+              <NewsCard key={item.id} news={item} layout="card" />
+            ))}
+          </HorizontalScroller>
         ) : (
           <Stack spacing={1.5}>
-            {news.slice(0, 5).map((item) => (
+            {news.slice(0, NEWS_COUNT).map((item) => (
               <NewsCard key={item.id} news={item} layout="list" />
             ))}
           </Stack>
@@ -166,7 +198,7 @@ export default function Feed() {
           </Typography>
         ) : (
           <HorizontalScroller>
-            {articles.slice(0, 3).map((article) => (
+            {articles.slice(0, itemCount).map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
           </HorizontalScroller>
@@ -185,7 +217,7 @@ export default function Feed() {
           </Typography>
         ) : (
           <HorizontalScroller>
-            {updates.slice(0, 3).map((update) => (
+            {updates.slice(0, itemCount).map((update) => (
               <UnoUpdateCard key={update.id} update={update} />
             ))}
           </HorizontalScroller>

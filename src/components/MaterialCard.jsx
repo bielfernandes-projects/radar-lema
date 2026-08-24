@@ -1,22 +1,39 @@
 import { useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
+  IconButton,
+  Snackbar,
   Stack,
   Typography
 } from '@mui/material'
-import { Download, FileText, Loader2 } from 'lucide-react'
+import { Download, FileText, Loader2, X } from 'lucide-react'
 import { getMaterialUrl } from '../services/materialsData'
 import { formatFileSize, formatHubDate } from '../utils/hub'
+import { truncateAtWord } from '../utils/text'
+import {
+  CARD_HEIGHT_TEXT_ONLY,
+  TRUNCATE,
+  cardBodySx,
+  cardContentSx,
+  cardFooterSlotSx,
+  cardMetaSlotSx,
+  cardRootSx,
+  cardSpacerSx,
+  cardTitleSx
+} from '../theme/cardLayout'
 import ExclusiveBadge from './ExclusiveBadge'
 
 export default function MaterialCard({ material }) {
   const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState('')
+
+  const sizeLabel = material.file_name
+    ? formatFileSize(material.file_size)
+    : material.file_type
 
   const handleDownload = async () => {
     setDownloading(true)
@@ -36,45 +53,27 @@ export default function MaterialCard({ material }) {
   }
 
   return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
-      <CardContent>
-        <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
-          {material.visibility === 'lema_client' && <ExclusiveBadge />}
+    <Card sx={cardRootSx(CARD_HEIGHT_TEXT_ONLY)}>
+      <CardContent sx={cardContentSx}>
+        <Stack direction="row" spacing={1} sx={cardMetaSlotSx}>
+          {material.visibility === 'lema_client' && <ExclusiveBadge compact />}
           <Chip label={formatHubDate(material.created_at)} size="small" variant="outlined" />
-          {material.file_type && (
-            <Chip
-              icon={<FileText size={14} />}
-              label={material.file_name ? formatFileSize(material.file_size) : material.file_type}
-              size="small"
-              variant="outlined"
-            />
-          )}
         </Stack>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-          {material.title}
+
+        <Typography variant="h6" component="h2" sx={cardTitleSx()}>
+          {truncateAtWord(material.title, TRUNCATE.title)}
         </Typography>
-        {material.description && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mb: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical'
-            }}
-          >
-            {material.description}
-          </Typography>
-        )}
-        {error && (
-          <Alert severity="error" sx={{ mb: 1 }}>
-            {error}
-          </Alert>
-        )}
-        <Box>
+
+        <Typography variant="body2" color="text.secondary" sx={cardBodySx(2)}>
+          {truncateAtWord(material.description, TRUNCATE.body2Lines)}
+        </Typography>
+
+        <Box sx={cardSpacerSx} />
+
+        {/* Tamanho do arquivo fica junto da acao de baixar, e nao na linha de
+            chips: tres chips estouram a largura do card e quebram para uma
+            segunda linha. */}
+        <Stack direction="row" alignItems="center" spacing={1} sx={cardFooterSlotSx}>
           <Button
             size="small"
             variant="outlined"
@@ -82,10 +81,32 @@ export default function MaterialCard({ material }) {
             onClick={handleDownload}
             disabled={downloading}
           >
-            {downloading ? 'Preparando...' : 'Baixar material'}
+            {downloading ? 'Preparando...' : 'Baixar'}
           </Button>
-        </Box>
+          {sizeLabel && (
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary', minWidth: 0 }}>
+              <FileText size={14} style={{ flexShrink: 0 }} />
+              <Typography variant="caption" noWrap>
+                {sizeLabel}
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
       </CardContent>
+
+      {/* O erro vai para Snackbar, e nao para dentro do card: um Alert no corpo
+          muda a altura do card e desalinha a linha inteira da grade. */}
+      <Snackbar
+        open={Boolean(error)}
+        autoHideDuration={5000}
+        onClose={() => setError('')}
+        message={error}
+        action={
+          <IconButton size="small" color="inherit" aria-label="Fechar" onClick={() => setError('')}>
+            <X size={18} />
+          </IconButton>
+        }
+      />
     </Card>
   )
 }

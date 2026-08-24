@@ -60,7 +60,7 @@ export default function ListPage({
       {loading ? (
         <Grid container spacing={3}>
           {Array.from({ length: skeletonCount }).map((_, i) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
               <Skeleton variant="rounded" height={skeletonHeight} />
             </Grid>
           ))}
@@ -92,7 +92,7 @@ export default function ListPage({
           )}
           <Grid container spacing={variant === 'list' ? 1.5 : 3}>
             {items.map((item) => (
-              <Grid size={variant === 'list' ? 12 : { xs: 12, sm: 6, md: 4 }} key={item.id}>
+              <Grid size={variant === 'list' ? 12 : { xs: 12, sm: 6, md: 4, lg: 3 }} key={item.id}>
                 {renderItem(item)}
               </Grid>
             ))}

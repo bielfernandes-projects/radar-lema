@@ -228,6 +228,9 @@ export default function ManageHub() {
                   <Box>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                       <Typography variant="h6">{item.title}</Typography>
+                      {tab === 'articles' && item.origin === 'blog' && (
+                        <Chip label="Blog Lema" size="small" variant="outlined" />
+                      )}
                       {tab === 'uno_updates' && (
                         <Chip label={unoUpdateTypeLabel(item.type)} size="small" color="primary" />
                       )}

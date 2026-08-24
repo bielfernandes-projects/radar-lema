@@ -3,7 +3,7 @@ import { supabase as _supabase } from '../lib/supabase'
 export async function fetchArticles({ supabase } = { supabase: _supabase }) {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, subtitle, author, cover_url, visibility, created_at')
+    .select('id, title, subtitle, author, cover_url, visibility, created_at, origin, source_url')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data ?? []

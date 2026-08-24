@@ -19,6 +19,20 @@ import {
   formatModality,
   formatPrice
 } from '../utils/formatters'
+import { truncateAtWord } from '../utils/text'
+import {
+  CARD_HEIGHT_WITH_MEDIA,
+  CARD_MEDIA_HEIGHT,
+  TRUNCATE,
+  cardActionAreaSx,
+  cardContentSx,
+  cardFooterSlotSx,
+  cardMediaSlotSx,
+  cardMetaLineSx,
+  cardRootSx,
+  cardSpacerSx,
+  cardTitleSx
+} from '../theme/cardLayout'
 import { useReminders } from '../hooks/useReminders'
 import ReminderDialog from './ReminderDialog'
 
@@ -32,6 +46,9 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
     event.modality === 'online'
       ? 'Online'
       : [event.city, event.state].filter(Boolean).join(' - ')
+
+  const dateLabel = formatDateRange(event.min_date, event.max_date)
+  const placeLabel = locationLabel || formatModality(event.modality)
 
   const handleFavoriteClick = async (clickEvent) => {
     clickEvent.stopPropagation()
@@ -56,34 +73,20 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
   }
 
   return (
-    <Card
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      }}
-    >
+    <Card sx={cardRootSx(CARD_HEIGHT_WITH_MEDIA)}>
       <CardActionArea
         onClick={() => navigate(`/evento/${event.id}`)}
-        sx={{
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch'
-        }}
+        sx={cardActionAreaSx}
       >
-        <Box sx={{ position: 'relative' }}>
-          <Box sx={{ bgcolor: 'grey.200', height: 180 }}>
-            <CardMedia
-              component="img"
-              height="180"
-              image={event.cover_photo?.public_url || '/placeholder-event.png?v=2'}
-              alt={event.title}
-              loading="lazy"
-              sx={{ objectFit: 'cover' }}
-            />
-          </Box>
+        <Box sx={cardMediaSlotSx}>
+          <CardMedia
+            component="img"
+            height={CARD_MEDIA_HEIGHT}
+            image={event.cover_photo?.public_url || '/placeholder-event.png?v=2'}
+            alt={event.title}
+            loading="lazy"
+            sx={{ objectFit: 'cover' }}
+          />
           <Stack
             direction="row"
             spacing={1}
@@ -102,33 +105,34 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
           </Stack>
         </Box>
 
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            {event.title}
+        <CardContent sx={cardContentSx}>
+          <Typography variant="h6" component="h2" sx={cardTitleSx()}>
+            {truncateAtWord(event.title, TRUNCATE.title)}
           </Typography>
 
-          <Stack spacing={0.5}>
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
-              <CalendarDays size={18} />
-              <Typography variant="body2" color="text.secondary">
-                {formatDateRange(event.min_date, event.max_date)}
+          <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary', minWidth: 0 }}>
+              <CalendarDays size={18} style={{ flexShrink: 0 }} />
+              <Typography variant="body2" color="text.secondary" sx={cardMetaLineSx}>
+                {truncateAtWord(dateLabel, TRUNCATE.metaLine)}
               </Typography>
             </Stack>
 
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
-              <MapPin size={18} />
-              <Typography variant="body2" color="text.secondary">
-                {locationLabel || formatModality(event.modality)}
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary', minWidth: 0 }}>
+              <MapPin size={18} style={{ flexShrink: 0 }} />
+              <Typography variant="body2" color="text.secondary" sx={cardMetaLineSx}>
+                {truncateAtWord(placeLabel, TRUNCATE.metaLine)}
               </Typography>
             </Stack>
           </Stack>
 
-          <Typography
-            variant="body1"
-            sx={{ mt: 2, fontWeight: 600, color: 'primary.main' }}
-          >
-            {formatPrice(event)}
-          </Typography>
+          <Box sx={cardSpacerSx} />
+
+          <Box sx={cardFooterSlotSx}>
+            <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              {formatPrice(event)}
+            </Typography>
+          </Box>
         </CardContent>
       </CardActionArea>
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Container,
   IconButton,
@@ -11,7 +12,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react'
 import { fetchArticleById } from '../services/articlesData'
 import { safeUrl } from '../utils/safeUrl'
 import { formatHubDateTime } from '../utils/hub'
@@ -106,16 +107,31 @@ export default function ArticleDetail() {
       <Markdown content={article.body} />
 
       {article.source_url && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
-          Publicado originalmente no{' '}
-          <a
-            href={safeUrl(article.source_url) ?? '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            LinkedIn
-          </a>
-        </Typography>
+        <Stack sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderTopColor: 'divider' }}>
+          {article.origin === 'blog' ? (
+            <Button
+              variant="contained"
+              endIcon={<ExternalLink size={16} />}
+              href={safeUrl(article.source_url) ?? article.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              Ler no site da Lema
+            </Button>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              Publicado originalmente em{' '}
+              <a
+                href={safeUrl(article.source_url) ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {new URL(article.source_url).hostname.replace('www.', '')}
+              </a>
+            </Typography>
+          )}
+        </Stack>
       )}
 
       <Interactions contentType="article" contentId={article.id} />

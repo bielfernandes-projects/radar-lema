@@ -6,7 +6,7 @@ function colWidth(columns, gap = 16) {
 
 export default function HorizontalScroller({
   children,
-  columns = { md: 3, lg: 3 }
+  columns = { md: 3, lg: 4 }
 }) {
   return (
     <Box
