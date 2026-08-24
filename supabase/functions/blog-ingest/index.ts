@@ -123,12 +123,42 @@ async function downloadCover(
   }
 }
 
-function getCoverUrl(post: WPPost): string | null {
-  if (!post._embedded?.["wp:featuredmedia"]?.[0]) return null;
+interface EmbeddedMedia {
+  id?: number;
+  media_details?: {
+    sizes?: Record<
+      string,
+      { source_url: string; width: number; height: number }
+    >;
+  };
+  embeddable?: boolean;
+  href?: string;
+}
 
-  const media = post._embedded["wp:featuredmedia"][0];
+async function getCoverUrl(post: WPPost): Promise<string | null> {
+  const featuredMedia = post._embedded?.["wp:featuredmedia"]?.[0] as
+    | EmbeddedMedia
+    | undefined;
+  if (!featuredMedia) return null;
+
+  let media = featuredMedia;
+
+  // Se o media não tem media_details (não foi expandido), busca diretamente.
+  if (!media.media_details && media.href && media.embeddable) {
+    try {
+      const res = await fetch(media.href, {
+        headers: { "User-Agent": "RadarLema-BlogIngest/1.0" },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (res.ok) {
+        media = (await res.json()) as EmbeddedMedia;
+      }
+    } catch {
+      // Se falhar a busca, continua com o que tem (ou nada).
+    }
+  }
+
   const sizes = media.media_details?.sizes;
-
   for (const size of ["medium", "medium_large", "full"]) {
     if (sizes?.[size]?.source_url) {
       return sizes[size].source_url;
@@ -210,26 +240,29 @@ Deno.serve(async (req) => {
     const rows: ArticleRow[] = [];
     const coversToDownload: { post: WPPost; sourceUrl: string }[] = [];
     const coverDownloads: Map<string, string | null> = new Map();
-    let skipped = 0;
 
-    for (const post of posts) {
+    // Processa posts em paralelo para buscar covers.
+    const postPromises = posts.map(async (post) => {
       const sourceId = String(post.id);
 
       // Pula se foi excluído.
       if (tombstones.has(sourceId)) {
-        skipped++;
-        continue;
+        return { shouldSkip: true };
       }
 
       // Pula se existe e não mudou.
       const existing_row = existing.get(sourceId);
-      if (existing_row?.modified_at === post.modified_gmt) {
-        skipped++;
-        continue;
+      if (existing_row) {
+        // Compara timestamps normalizados (elimina diferenças de formato).
+        const existingTime = new Date(existing_row.modified_at).getTime();
+        const postTime = new Date(post.modified_gmt).getTime();
+        if (existingTime === postTime) {
+          return { shouldSkip: true };
+        }
       }
 
-      // Fila a capa se mudou ou é nova.
-      const coverUrl = getCoverUrl(post);
+      // Busca capa se mudou ou é nova.
+      const coverUrl = await getCoverUrl(post);
       if (coverUrl) {
         if (!existing_row || existing_row.cover_url !== coverUrl) {
           coversToDownload.push({ post, sourceUrl: coverUrl });
@@ -238,6 +271,26 @@ Deno.serve(async (req) => {
       } else {
         coverDownloads.set(sourceId, null);
       }
+
+      return {
+        shouldSkip: false,
+        sourceId,
+        post,
+        coverUrl,
+        existing_row
+      };
+    });
+
+    const processedPosts = await Promise.all(postPromises);
+    let skipped = 0;
+
+    for (const result of processedPosts) {
+      if (result.shouldSkip) {
+        skipped++;
+        continue;
+      }
+
+      const { sourceId, post, coverUrl } = result;
 
       rows.push({
         title: stripHtml(post.title.rendered),

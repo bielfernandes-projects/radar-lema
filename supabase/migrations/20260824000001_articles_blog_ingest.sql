@@ -15,9 +15,10 @@ ADD COLUMN source_id TEXT,
 ADD COLUMN source_modified_at TIMESTAMPTZ,
 ADD COLUMN source_cover_url TEXT;
 
--- Índice único em source_id (permite NULL sem conflitar, autodeduplicação).
-CREATE UNIQUE INDEX idx_articles_source_id ON public.articles (source_id)
-WHERE source_id IS NOT NULL;
+-- Constraint único em source_id (permite NULL sem conflitar, autodeduplicação).
+-- Usado pelo upsert com onConflict: 'source_id' no blog-ingest.
+ALTER TABLE public.articles
+ADD CONSTRAINT articles_source_id_unique UNIQUE (source_id);
 
 -- ---------------------------------------------------------------------------
 -- Tabela de tombstones para artigos excluídos do blog
@@ -41,16 +42,8 @@ CREATE POLICY tombstones_staff_write ON public.article_ingest_tombstones
   WITH CHECK (public.is_staff());
 
 -- ---------------------------------------------------------------------------
--- Trigger para registrar exclusões de artigos do blog
+-- Função PL/pgSQL para criar o tombstone
 -- ---------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS article_delete_tombstone ON public.articles;
-CREATE TRIGGER article_delete_tombstone
-AFTER DELETE ON public.articles
-FOR EACH ROW
-WHEN (OLD.origin = 'blog' AND OLD.source_id IS NOT NULL)
-EXECUTE FUNCTION public.insert_article_tombstone();
-
--- Função PL/pgSQL para criar o tombstone.
 DROP FUNCTION IF EXISTS public.insert_article_tombstone();
 CREATE FUNCTION public.insert_article_tombstone()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -61,3 +54,13 @@ BEGIN
   RETURN NULL;
 END;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Trigger para registrar exclusões de artigos do blog
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS article_delete_tombstone ON public.articles;
+CREATE TRIGGER article_delete_tombstone
+AFTER DELETE ON public.articles
+FOR EACH ROW
+WHEN (OLD.origin = 'blog' AND OLD.source_id IS NOT NULL)
+EXECUTE FUNCTION public.insert_article_tombstone();
