@@ -78,7 +78,7 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
         onClick={() => navigate(`/evento/${event.id}`)}
         sx={cardActionAreaSx}
       >
-        <Box sx={cardMediaSlotSx}>
+        <Box sx={cardMediaSlotSx()}>
           <CardMedia
             component="img"
             height={CARD_MEDIA_HEIGHT}

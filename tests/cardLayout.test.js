@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  CARD_HEIGHT_ARTICLE,
   CARD_HEIGHT_TEXT_ONLY,
+  CARD_HEIGHT_UNO_UPDATE,
   CARD_HEIGHT_WITH_MEDIA,
   NEWS_ROW_HEIGHT,
   SLOT
@@ -34,14 +36,30 @@ const compositions = [
     ]
   },
   {
+    // Slot de capa maior que o do evento: a capa do blog e quadrada.
     nome: 'ArticleCard',
-    altura: CARD_HEIGHT_WITH_MEDIA,
-    slots: [SLOT.media, SLOT.contentPadding, meta, title(2), body(2), SLOT.spacerMin, footer()]
+    altura: CARD_HEIGHT_ARTICLE,
+    slots: [
+      SLOT.articleMedia,
+      SLOT.contentPadding,
+      meta,
+      title(2),
+      body(2),
+      SLOT.spacerMin,
+      footer()
+    ]
   },
   {
+    // Metadados em duas linhas: tipo em cima, data embaixo.
     nome: 'UnoUpdateCard',
-    altura: CARD_HEIGHT_TEXT_ONLY,
-    slots: [SLOT.contentPadding, meta, title(2), body(4), SLOT.spacerMin]
+    altura: CARD_HEIGHT_UNO_UPDATE,
+    slots: [
+      SLOT.contentPadding,
+      SLOT.metaStack + SLOT.metaMargin,
+      title(2),
+      body(4),
+      SLOT.spacerMin
+    ]
   },
   {
     nome: 'MaterialCard',

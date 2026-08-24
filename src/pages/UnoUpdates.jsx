@@ -11,7 +11,7 @@ export default function UnoUpdates() {
       subtitle="Atualizações e novas funcionalidades do sistema UNO."
       fetchData={fetchUnoUpdates}
       renderItem={(update) => <UnoUpdateCard update={update} />}
-      skeletonHeight={SKELETON_HEIGHT.textOnly}
+      skeletonHeight={SKELETON_HEIGHT.unoUpdate}
       emptyIcon={Megaphone}
       emptyTitle="Nenhuma novidade ainda"
       emptyMessage="Atualizações e novas funcionalidades do sistema UNO aparecem aqui."

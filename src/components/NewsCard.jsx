@@ -10,7 +10,7 @@ import {
   cardActionAreaSx,
   cardBodySx,
   cardContentSx,
-  cardMetaSlotSx,
+  cardMetaSpreadSx,
   cardRootSx,
   cardSpacerSx,
   cardTitleSx
@@ -56,7 +56,7 @@ export default function NewsCard({ news, layout = 'card' }) {
     <Card sx={cardRootSx(height)}>
       <CardActionArea onClick={() => navigate(`/noticia/${news.id}`)} sx={cardActionAreaSx}>
         <CardContent sx={cardContentSx}>
-          <Stack direction="row" spacing={1} sx={cardMetaSlotSx}>
+          <Stack direction="row" spacing={1} sx={cardMetaSpreadSx}>
             {news.source && <Chip label={news.source} size="small" variant="outlined" />}
             <Chip label={formatHubDate(news.published_at)} size="small" variant="outlined" />
           </Stack>

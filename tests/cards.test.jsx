@@ -42,18 +42,27 @@ describe('ArticleCard', () => {
     visibility: 'public'
   }
 
-  it('sem capa, cai no placeholder em vez de encolher o card', () => {
+  it('sem capa propria, usa a capa padrao da Lema — nunca um slot vazio', () => {
     const { container } = wrap(<ArticleCard article={artigo} />)
-    // Sem <img>, mas com o icone do placeholder ocupando o mesmo slot.
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector('svg')).not.toBeNull()
+    const img = container.querySelector('img')
+    expect(img).not.toBeNull()
+    // A query de versao existe para furar cache e pode mudar; o que importa
+    // e o card cair na arte da Lema em vez de ficar com o slot vazio.
+    expect(img.getAttribute('src')).toMatch(/^\/placeholder-article\.png/)
   })
 
   it('com capa, renderiza a imagem no slot', () => {
     const { container } = wrap(
       <ArticleCard article={{ ...artigo, cover_url: 'https://example.com/capa.jpg' }} />
     )
-    expect(container.querySelector('img')).not.toBeNull()
+    expect(container.querySelector('img').getAttribute('src')).toBe(
+      'https://example.com/capa.jpg'
+    )
+  })
+
+  it('marca com o chip Blog Lema o artigo vindo do blog', () => {
+    wrap(<ArticleCard article={{ ...artigo, origin: 'blog' }} />)
+    expect(screen.getByText('Blog Lema')).toBeInTheDocument()
   })
 
   it('corta título longo na fronteira de palavra', () => {

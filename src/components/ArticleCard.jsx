@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Box, Card, CardActionArea, CardContent, CardMedia, Chip, Stack, Typography } from '@mui/material'
-import { BookOpen } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatHubDate } from '../utils/hub'
 import { truncateAtWord } from '../utils/text'
 import {
-  CARD_HEIGHT_WITH_MEDIA,
-  CARD_MEDIA_HEIGHT,
+  ARTICLE_MEDIA_HEIGHT,
+  CARD_HEIGHT_ARTICLE,
   TRUNCATE,
   cardActionAreaSx,
   cardBodySx,
@@ -20,40 +19,35 @@ import {
 } from '../theme/cardLayout'
 import ExclusiveBadge from './ExclusiveBadge'
 
+/**
+ * Capa de reserva. Um card de artigo sem imagem nao se justifica — o slot de
+ * capa ficaria vazio acima do titulo. Artigo sem capa propria (ou com capa que
+ * falhou ao carregar) cai nesta arte da Lema, no mesmo padrao de
+ * `placeholder-event.png` usado pelo card de evento.
+ */
+const FALLBACK_COVER = '/placeholder-article.png?v=1'
+
 export default function ArticleCard({ article }) {
   const navigate = useNavigate()
   const [imgFailed, setImgFailed] = useState(false)
 
-  const hasCover = Boolean(article.cover_url) && !imgFailed
+  const coverUrl = (!imgFailed && article.cover_url) || FALLBACK_COVER
 
   return (
-    <Card sx={cardRootSx(CARD_HEIGHT_WITH_MEDIA)}>
+    <Card sx={cardRootSx(CARD_HEIGHT_ARTICLE)}>
       <CardActionArea onClick={() => navigate(`/artigo/${article.id}`)} sx={cardActionAreaSx}>
-        {/* O slot da capa e sempre renderizado: artigo sem capa cai no
-            placeholder em vez de encolher o card. */}
-        <Box sx={cardMediaSlotSx}>
-          {hasCover ? (
-            <CardMedia
-              component="img"
-              height={CARD_MEDIA_HEIGHT}
-              image={article.cover_url}
-              alt={article.title}
-              loading="lazy"
-              onError={() => setImgFailed(true)}
-              sx={{ objectFit: 'cover' }}
-            />
-          ) : (
-            <Stack
-              sx={{
-                height: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'text.disabled'
-              }}
-            >
-              <BookOpen size={40} />
-            </Stack>
-          )}
+        {/* O slot da capa e sempre renderizado com imagem: sem capa propria,
+            entra a arte da Lema, e a grade segue simetrica. */}
+        <Box sx={cardMediaSlotSx(ARTICLE_MEDIA_HEIGHT)}>
+          <CardMedia
+            component="img"
+            height={ARTICLE_MEDIA_HEIGHT}
+            image={coverUrl}
+            alt={article.title}
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+            sx={{ objectFit: 'cover' }}
+          />
         </Box>
 
         <CardContent sx={cardContentSx}>

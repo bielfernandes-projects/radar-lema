@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { formatHubDate, unoUpdateTypeLabel } from '../utils/hub'
 import { truncateAtWord } from '../utils/text'
 import {
-  CARD_HEIGHT_TEXT_ONLY,
+  CARD_HEIGHT_UNO_UPDATE,
   TRUNCATE,
   cardActionAreaSx,
   cardBodySx,
   cardContentSx,
-  cardMetaSlotSx,
+  cardMetaStackSx,
   cardRootSx,
   cardSpacerSx,
   cardTitleSx
@@ -18,10 +18,11 @@ export default function UnoUpdateCard({ update }) {
   const navigate = useNavigate()
 
   return (
-    <Card sx={cardRootSx(CARD_HEIGHT_TEXT_ONLY)}>
+    <Card sx={cardRootSx(CARD_HEIGHT_UNO_UPDATE)}>
       <CardActionArea onClick={() => navigate(`/novidade/${update.id}`)} sx={cardActionAreaSx}>
         <CardContent sx={cardContentSx}>
-          <Stack direction="row" spacing={1} sx={cardMetaSlotSx}>
+          {/* Empilhados: lado a lado, a data era cortada pela borda do card. */}
+          <Stack direction="column" spacing={0.5} sx={cardMetaStackSx}>
             <Chip label={unoUpdateTypeLabel(update.type)} size="small" color="primary" />
             <Chip label={formatHubDate(update.created_at)} size="small" variant="outlined" />
           </Stack>

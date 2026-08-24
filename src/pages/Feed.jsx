@@ -5,13 +5,13 @@ import {
   Box,
   Button,
   Container,
-  Paper,
   Skeleton,
   Stack,
   Typography,
   useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { visuallyHidden } from '@mui/utils'
 import { ChevronRight, Newspaper, Megaphone, CalendarDays, BookOpen } from 'lucide-react'
 import { fetchAllEventsWithMeta } from '../services/eventData'
 import { fetchNews } from '../services/newsData'
@@ -125,21 +125,17 @@ export default function Feed() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
+      {/* A home nao tem mais cabecalho visivel, mas a pagina ainda precisa de
+          um h1: sem ele as secoes (h2) ficariam orfas para leitor de tela. */}
+      <Typography variant="h1" sx={visuallyHidden}>
+        Radar Lema
+      </Typography>
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
-
-      <Paper elevation={2} sx={{ p: 3, mb: 4, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Radar Lema
-        </Typography>
-        <Typography variant="body1">
-          Eventos, notícias de mercado, novidades do UNO e conteúdos exclusivos do
-          ecossistema Lema para RPPS — tudo em um só lugar.
-        </Typography>
-      </Paper>
 
       <Box sx={{ mb: 4 }}>
         <SectionHeader

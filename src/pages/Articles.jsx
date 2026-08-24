@@ -11,7 +11,7 @@ export default function Articles() {
       subtitle="Análises, comparativos e estudos da Lema sobre RPPS e investimentos."
       fetchData={fetchArticles}
       renderItem={(article) => <ArticleCard article={article} />}
-      skeletonHeight={SKELETON_HEIGHT.withMedia}
+      skeletonHeight={SKELETON_HEIGHT.article}
       emptyIcon={BookOpen}
       emptyTitle="Nenhum artigo publicado"
       emptyMessage="Análises, comparativos e estudos da Lema sobre RPPS e investimentos aparecem aqui."

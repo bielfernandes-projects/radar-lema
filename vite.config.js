@@ -52,7 +52,7 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        globIgnores: ['**/placeholder-event.png'],
+        globIgnores: ['**/placeholder-event.png', '**/placeholder-article.png'],
         maximumFileSizeToCacheInBytes: 5000000
       }
     })

@@ -12,7 +12,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { fetchArticleById } from '../services/articlesData'
 import { safeUrl } from '../utils/safeUrl'
 import { formatHubDateTime } from '../utils/hub'
@@ -20,6 +20,9 @@ import Markdown from '../components/Markdown'
 import PageSkeleton from '../components/PageSkeleton'
 import ExclusiveBadge from '../components/ExclusiveBadge'
 import Interactions from '../components/Interactions'
+
+/** Mesma arte de reserva usada pelo ArticleCard. */
+const FALLBACK_COVER = '/placeholder-article.png?v=1'
 
 export default function ArticleDetail() {
   const { id } = useParams()
@@ -60,6 +63,10 @@ export default function ArticleDetail() {
     )
   }
 
+  const coverSrc =
+    (!imgFailed && article.cover_url && (safeUrl(article.cover_url) ?? article.cover_url)) ||
+    FALLBACK_COVER
+
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
       <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
@@ -70,23 +77,17 @@ export default function ArticleDetail() {
         </Tooltip>
       </Stack>
 
-      {article.cover_url && !imgFailed ? (
-        <Paper elevation={2} sx={{ overflow: 'hidden', mb: 2, bgcolor: 'grey.200' }}>
-          <Box
-            component="img"
-            src={safeUrl(article.cover_url) ?? article.cover_url}
-            alt={article.title}
-            onError={() => setImgFailed(true)}
-            sx={{ width: '100%', height: { xs: 220, md: 320 }, objectFit: 'cover', display: 'block' }}
-          />
-        </Paper>
-      ) : (
-        <Paper elevation={2} sx={{ mb: 2, bgcolor: 'grey.200' }}>
-          <Stack sx={{ height: 200, alignItems: 'center', justifyContent: 'center', color: 'text.disabled' }}>
-            <BookOpen size={48} />
-          </Stack>
-        </Paper>
-      )}
+      {/* Mesma regra do card: artigo sempre com imagem real. Sem capa propria
+          (ou com capa que falhou), entra a arte padrao da Lema. */}
+      <Paper elevation={2} sx={{ overflow: 'hidden', mb: 2, bgcolor: 'grey.200' }}>
+        <Box
+          component="img"
+          src={coverSrc}
+          alt={article.title}
+          onError={() => setImgFailed(true)}
+          sx={{ width: '100%', height: { xs: 220, md: 320 }, objectFit: 'cover', display: 'block' }}
+        />
+      </Paper>
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
         {article.visibility === 'lema_client' && <ExclusiveBadge />}

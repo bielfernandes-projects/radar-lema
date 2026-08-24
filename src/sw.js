@@ -33,7 +33,7 @@ registerRoute(
 )
 
 registerRoute(
-  /^(?!.*placeholder-event).*\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+  /^(?!.*placeholder-(?:event|article)).*\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
   new StaleWhileRevalidate({
     cacheName: 'app-images',
     plugins: [new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 })]

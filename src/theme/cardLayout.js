@@ -14,11 +14,32 @@
 
 export const CARD_MEDIA_HEIGHT = 160
 
-/** Evento e artigo — cards com capa. */
+/** Evento — card com capa horizontal (foto de evento). */
 export const CARD_HEIGHT_WITH_MEDIA = 380
 
-/** Noticia (carrossel mobile), novidade UNO e material — cards so de texto. */
+/**
+ * Artigo — slot de capa quase quadrado.
+ *
+ * As capas do blog da Lema sao quadradas (300x300: arte de boletim com texto e
+ * logo). Num slot de 160px a arte perderia ~40% da altura no corte central,
+ * cortando justamente o texto. Com 240px o corte fica desprezivel e a capa
+ * continua legivel.
+ */
+export const ARTICLE_MEDIA_HEIGHT = 240
+
+/** 380 do card de evento + os 80px a mais do slot de capa do artigo. */
+export const CARD_HEIGHT_ARTICLE = 460
+
+/** Noticia (carrossel mobile) e material — cards so de texto. */
 export const CARD_HEIGHT_TEXT_ONLY = 216
+
+/**
+ * Novidade do UNO. Mais alto que os outros cards de texto porque a linha de
+ * metadados ocupa duas linhas: o rotulo de tipo ("Atualizacao", "Manutencao")
+ * mais a data nao cabem lado a lado na largura de um card no celular, e a data
+ * acabava cortada pela borda.
+ */
+export const CARD_HEIGHT_UNO_UPDATE = 248
 
 /** Linha da lista de /noticias: titulo em 2 linhas no mobile, 1 no desktop. */
 export const NEWS_ROW_HEIGHT = { xs: 176, sm: 148 }
@@ -39,6 +60,8 @@ export const SLOT = {
   titleMargin: 4,
   bodyLine: BODY_LINE_HEIGHT_PX,
   meta: META_SLOT_HEIGHT,
+  // Duas linhas de chip com 4px entre elas.
+  metaStack: 2 * META_SLOT_HEIGHT + 4,
   metaMargin: 8,
   footer: FOOTER_SLOT_HEIGHT,
   footerMargin: 8,
@@ -46,6 +69,7 @@ export const SLOT = {
   smallButton: 30.75,
   spacerMin: 8,
   media: CARD_MEDIA_HEIGHT,
+  articleMedia: ARTICLE_MEDIA_HEIGHT,
   // CardContent: 16px em cima e, via `cardContentSx`, 16px embaixo.
   contentPadding: 32
 }
@@ -96,12 +120,18 @@ export const cardContentSx = {
   '&:last-child': { pb: 2 }
 }
 
-export const cardMediaSlotSx = {
-  height: CARD_MEDIA_HEIGHT,
-  flexShrink: 0,
-  position: 'relative',
-  overflow: 'hidden',
-  bgcolor: 'action.hover'
+/**
+ * Slot da capa. Recebe a altura porque evento e artigo usam proporcoes
+ * diferentes: a foto de evento e horizontal, a capa de artigo e quadrada.
+ */
+export function cardMediaSlotSx(height = CARD_MEDIA_HEIGHT) {
+  return {
+    height,
+    flexShrink: 0,
+    position: 'relative',
+    overflow: 'hidden',
+    bgcolor: 'action.hover'
+  }
 }
 
 /**
@@ -117,6 +147,31 @@ export const cardMetaSlotSx = {
   flexWrap: 'nowrap',
   overflow: 'hidden',
   '& .MuiChip-root': { minWidth: 0 }
+}
+
+/**
+ * Metadados com os extremos ancorados: o primeiro chip encosta na esquerda e o
+ * ultimo na direita. Usado quando o chip da esquerda tem largura variavel (o
+ * nome da fonte da noticia) — sem isso a data muda de posicao a cada card e a
+ * coluna fica serrilhada na lista.
+ */
+export const cardMetaSpreadSx = {
+  ...cardMetaSlotSx,
+  justifyContent: 'space-between'
+}
+
+/**
+ * Metadados empilhados em duas linhas, para quando os chips nao cabem lado a
+ * lado na largura do card. Cada linha mantem a altura de um chip, entao a
+ * geometria continua previsivel.
+ */
+export const cardMetaStackSx = {
+  height: 2 * META_SLOT_HEIGHT + 4,
+  mb: 1,
+  flexShrink: 0,
+  alignItems: 'flex-start',
+  overflow: 'hidden',
+  '& .MuiChip-root': { maxWidth: '100%' }
 }
 
 function clampLines(lines, lineHeightPx) {
@@ -172,6 +227,8 @@ export const cardFooterSlotSx = {
 /** Alturas de esqueleto, para o carregamento nao provocar salto de layout. */
 export const SKELETON_HEIGHT = {
   withMedia: CARD_HEIGHT_WITH_MEDIA,
+  article: CARD_HEIGHT_ARTICLE,
   textOnly: CARD_HEIGHT_TEXT_ONLY,
+  unoUpdate: CARD_HEIGHT_UNO_UPDATE,
   newsRow: NEWS_ROW_HEIGHT.sm
 }

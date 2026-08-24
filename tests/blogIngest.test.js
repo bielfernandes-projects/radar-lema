@@ -105,65 +105,122 @@ describe('Blog Ingest Helpers', () => {
     })
   })
 
-  describe('Lógica de sincronização', () => {
-    it('pula artigo com source_id em tombstones', () => {
-      const tombstones = new Set(['12345'])
-      const post = { id: 12345, title: { rendered: 'Artigo' }, modified_gmt: '2024-01-01T00:00:00Z' }
+  describe('Decisao de sincronizacao', () => {
+    /**
+     * Espelha a decisao da Edge Function. A regra que importa: o timestamp
+     * sozinho nao basta. Um artigo cujos metadados nao mudaram mas que ficou
+     * sem capa tem de ser reprocessado, senao a capa faltante nunca e reparada
+     * (foi assim que 50 artigos ficaram sem imagem indefinidamente).
+     */
+    const decide = ({ post, known, tombstones = new Set(), sourceCoverUrl = null }) => {
+      const sourceId = String(post.id)
+      if (tombstones.has(sourceId)) return { action: 'skip', reason: 'tombstone' }
 
-      const isTombstoned = tombstones.has(String(post.id))
-      expect(isTombstoned).toBe(true)
+      const metadataStale =
+        !known ||
+        new Date(known.sourceModifiedAt ?? 0).getTime() !==
+          new Date(post.modified_gmt).getTime()
+
+      if (!metadataStale && known?.coverUrl) return { action: 'skip', reason: 'em dia' }
+
+      const coverPending =
+        Boolean(sourceCoverUrl) &&
+        (!known?.coverUrl || known.sourceCoverUrl !== sourceCoverUrl)
+
+      if (!metadataStale && !coverPending) return { action: 'skip', reason: 'sem capa na origem' }
+
+      return { action: 'process', metadataStale, coverPending, isNew: !known }
+    }
+
+    const post = { id: 54321, modified_gmt: '2024-01-01T00:00:00Z' }
+    const capa = 'https://blog/capa-300x300.png'
+
+    it('pula artigo excluido pelo staff (tombstone)', () => {
+      const r = decide({ post, tombstones: new Set(['54321']), sourceCoverUrl: capa })
+      expect(r).toEqual({ action: 'skip', reason: 'tombstone' })
     })
 
-    it('pula artigo sem modificação', () => {
-      const existing = new Map([
-        ['54321', { modified_at: '2024-01-01T00:00:00Z', cover_url: 'https://example.com/img.jpg' }]
-      ])
-      const post = { id: 54321, modified_gmt: '2024-01-01T00:00:00Z' }
-
-      const existing_row = existing.get(String(post.id))
-      const shouldUpdate = !existing_row || existing_row.modified_at !== post.modified_gmt
-
-      expect(shouldUpdate).toBe(false)
+    it('insere artigo novo e enfileira a capa', () => {
+      const r = decide({ post, known: undefined, sourceCoverUrl: capa })
+      expect(r.action).toBe('process')
+      expect(r.isNew).toBe(true)
+      expect(r.metadataStale).toBe(true)
+      expect(r.coverPending).toBe(true)
     })
 
-    it('atualiza artigo quando modified_gmt muda', () => {
-      const existing = new Map([
-        ['54321', { modified_at: '2024-01-01T00:00:00Z', cover_url: 'https://example.com/img.jpg' }]
-      ])
-      const post = { id: 54321, modified_gmt: '2024-01-02T00:00:00Z' }
-
-      const existing_row = existing.get(String(post.id))
-      const shouldUpdate = !existing_row || existing_row.modified_at !== post.modified_gmt
-
-      expect(shouldUpdate).toBe(true)
+    it('pula quando os metadados estao em dia e a capa ja foi espelhada', () => {
+      const known = {
+        sourceModifiedAt: '2024-01-01T00:00:00Z',
+        coverUrl: 'https://bucket/54321.png',
+        sourceCoverUrl: capa
+      }
+      expect(decide({ post, known, sourceCoverUrl: capa }).action).toBe('skip')
     })
 
-    it('detecta mudança de capa', () => {
-      const existing = new Map([
-        ['54321', { modified_at: '2024-01-01T00:00:00Z', cover_url: 'https://example.com/old.jpg' }]
-      ])
-      const post = { id: 54321, modified_gmt: '2024-01-02T00:00:00Z' }
-      const newCoverUrl = 'https://example.com/new.jpg'
-
-      const existing_row = existing.get(String(post.id))
-      const coverChanged = !existing_row || existing_row.cover_url !== newCoverUrl
-
-      expect(coverChanged).toBe(true)
+    it('reprocessa a capa quando cover_url esta null, mesmo sem mudanca no blog', () => {
+      const known = { sourceModifiedAt: '2024-01-01T00:00:00Z', coverUrl: null, sourceCoverUrl: null }
+      const r = decide({ post, known, sourceCoverUrl: capa })
+      expect(r.action).toBe('process')
+      expect(r.metadataStale).toBe(false)
+      expect(r.coverPending).toBe(true)
     })
 
-    it('não re-baixa capa se não mudou', () => {
-      const existing = new Map([
-        ['54321', { modified_at: '2024-01-01T00:00:00Z', cover_url: 'https://example.com/img.jpg' }]
-      ])
-      const post = { id: 54321, modified_gmt: '2024-01-01T00:00:00Z' }
-      const coverUrl = 'https://example.com/img.jpg'
+    it('reespelha quando a capa muda no blog', () => {
+      // Trocar a imagem destacada e uma edicao do post, entao o WordPress move
+      // `modified_gmt` junto — e por isso que o atalho abaixo e seguro.
+      const known = {
+        sourceModifiedAt: '2024-01-01T00:00:00Z',
+        coverUrl: 'https://bucket/54321.png',
+        sourceCoverUrl: 'https://blog/capa-antiga-300x300.png'
+      }
+      const alterado = { ...post, modified_gmt: '2024-03-02T09:00:00Z' }
+      const r = decide({ post: alterado, known, sourceCoverUrl: capa })
+      expect(r.action).toBe('process')
+      expect(r.coverPending).toBe(true)
+    })
 
-      const existing_row = existing.get(String(post.id))
-      const shouldDownload = !existing_row || existing_row.cover_url !== coverUrl
+    it('com metadados em dia e capa espelhada, nao consulta a imagem', () => {
+      // Atalho deliberado: sem ele, cada rodada faria 50 requisicoes de media
+      // so para reconfirmar capas que ja estao no bucket.
+      const known = {
+        sourceModifiedAt: '2024-01-01T00:00:00Z',
+        coverUrl: 'https://bucket/54321.png',
+        sourceCoverUrl: 'https://blog/capa-antiga-300x300.png'
+      }
+      expect(decide({ post, known, sourceCoverUrl: capa }).reason).toBe('em dia')
+    })
 
-      expect(shouldDownload).toBe(false)
+    it('atualiza metadados quando modified_gmt muda', () => {
+      const known = {
+        sourceModifiedAt: '2024-01-01T00:00:00Z',
+        coverUrl: 'https://bucket/54321.png',
+        sourceCoverUrl: capa
+      }
+      const alterado = { ...post, modified_gmt: '2024-02-09T12:00:00Z' }
+      const r = decide({ post: alterado, known, sourceCoverUrl: capa })
+      expect(r.action).toBe('process')
+      expect(r.metadataStale).toBe(true)
+      expect(r.isNew).toBe(false)
+      // A capa nao mudou: nao ha por que baixar de novo.
+      expect(r.coverPending).toBe(false)
+    })
+
+    it('compara timestamps por valor, nao por string', () => {
+      const known = {
+        sourceModifiedAt: '2024-01-01T00:00:00+00:00',
+        coverUrl: 'https://bucket/54321.png',
+        sourceCoverUrl: capa
+      }
+      expect(decide({ post, known, sourceCoverUrl: capa }).action).toBe('skip')
+    })
+
+    it('nao enfileira capa para post sem imagem na origem', () => {
+      const known = { sourceModifiedAt: '2024-01-01T00:00:00Z', coverUrl: null, sourceCoverUrl: null }
+      const r = decide({ post, known, sourceCoverUrl: null })
+      expect(r.action).toBe('skip')
     })
   })
+
 
   describe('WordPress media API', () => {
     it('extrai URL de capa do tamanho "medium"', () => {
