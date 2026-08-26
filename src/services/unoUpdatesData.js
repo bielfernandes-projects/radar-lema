@@ -28,6 +28,7 @@ export async function saveUnoUpdate(payload, { supabase } = { supabase: _supabas
 }
 
 export async function deleteUnoUpdate(id, { supabase } = { supabase: _supabase }) {
-  const { error } = await supabase.from('uno_updates').delete().eq('id', id)
+  const { data, error } = await supabase.from('uno_updates').delete().eq('id', id).select('id')
   if (error) throw error
+  if (!data?.length) throw new Error('Exclusão não permitida para esta novidade.')
 }

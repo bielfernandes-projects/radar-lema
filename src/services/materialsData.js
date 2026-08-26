@@ -30,8 +30,9 @@ export async function saveMaterial(payload, { supabase } = { supabase: _supabase
 }
 
 export async function deleteMaterial(id, { supabase } = { supabase: _supabase }) {
-  const { error } = await supabase.from('materials').delete().eq('id', id)
+  const { data, error } = await supabase.from('materials').delete().eq('id', id).select('id')
   if (error) throw error
+  if (!data?.length) throw new Error('Exclusão não permitida para este material.')
 }
 
 export async function uploadMaterialFile(file, { supabase } = { supabase: _supabase }) {

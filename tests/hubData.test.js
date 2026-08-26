@@ -143,7 +143,9 @@ describe('services/unoUpdatesData', () => {
     const supabase = {
       from: vi.fn(() => ({
         delete: vi.fn(() => ({
-          eq: vi.fn(() => ({ error: null }))
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({ data: [{ id: 'u1' }], error: null }))
+          }))
         }))
       }))
     }
@@ -156,11 +158,29 @@ describe('services/unoUpdatesData', () => {
     const supabase = {
       from: vi.fn(() => ({
         delete: vi.fn(() => ({
-          eq: vi.fn(() => ({ error: new Error('falha') }))
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({ data: null, error: new Error('falha') }))
+          }))
         }))
       }))
     }
 
     await expect(deleteUnoUpdate('u1', { supabase })).rejects.toThrow('falha')
+  })
+
+  it('deleteUnoUpdate lanca erro quando RLS bloqueia e nenhuma linha e afetada', async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({ data: [], error: null }))
+          }))
+        }))
+      }))
+    }
+
+    await expect(deleteUnoUpdate('u1', { supabase })).rejects.toThrow(
+      'Exclusão não permitida'
+    )
   })
 })

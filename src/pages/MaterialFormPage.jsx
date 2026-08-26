@@ -178,7 +178,9 @@ export default function MaterialFormPage() {
               multiline
               rows={3}
               value={form.description}
-              onChange={(e) => updateForm({ description: e.target.value })}
+              onChange={(e) => updateForm({ description: e.target.value.slice(0, 100) })}
+              inputProps={{ maxLength: 100 }}
+              helperText={`${form.description?.length || 0}/100`}
             />
             <FormControl fullWidth>
               <InputLabel id="visibility-label">Visibilidade</InputLabel>

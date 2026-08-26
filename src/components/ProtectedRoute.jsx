@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { isStaffTier, isSuperAdmin, isUnoClient } from '../utils/auth'
+import { isStaffTier, isSuperAdmin, canAccessLemaExclusive } from '../utils/auth'
 import { Box, CircularProgress } from '@mui/material'
 
 export default function ProtectedRoute({ requireStaff, requireAdmin, requireUnoClient }) {
@@ -34,7 +34,7 @@ export default function ProtectedRoute({ requireStaff, requireAdmin, requireUnoC
     return <Navigate to="/" replace />
   }
 
-  if (requireUnoClient && !isUnoClient(profile)) {
+  if (requireUnoClient && !canAccessLemaExclusive(profile)) {
     return <Navigate to="/" replace />
   }
 

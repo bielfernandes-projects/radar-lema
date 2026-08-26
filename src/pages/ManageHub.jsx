@@ -101,11 +101,13 @@ export default function ManageHub() {
         await deleteMaterialFile(item.storage_path).catch(() => {})
         setMaterials((prev) => prev.filter((m) => m.id !== item.id))
       } else if (kind === 'news') {
-        const { error: deleteError } = await supabase
+        const { data: deleted, error: deleteError } = await supabase
           .from('news')
           .delete()
           .eq('id', item.id)
+          .select('id')
         if (deleteError) throw deleteError
+        if (!deleted?.length) throw new Error('Exclusão não permitida para esta notícia.')
         setNews((prev) => prev.filter((n) => n.id !== item.id))
       }
       setDeleteSnackbar(true)

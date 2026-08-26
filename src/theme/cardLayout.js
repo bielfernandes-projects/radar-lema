@@ -30,8 +30,16 @@ export const ARTICLE_MEDIA_HEIGHT = 240
 /** 380 do card de evento + os 80px a mais do slot de capa do artigo. */
 export const CARD_HEIGHT_ARTICLE = 460
 
-/** Noticia (carrossel mobile) e material — cards so de texto. */
+/** Noticia (carrossel mobile) — card so de texto. */
 export const CARD_HEIGHT_TEXT_ONLY = 216
+
+/**
+ * Material de apoio. Mais alto que o card so-de-texto pelo mesmo motivo do
+ * card de Novidade UNO: quando o material e exclusivo Lema, o badge
+ * "Exclusivo Lema" e o chip de data nao cabem lado a lado sem cortar um dos
+ * dois — empilhados em duas linhas (`cardMetaStackSx`) resolve sem cortar.
+ */
+export const CARD_HEIGHT_MATERIAL = 244
 
 /**
  * Novidade do UNO. Mais alto que os outros cards de texto porque a linha de

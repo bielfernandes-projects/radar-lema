@@ -1,4 +1,4 @@
-import { isStaffTier, isSuperAdmin, isUnoClient } from './auth'
+import { isStaffTier, isSuperAdmin, canAccessLemaExclusive } from './auth'
 
 export const URL_PARAMS = {
   SEARCH: 'q',
@@ -47,7 +47,7 @@ export const NAV_ITEMS = [
   { label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone', show: () => true },
   { label: 'Artigos', path: '/artigos', icon: 'BookOpen', show: () => true },
   { label: 'Materiais', path: '/materiais', icon: 'FileStack', show: () => true },
-  { label: 'Dashboard UNO', path: '/dashboard-uno', icon: 'LineChart', show: (user) => isUnoClient(user) },
+  { label: 'Dashboard UNO', path: '/dashboard-uno', icon: 'LineChart', show: (user) => canAccessLemaExclusive(user) },
   { label: 'Favoritos', path: '/favoritos', icon: 'Heart', show: (user) => !!user },
   { label: 'Realizados', path: '/realizados', icon: 'History', show: () => true },
   { label: 'Config', path: '/configuracoes', icon: 'Settings', show: (user) => !!user },

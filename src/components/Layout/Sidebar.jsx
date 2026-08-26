@@ -7,6 +7,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Tooltip,
   Typography,
   Collapse,
   useTheme
@@ -28,11 +29,12 @@ import {
   ChevronDown,
   LogOut,
   LineChart,
-  Lock
+  Lock,
+  MessageCircle
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { isStaffTier, isSuperAdmin, isUnoClient } from '../../utils/auth'
+import { isStaffTier, isSuperAdmin, canAccessLemaExclusive } from '../../utils/auth'
 import LockedClientModal from '../LockedClientModal'
 
 const ICONS = {
@@ -49,7 +51,8 @@ const ICONS = {
   UserCog,
   ShieldAlert,
   ShieldCheck,
-  LineChart
+  LineChart,
+  MessageCircle
 }
 
 const navStructure = [
@@ -79,7 +82,14 @@ const navStructure = [
           { key: 'past', label: 'Realizados', path: '/realizados' }
         ]
       },
-      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings', auth: true }
+      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings', auth: true },
+      {
+        key: 'whatsappCommunity',
+        label: 'Comunidade Lema no WhatsApp',
+        icon: 'MessageCircle',
+        comingSoon: true,
+        auth: true
+      }
     ]
   },
   {
@@ -205,7 +215,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                 const isExpanded = expandedGroups[item.key]
 
                 if (item.unoClientOnly) {
-                  const locked = !isUnoClient(profile)
+                  const locked = !canAccessLemaExclusive(profile)
                   return (
                     <ListItemButton
                       key={item.key}
@@ -247,6 +257,41 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                         </Box>
                       )}
                     </ListItemButton>
+                  )
+                }
+
+                if (item.comingSoon) {
+                  return (
+                    <Tooltip key={item.key} title="Em breve" placement="right">
+                      <ListItemButton
+                        sx={{
+                          borderRadius: 1,
+                          px: 1.5,
+                          py: 0.75,
+                          color: 'success.main',
+                          '&:hover': { backgroundColor: 'success.light', color: 'success.contrastText' },
+                          '@keyframes sidebarPulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.55 }
+                          },
+                          animation: 'sidebarPulse 1.8s ease-in-out infinite'
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 40, color: 'inherit', display: 'flex', justifyContent: 'center' }}>
+                          <IconComponent size={20} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        />
+                      </ListItemButton>
+                    </Tooltip>
                   )
                 }
 

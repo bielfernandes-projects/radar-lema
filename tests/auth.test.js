@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isStaffTier, isSuperAdmin, isUnoClient } from '../src/utils/auth'
+import { isStaffTier, isSuperAdmin, isUnoClient, canAccessLemaExclusive } from '../src/utils/auth'
 
 describe('utils/auth', () => {
   it('isUnoClient retorna true apenas quando is_uno_client for true', () => {
@@ -21,5 +21,13 @@ describe('utils/auth', () => {
     expect(isSuperAdmin({ user_type: 'super_admin' })).toBe(true)
     expect(isSuperAdmin({ role: 'ROLE_SUPER_ADMIN' })).toBe(true)
     expect(isSuperAdmin({ user_type: 'staff' })).toBe(false)
+  })
+
+  it('canAccessLemaExclusive libera super_admin mesmo sem is_uno_client', () => {
+    expect(canAccessLemaExclusive({ user_type: 'super_admin', is_uno_client: false })).toBe(true)
+    expect(canAccessLemaExclusive({ role: 'ROLE_SUPER_ADMIN', is_uno_client: false })).toBe(true)
+    expect(canAccessLemaExclusive({ user_type: 'client', is_uno_client: true })).toBe(true)
+    expect(canAccessLemaExclusive({ user_type: 'client', is_uno_client: false })).toBe(false)
+    expect(canAccessLemaExclusive({ user_type: 'staff', is_uno_client: false })).toBe(false)
   })
 })

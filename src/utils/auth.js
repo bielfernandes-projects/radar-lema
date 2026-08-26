@@ -19,3 +19,11 @@ export function isSuperAdmin(profile) {
 export function isUnoClient(profile) {
   return profile?.is_uno_client === true
 }
+
+// Super Admin tem acesso total ao app, inclusive a conteudo/telas
+// marcados como exclusivos para Cliente Lema (ex: Dashboard UNO,
+// materiais exclusivos). Usar esta funcao em todo gate de exclusividade
+// em vez de checar isUnoClient sozinho.
+export function canAccessLemaExclusive(profile) {
+  return isUnoClient(profile) || isSuperAdmin(profile)
+}

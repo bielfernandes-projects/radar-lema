@@ -9,6 +9,7 @@ import {
   fetchMaterials,
   uploadMaterialFile,
   getMaterialUrl,
+  deleteMaterial,
   deleteMaterialFile
 } from '../src/services/materialsData'
 
@@ -82,11 +83,25 @@ describe('services/articlesData', () => {
 
   it('deleteArticle deleta por id', async () => {
     const del = vi.fn(() => ({
-      eq: vi.fn(() => ({ data: null, error: null }))
+      eq: vi.fn(() => ({
+        select: vi.fn(() => ({ data: [{ id: 'a1' }], error: null }))
+      }))
     }))
     const supabase = fakeSupabase({ articles: { delete: del } })
     await deleteArticle('a1', { supabase })
     expect(del).toHaveBeenCalled()
+  })
+
+  it('deleteArticle lanca erro quando RLS bloqueia e nenhuma linha e afetada', async () => {
+    const del = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        select: vi.fn(() => ({ data: [], error: null }))
+      }))
+    }))
+    const supabase = fakeSupabase({ articles: { delete: del } })
+    await expect(deleteArticle('a1', { supabase })).rejects.toThrow(
+      'Exclusão não permitida'
+    )
   })
 })
 
@@ -134,6 +149,18 @@ describe('services/materialsData', () => {
     const url = await getMaterialUrl('path', 'arquivo.pdf', { supabase })
     expect(url).toBe('https://signed')
     expect(createSignedUrl).toHaveBeenCalledWith('path', 3600, { download: 'arquivo.pdf' })
+  })
+
+  it('deleteMaterial lanca erro quando RLS bloqueia e nenhuma linha e afetada', async () => {
+    const del = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        select: vi.fn(() => ({ data: [], error: null }))
+      }))
+    }))
+    const supabase = fakeSupabase({ materials: { delete: del } })
+    await expect(deleteMaterial('m1', { supabase })).rejects.toThrow(
+      'Exclusão não permitida'
+    )
   })
 
   it('deleteMaterialFile remove arquivo', async () => {

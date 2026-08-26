@@ -30,8 +30,9 @@ export async function saveArticle(payload, { supabase } = { supabase: _supabase 
 }
 
 export async function deleteArticle(id, { supabase } = { supabase: _supabase }) {
-  const { error } = await supabase.from('articles').delete().eq('id', id)
+  const { data, error } = await supabase.from('articles').delete().eq('id', id).select('id')
   if (error) throw error
+  if (!data?.length) throw new Error('Exclusão não permitida para este artigo.')
 }
 
 export async function uploadArticleCover(file, { supabase } = { supabase: _supabase }) {
