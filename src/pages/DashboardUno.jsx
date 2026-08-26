@@ -104,8 +104,8 @@ function SummaryCard({ label, info, children }) {
       sx={{
         borderRadius: 1.4,
         boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-        p: 2,
-        minHeight: 160,
+        p: { xs: 1.25, sm: 2 },
+        minHeight: { xs: 120, sm: 160 },
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -143,8 +143,8 @@ function BigValue({ value }) {
   const amount = spaceIndex >= 0 ? formatted.slice(spaceIndex + 1) : formatted
   const color = value < 0 ? theme.palette.error.main : theme.palette.success.main
   return (
-    <Typography className="value-positive" sx={{ fontSize: 34, fontWeight: 600, color, letterSpacing: '-0.02em', textAlign: 'center' }}>
-      <Box component="span" sx={{ fontSize: 20, fontWeight: 400, mr: 0.5 }}>
+    <Typography className="value-positive" sx={{ fontSize: { xs: 24, sm: 34 }, fontWeight: 600, color, letterSpacing: '-0.02em', textAlign: 'center' }}>
+      <Box component="span" sx={{ fontSize: { xs: 15, sm: 20 }, fontWeight: 400, mr: 0.5 }}>
         {currency}
       </Box>
       {amount}
@@ -164,11 +164,11 @@ function MetricBlock({ label, value, unit, negative, tooltip }) {
       </Box>
       <Typography
         className={negative ? 'value-negative' : 'value-positive'}
-        sx={{ fontSize: 24, fontWeight: 700, color: negative ? theme.palette.error.main : theme.palette.success.main, textAlign: 'center' }}
+        sx={{ fontSize: { xs: 17, sm: 24 }, fontWeight: 700, color: negative ? theme.palette.error.main : theme.palette.success.main, textAlign: 'center' }}
       >
         {value}
         {unit && (
-          <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>
+          <Box component="span" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>
             {unit}
           </Box>
         )}
@@ -392,10 +392,10 @@ export default function DashboardUno() {
 
   return (
     <Box id="uno-dashboard-report" sx={{ bgcolor: 'background.default' }}>
-      <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 1 }}>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
+        <Box className="report-filters-row" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 84, sm: 140 } }}>
             <Select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
@@ -407,7 +407,7 @@ export default function DashboardUno() {
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 100 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 68, sm: 100 } }}>
             <Select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -422,7 +422,7 @@ export default function DashboardUno() {
           {isSuperAdminUser ? (
             <Autocomplete
               size="small"
-              sx={{ minWidth: 240 }}
+              sx={{ minWidth: { xs: 120, sm: 240 }, flex: { xs: '1 1 auto', sm: '0 1 auto' } }}
               options={clients}
               getOptionLabel={(c) => c.name}
               isOptionEqualToValue={(a, b) => a.uno_client_id === b.uno_client_id}
@@ -447,72 +447,75 @@ export default function DashboardUno() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            flexWrap: 'wrap',
             gap: 2,
-            mb: 3
+            mb: 2
           }}
         >
           <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
             Dashboard
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <ToggleButtonGroup
-              value={period}
-              exclusive
-              size="small"
-              onChange={(_, value) => value && setPeriod(value)}
-              sx={{
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 999,
-                p: 0.5,
-                gap: 0.5,
-                '& .MuiToggleButtonGroup-grouped': {
-                  borderRadius: '999px !important',
-                  border: 'none',
-                  textTransform: 'none',
-                  px: { xs: 1.25, md: 2 },
-                  py: 1,
-                  fontSize: 14,
-                  color: 'text.primary',
-                  '&.Mui-selected': {
-                    backgroundColor: theme.palette.primary.main,
-                    color: '#ffffff',
-                    fontWeight: 600
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: theme.palette.primary.main
-                  }
-                }
-              }}
-            >
-              {PERIODS.map((p) => (
-                <ToggleButton key={p.key} value={p.key}>
-                  {p.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-
-            <Button
-              className="report-button"
-              variant="contained"
-              onClick={handlePrint}
-              startIcon={<Printer size={18} />}
-              sx={{
-                borderRadius: 999,
-                fontWeight: 600,
-                fontSize: 13,
-                px: 3,
-                py: 1.2,
-                bgcolor: theme.palette.primary.main,
-                '&:hover': { bgcolor: theme.palette.primary.dark }
-              }}
-            >
+          <Button
+            className="report-button"
+            variant="contained"
+            onClick={handlePrint}
+            startIcon={<Printer size={18} />}
+            sx={{
+              borderRadius: 999,
+              fontWeight: 600,
+              fontSize: 13,
+              minWidth: { xs: 0, sm: 'auto' },
+              px: { xs: 1.5, sm: 3 },
+              py: 1.2,
+              bgcolor: theme.palette.primary.main,
+              '&:hover': { bgcolor: theme.palette.primary.dark },
+              '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } }
+            }}
+          >
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
               Gerar Relatório
-            </Button>
-          </Box>
+            </Box>
+          </Button>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          <ToggleButtonGroup
+            value={period}
+            exclusive
+            size="small"
+            onChange={(_, value) => value && setPeriod(value)}
+            sx={{
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 999,
+              p: 0.5,
+              gap: 0.5,
+              '& .MuiToggleButtonGroup-grouped': {
+                borderRadius: '999px !important',
+                border: 'none',
+                textTransform: 'none',
+                px: { xs: 1.25, md: 2 },
+                py: 1,
+                fontSize: 14,
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  backgroundColor: theme.palette.primary.main,
+                  color: '#ffffff',
+                  fontWeight: 600
+                },
+                '&.Mui-selected:hover': {
+                  backgroundColor: theme.palette.primary.main
+                }
+              }
+            }}
+          >
+            {PERIODS.map((p) => (
+              <ToggleButton key={p.key} value={p.key}>
+                {p.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
         </Box>
 
         {loading ? (
@@ -544,15 +547,20 @@ export default function DashboardUno() {
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box
+              className="report-summary-grid"
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
-                gap: 2
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+                gap: { xs: 1, sm: 2 }
               }}
             >
-              <SummaryCard label="Patrimônio">
-                <BigValue value={patrimonio} />
-              </SummaryCard>
+              {/* No mobile (2 colunas) o Patrimonio ocupa a linha inteira, e o
+                  resto forma pares: Rentabilidade+Meta, Gap+VaR. */}
+              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
+                <SummaryCard label="Patrimônio">
+                  <BigValue value={patrimonio} />
+                </SummaryCard>
+              </Box>
 
               <SummaryCard label="Rentabilidade">
                 {renderMetrics(
@@ -586,9 +594,9 @@ export default function DashboardUno() {
                   </>
                 )}
               >
-                <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.success.main }}>
+                <Typography className="value-positive" sx={{ fontSize: { xs: 17, sm: 24 }, fontWeight: 600, color: theme.palette.success.main }}>
                   {formatPt(computedMetrics.varValue, 4) ?? '—'}
-                  {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
+                  {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>%</Box>}
                 </Typography>
               </SummaryCard>
             </Box>

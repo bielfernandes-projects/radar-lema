@@ -24,6 +24,8 @@
     background-color: #ffffff;
     box-shadow: none;
     border: 1px solid #dfe2ea;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   #uno-dashboard-report,
@@ -51,5 +53,16 @@
 
   #uno-dashboard-report .report-button {
     display: none;
+  }
+
+  /* O relatorio sai sempre no "formato desktop", mesmo gerado a partir do
+     celular: forca a grade de 5 colunas e os filtros numa linha so,
+     ignorando os breakpoints mobile do layout normal da tela. */
+  #uno-dashboard-report .report-summary-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+
+  #uno-dashboard-report .report-filters-row {
+    flex-wrap: nowrap !important;
   }
 }
