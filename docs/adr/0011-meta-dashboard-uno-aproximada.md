@@ -1,4 +1,16 @@
-# Meta do Dashboard UNO é uma aproximação, não o valor exato do UNO
+# Meta do Dashboard UNO era uma aproximação — resolvido via `evolucaoAnualCliente`
+
+> **Atualização (26/08/2026)**: resolvido. O Gabriel conseguiu acesso ao
+> codebase do UNO e encontramos `outer_api/evolucaoAnualCliente` — um
+> endpoint que já usa a mesma chave de integração que o `uno-proxy` usa hoje
+> (não precisa de sessão de usuário) e devolve Patrimônio, Rentabilidade e
+> Meta **mês a mês, pré-calculados pelo próprio UNO**, com a fórmula exata
+> descrita abaixo já aplicada no servidor. O `DashboardUno.jsx` foi reescrito
+> para consumir esse endpoint diretamente em vez de recalcular a Meta a
+> partir de `metaClientePorAno`. Ver commit que referencia esta ADR para o
+> código; a fórmula documentada abaixo continua válida como referência de
+> como o UNO calcula internamente (fonte: `src/controllers/utils/targets_utils.js`
+> e `src/controllers/outer_api.controller.js` do codebase do UNO).
 
 ## Contexto
 
@@ -47,3 +59,32 @@ Duas rotas possíveis, nenhuma delas simples:
    atuarial de cada cliente — precisaria ser cadastrada manualmente por nós,
    por cliente, e mesmo assim não haveria garantia de bater exatamente com o
    que o UNO mostra (a taxa pode ser revisada sem aviso).
+
+## Gap remanescente: VaR (não resolvido)
+
+Com acesso ao codebase do UNO (26/08/2026), confirmamos que Patrimônio,
+Rentabilidade e Meta agora batem exatamente com o UNO real (via
+`evolucaoAnualCliente`, ver commit que referencia esta ADR). O **VaR
+continua sendo uma aproximação** e, ao testar lado a lado, ficou visivelmente
+diferente do UNO real (ex.: Radar Lema mostrou 1,33% onde o UNO mostrava
+0,19% para o mesmo cliente/mês/janela).
+
+Causa raiz (`client/src/components/utils/utils.js:var5`,
+`client/src/controllers/ClientController.js:loadClientDiaryPlsByLimit`,
+`client/src/controllers/RiskController.js`): o UNO calcula um **VaR
+paramétrico de carteira** (95% de confiança, `z = -1,64485`) a partir do
+**histórico diário de retorno de toda a carteira** (até 252 dias — daí o
+"1,252" ao lado do título "VaR" na tela do UNO, uma referência ao dia-1 até
+o dia-252 da janela, não um valor calculado). Isso é fundamentalmente
+diferente da média ponderada por saldo dos `var_fundo` individuais que o
+Radar Lema usa hoje — VaR de carteira não é a soma ponderada dos VaRs dos
+fundos (ignora a diversificação entre eles), por isso o número do Radar Lema
+fica sistematicamente mais alto.
+
+Os dados diários por cliente vêm de `getClientPortfolioRentsByLimit`
+(`ClientAPI`), que é **autenticado por sessão de usuário** — mesma categoria
+de bloqueio que a Meta tinha antes de acharmos `evolucaoAnualCliente`, mas
+aqui não encontramos nenhum endpoint equivalente na `outer_api` que devolva
+retorno diário da carteira inteira. Sem isso, não dá pra replicar o cálculo
+corretamente. Mantido como aproximação (média ponderada por saldo dos
+`var_fundo`), registrado aqui para não cair no esquecimento.

@@ -49,12 +49,15 @@ function withCors(origin: string | null) {
 const ENDPOINTS: Record<string, string[]> = {
   demonstrativoFundosCliente: ["consulting_id", "mes", "ano"],
   fundosCliente: ["consulting_id", "start_date", "end_date"],
-  movimentacoesCliente: ["consulting_id", "start_date", "end_date"],
-  titulosAnalise: ["consulting_id", "start_date", "end_date"],
-  enquadramentosCliente: ["consulting_id", "start_date", "end_date"],
-  metaCliente: ["consulting_id", "start_date", "end_date"],
-  metaClientePorAno: ["ano"],
-  disponibilidadesCliente: ["consulting_id", "start_date", "end_date"]
+  evolucaoAnualCliente: ["consulting_id", "ano"],
+  clienteUNO: ["consulting_id"]
+};
+
+// Endpoints que nao sao por cliente (listam todos os clientes do
+// consulting_id) — nunca recebem client_id/cliente_id e so o Super Admin
+// pode chamar, pra nao vazar nome de outros RPPS pra um Cliente Lema comum.
+const LIST_ENDPOINTS: Record<string, string[]> = {
+  clientesUNO: ["consulting_id"]
 };
 
 Deno.serve(async (req) => {
@@ -112,53 +115,45 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const endpoint = url.searchParams.get("endpoint") || "";
-  if (!ENDPOINTS[endpoint]) {
+
+  const isListEndpoint = Boolean(LIST_ENDPOINTS[endpoint]);
+  if (!ENDPOINTS[endpoint] && !isListEndpoint) {
     return new Response("Endpoint invalido", { status: 400, headers: withCors(origin) });
   }
 
-  // Resolve qual cliente UNO real consultar. Cliente comum: sempre o
-  // vinculado ao proprio perfil (ignora qualquer client_id que o front
-  // mande, pra ninguem ver dado de outro RPPS trocando o parametro). Super
-  // Admin: pode escolher qualquer cliente cadastrado em uno_clients — o
-  // valor enviado e validado contra a tabela antes de ser usado.
-  let resolvedClientId: string | null = null;
-
-  if (!isSuperAdmin) {
-    if (profile?.uno_client_id) {
-      const { data: linkedClient } = await adminClient
-        .from("uno_clients")
-        .select("uno_client_id")
-        .eq("id", profile.uno_client_id)
-        .single();
-      resolvedClientId = linkedClient?.uno_client_id ?? null;
-    }
-  } else {
-    const requested = url.searchParams.get("client_id");
-    if (requested) {
-      const { data: match } = await adminClient
-        .from("uno_clients")
-        .select("uno_client_id")
-        .eq("uno_client_id", requested)
-        .single();
-      resolvedClientId = match?.uno_client_id ?? null;
-    }
+  if (isListEndpoint && !isSuperAdmin) {
+    return new Response("Acesso restrito ao Super Admin", { status: 403, headers: withCors(origin) });
   }
 
-  if (!resolvedClientId) {
-    resolvedClientId = unoDemoClientId;
-  }
-
-  // Monta a query para a API do UNO com o client id resolvido.
   const query = new URLSearchParams();
-  for (const key of ENDPOINTS[endpoint]) {
-    const value = url.searchParams.get(key);
-    if (value) query.set(key, value);
-  }
-  // Todos os endpoints usam client_id. demonstrativoFundosCliente usa cliente_id.
-  if (endpoint === "demonstrativoFundosCliente") {
-    query.set("cliente_id", resolvedClientId);
+
+  if (isListEndpoint) {
+    // Lista todos os clientes do consulting_id — sem client_id nenhum.
+    for (const key of LIST_ENDPOINTS[endpoint]) {
+      const value = url.searchParams.get(key);
+      if (value) query.set(key, value);
+    }
   } else {
-    query.set("client_id", resolvedClientId);
+    // Resolve qual cliente UNO real consultar. Cliente comum: sempre o
+    // vinculado ao proprio perfil (profiles.uno_client_id ja guarda o
+    // client_id real do UNO — ignora qualquer client_id que o front mande,
+    // pra ninguem ver dado de outro RPPS trocando o parametro). Super Admin:
+    // pode escolher qualquer client_id (o proprio UNO valida/rejeita se nao
+    // existir).
+    const resolvedClientId = isSuperAdmin
+      ? url.searchParams.get("client_id") || unoDemoClientId
+      : profile?.uno_client_id || unoDemoClientId;
+
+    for (const key of ENDPOINTS[endpoint]) {
+      const value = url.searchParams.get(key);
+      if (value) query.set(key, value);
+    }
+    // Todos os endpoints usam client_id. demonstrativoFundosCliente usa cliente_id.
+    if (endpoint === "demonstrativoFundosCliente") {
+      query.set("cliente_id", resolvedClientId);
+    } else {
+      query.set("client_id", resolvedClientId);
+    }
   }
 
   const targetUrl = `${unoApiBase}/${endpoint}?${query.toString()}`;

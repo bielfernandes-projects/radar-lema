@@ -31,16 +31,17 @@ import {
   YAxis
 } from 'recharts'
 import { fetchUnoDashboard } from '../services/unoProxy'
-import { fetchUnoClients } from '../services/unoClientsData'
+import { fetchUnoClients, fetchOwnUnoClientName } from '../services/unoClientsData'
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdmin } from '../utils/auth'
 import {
   normalizeFunds,
   summarizeFunds,
-  asArray,
-  parseCommaNumber,
-  parseDiaUltimaCota,
-  rangeForPeriod
+  rangeForPeriod,
+  mergeEvolucaoAnual,
+  monthsBetween,
+  buildEvolucaoSeries,
+  compoundPercent
 } from '../utils/uno'
 import { formatCurrency } from '../utils/formatters'
 import './dashboardPrint.css'
@@ -68,8 +69,6 @@ const MONTHS = [
   { value: 11, label: 'Novembro' },
   { value: 12, label: 'Dezembro' }
 ]
-
-const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - 5 + i)
@@ -119,7 +118,12 @@ function SummaryCard({ label, info, children }) {
         </Typography>
         {info && (typeof info === 'string' ? <MuiTooltip title={info}>{icon}</MuiTooltip> : icon)}
       </Box>
-      {children}
+      {/* Todo card centraliza o valor no mesmo eixo vertical, tenha um valor
+          so (Patrimonio, VaR) ou dois (Rentabilidade/Meta/Gap via DualMetricCard) —
+          sem isso o card de um valor so ficava colado embaixo. */}
+      <Box sx={{ flexGrow: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {children}
+      </Box>
     </Paper>
   )
 }
@@ -197,9 +201,15 @@ export default function DashboardUno() {
   const theme = useTheme()
   const { profile } = useAuth()
   const isSuperAdminUser = isSuperAdmin(profile)
-  const now = new Date()
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  // O mes corrente ainda nao fechou no UNO (mesmo motivo do fallback de
+  // demonstrativoFundosCliente): o proprio UNO abre o Dashboard por padrao
+  // no ultimo mes fechado, nao no mes calendario atual — replicamos isso
+  // pra nao mostrar Patrimonio/Rentabilidade de um mes com dado obsoleto.
+  const lastClosedMonth = new Date()
+  lastClosedMonth.setDate(1)
+  lastClosedMonth.setMonth(lastClosedMonth.getMonth() - 1)
+  const [selectedMonth, setSelectedMonth] = useState(lastClosedMonth.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(lastClosedMonth.getFullYear())
   const [period, setPeriod] = useState('36')
   const [chartMode, setChartMode] = useState('mensal')
   const [data, setData] = useState(null)
@@ -207,6 +217,7 @@ export default function DashboardUno() {
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
   const [clients, setClients] = useState([])
+  const [ownClientName, setOwnClientName] = useState('')
   const [selectedClientId, setSelectedClientId] = useState(() => {
     try {
       return localStorage.getItem(CLIENT_STORAGE_KEY) || ''
@@ -215,17 +226,16 @@ export default function DashboardUno() {
     }
   })
 
+  // Super Admin escolhe entre todos os clientes reais do UNO; cliente comum
+  // so precisa do nome do proprio vinculo (resolvido no servidor).
   useEffect(() => {
-    fetchUnoClients().then(setClients).catch(() => {})
-  }, [])
-
-  // Cliente comum: sempre o proprio vinculo, nao a ultima escolha guardada
-  // (isso e so pra Super Admin trocar de RPPS).
-  useEffect(() => {
-    if (isSuperAdminUser || clients.length === 0) return
-    const own = clients.find((c) => c.id === profile?.uno_client_id)
-    if (own) setSelectedClientId(own.uno_client_id)
-  }, [isSuperAdminUser, clients, profile?.uno_client_id])
+    if (isSuperAdminUser) {
+      fetchUnoClients().then(setClients).catch(() => {})
+    } else if (profile?.uno_client_id) {
+      fetchOwnUnoClientName().then(setOwnClientName).catch(() => {})
+      setSelectedClientId(profile.uno_client_id)
+    }
+  }, [isSuperAdminUser, profile?.uno_client_id])
 
   useEffect(() => {
     if (isSuperAdminUser && !selectedClientId && clients.length > 0) {
@@ -242,7 +252,9 @@ export default function DashboardUno() {
     }
   }, [isSuperAdminUser, selectedClientId])
 
-  const clientName = clients.find((c) => c.uno_client_id === selectedClientId)?.name || ''
+  const clientName = isSuperAdminUser
+    ? clients.find((c) => c.uno_client_id === selectedClientId)?.name || ''
+    : ownClientName
 
   useEffect(() => {
     if (!selectedClientId) return
@@ -267,61 +279,33 @@ export default function DashboardUno() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, selectedMonth, selectedYear, selectedClientId, reload])
 
+  // VaR: media ponderada do VAR_PAR de cada fundo (Comdinheiro), unica coisa
+  // que ainda vem do demonstrativo mensal — Patrimonio/Rentabilidade/Meta
+  // vem inteiros do evolucaoAnualCliente (fonte que o proprio UNO usa).
   const funds = normalizeFunds(data?.demonstrativo)
-  const summary = summarizeFunds(funds)
-  const totalSaldo = summary.totalSaldo
-
-  const patrimonio = totalSaldo > 0 ? totalSaldo : null
-
-  const rentabilidadeMes = totalSaldo > 0
-    ? funds.reduce((acc, f) => acc + f.percentual * (f.saldo / totalSaldo), 0)
+  const fundsSaldo = summarizeFunds(funds).totalSaldo
+  const varValue = fundsSaldo > 0
+    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / fundsSaldo), 0)
     : null
 
-  const varValue = totalSaldo > 0
-    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / totalSaldo), 0)
-    : null
+  const merged = useMemo(() => mergeEvolucaoAnual(data?.evolucoes), [data])
 
-  const metaAnualRows = asArray(data?.metaAnual)
-  const metaAnualRow = metaAnualRows.length > 0 ? metaAnualRows[0] : {}
-  const expectedRent = parseCommaNumber(metaAnualRow?.rentabilidade_esperada_ano ?? metaAnualRow?.taxa_ano)
-  const metaMes = expectedRent > 0 ? expectedRent / 12 : null
+  const range = useMemo(
+    () => rangeForPeriod(period, selectedMonth, selectedYear),
+    [period, selectedMonth, selectedYear]
+  )
 
-  const fundsCliente = asArray(data?.fundos)
+  const series = useMemo(
+    () => buildEvolucaoSeries(merged, monthsBetween(range.startDate, range.endDate)),
+    [merged, range.startDate, range.endDate]
+  )
 
-  const evolution = useMemo(() => {
-    if (fundsCliente.length === 0) return []
-
-    const byMonth = new Map()
-    for (const row of fundsCliente) {
-      const dateInfo = parseDiaUltimaCota(row?.dia_ultima_cota)
-      if (!dateInfo) continue
-      const saldoStr = String(row?.saldo_final_carteira ?? '0')
-      const saldo = Number(saldoStr.replace(',', '.'))
-      if (!Number.isFinite(saldo) || saldo <= 1) continue
-      const key = `${dateInfo.year}-${String(dateInfo.month).padStart(2, '0')}`
-      const entry = byMonth.get(key) || { year: dateInfo.year, month: dateInfo.month, valor: 0 }
-      entry.valor += saldo
-      byMonth.set(key, entry)
-    }
-
-    return Array.from(byMonth.values())
-      .sort((a, b) => a.year - b.year || a.month - b.month)
-      .map((e) => ({ label: `${MONTH_ABBR[e.month - 1]}/${e.year}`, valor: e.valor, year: e.year, month: e.month }))
-  }, [fundsCliente])
-
-  const monthCount = Number(period) || 12
-
-  const rentabilidadeAcum = useMemo(() => {
-    if (evolution.length < 2) return null
-    const first = evolution[0].valor
-    const last = evolution[evolution.length - 1].valor
-    return first > 0 ? ((last / first) - 1) * 100 : null
-  }, [evolution])
-
-  const metaAcum = expectedRent > 0
-    ? (Math.pow(1 + expectedRent / 100, monthCount / 12) - 1) * 100
-    : null
-
+  const lastPoint = series.length > 0 ? series[series.length - 1] : null
+  const patrimonio = lastPoint?.patrimonio ?? null
+  const rentabilidadeMes = lastPoint?.rentMes ?? null
+  const metaMes = lastPoint?.metaMes ?? null
+  const rentabilidadeAcum = compoundPercent(series.map((s) => s.rentMes))
+  const metaAcum = compoundPercent(series.map((s) => s.metaMes))
   const gapMes = (metaMes !== null && rentabilidadeMes !== null) ? rentabilidadeMes - metaMes : null
   const gapAcum = (rentabilidadeAcum !== null && metaAcum !== null) ? rentabilidadeAcum - metaAcum : null
 
@@ -332,49 +316,59 @@ export default function DashboardUno() {
     metaAcum,
     gapMes,
     gapAcum,
-    varValue,
-    varLabel: ''
+    varValue
   }
 
+  // R$ do mes/periodo: mesma fonte que o UNO usa no tooltip (rendimento
+  // financeiro do demonstrativo para o mes; diferenca de patrimonio real —
+  // ja livre de aportes/resgates, pois vem do proprio evolucaoAnualCliente —
+  // para o acumulado do periodo).
+  const summary = summarizeFunds(funds)
   const rentabilidadeMesTooltip = rentabilidadeMes !== null
     ? `${formatPt(rentabilidadeMes, 5)}% | ${formatCurrency(summary.totalRendimento)}`
     : null
 
-  const rentabilidadeAcumTooltip = (rentabilidadeAcum !== null && evolution.length >= 2)
+  const firstPatrimonio = series.find((s) => s.patrimonio !== null)?.patrimonio ?? null
+  const rentabilidadeAcumTooltip = (rentabilidadeAcum !== null && lastPoint && firstPatrimonio !== null)
     ? (
       <>
-        {formatPt(rentabilidadeAcum, 5)}% | {formatCurrency(evolution[evolution.length - 1].valor - evolution[0].valor)}
+        {formatPt(rentabilidadeAcum, 5)}% | {formatCurrency((lastPoint.patrimonio ?? 0) - firstPatrimonio)}
         <br />
-        acum. {evolution[0].label} → {evolution[evolution.length - 1].label}
+        acum. {series[0]?.label} → {lastPoint.label}
       </>
     )
     : null
 
   const GAP_TOOLTIP = 'Diferença entre Rentabilidade e Meta'
-  const META_TOOLTIP = 'Estimativa: rentabilidade esperada anual convertida para o período'
 
   const comparisonData = useMemo(() => {
-    if (evolution.length === 0) return []
-
-    const monthlyMeta = expectedRent > 0 ? expectedRent / 12 : 0
-    let acumRent = 0
-    let acumMeta = 0
-
-    return evolution.map((entry, i) => {
-      const prevPL = i > 0 ? evolution[i - 1].valor : entry.valor
-      const rentMes = prevPL > 0 ? ((entry.valor / prevPL) - 1) * 100 : 0
-      acumRent = evolution[0].valor > 0 ? ((entry.valor / evolution[0].valor) - 1) * 100 : 0
-      acumMeta += monthlyMeta
-
+    let accRent = 1
+    let accMeta = 1
+    let hasRent = false
+    let hasMeta = false
+    return series.map((s) => {
+      if (s.rentMes !== null) {
+        accRent *= 1 + Number(s.rentMes) / 100
+        hasRent = true
+      }
+      if (s.metaMes !== null) {
+        accMeta *= 1 + Number(s.metaMes) / 100
+        hasMeta = true
+      }
       return {
-        label: entry.label,
-        rentMes: Number(rentMes.toFixed(4)),
-        rentAcum: Number(acumRent.toFixed(4)),
-        metaMes: Number(monthlyMeta.toFixed(4)),
-        metaAcum: Number(acumMeta.toFixed(4))
+        label: s.label,
+        rentMes: s.rentMes !== null ? Number(Number(s.rentMes).toFixed(4)) : null,
+        metaMes: s.metaMes !== null ? Number(Number(s.metaMes).toFixed(4)) : null,
+        rentAcum: hasRent ? Number(((accRent - 1) * 100).toFixed(4)) : null,
+        metaAcum: hasMeta ? Number(((accMeta - 1) * 100).toFixed(4)) : null
       }
     })
-  }, [evolution, expectedRent])
+  }, [series])
+
+  const evolution = useMemo(
+    () => series.filter((s) => s.patrimonio !== null).map((s) => ({ label: s.label, valor: s.patrimonio })),
+    [series]
+  )
 
   const renderMetrics = (base, first, second) => {
     const block = (cfg) => {
@@ -571,8 +565,8 @@ export default function DashboardUno() {
               <SummaryCard label="Meta">
                 {renderMetrics(
                   computedMetrics,
-                  { key: 'metaMes', label: 'Mês', unit: '%', tooltip: META_TOOLTIP },
-                  { key: 'metaAcum', label: 'Acum.', unit: '%', tooltip: META_TOOLTIP }
+                  { key: 'metaMes', label: 'Mês', unit: '%' },
+                  { key: 'metaAcum', label: 'Acum.', unit: '%' }
                 )}
               </SummaryCard>
 
@@ -584,7 +578,14 @@ export default function DashboardUno() {
                 )}
               </SummaryCard>
 
-              <SummaryCard label="VaR">
+              <SummaryCard
+                label={(
+                  <>
+                    VaR
+                    <Box component="span" sx={{ fontSize: 10, ml: 0.5, color: 'text.disabled' }}>1,252</Box>
+                  </>
+                )}
+              >
                 <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.success.main }}>
                   {formatPt(computedMetrics.varValue, 4) ?? '—'}
                   {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}

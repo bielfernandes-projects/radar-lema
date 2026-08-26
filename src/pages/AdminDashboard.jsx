@@ -584,7 +584,7 @@ export default function AdminDashboard() {
                     <em>Nenhum (Dashboard UNO fica bloqueado)</em>
                   </MenuItem>
                   {unoClients.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
+                    <MenuItem key={c.uno_client_id} value={c.uno_client_id}>
                       {c.name}
                     </MenuItem>
                   ))}

@@ -7,19 +7,15 @@ import {
   summarizeFunds,
   pad2,
   monthRange,
-  dateFromRow,
-  evolutionLabel,
-  normalizeEvolution,
-  normalizeDashboardMetrics,
-  normalizeClientName,
   monthsAgoRange,
   yearRange,
   rangeForPeriod,
-  normalizeDiaryPls,
-  normalizeRents,
-  normalizeInflationRates,
-  computeDashboardMetrics,
-  parseDiaUltimaCota
+  parseDiaUltimaCota,
+  yearsInRange,
+  monthsBetween,
+  mergeEvolucaoAnual,
+  buildEvolucaoSeries,
+  compoundPercent
 } from '../src/utils/uno'
 
 describe('asArray', () => {
@@ -144,110 +140,6 @@ describe('pad2 e monthRange', () => {
   })
 })
 
-describe('dateFromRow e evolutionLabel', () => {
-  it('monta data a partir de ano e mes', () => {
-    const date = dateFromRow({ ano: 2025, mes: 3, patrimonio: 100 })
-    expect(date.getFullYear()).toBe(2025)
-    expect(date.getMonth()).toBe(2)
-  })
-
-  it('aceita data dd/mm/yyyy', () => {
-    const date = dateFromRow({ data: '15/03/2025', saldo: 100 })
-    expect(date.getFullYear()).toBe(2025)
-    expect(date.getMonth()).toBe(2)
-  })
-
-  it('evolutionLabel formata como Mon/YYYY', () => {
-    expect(evolutionLabel(new Date(2025, 2, 1))).toBe('Mar/2025')
-    expect(evolutionLabel('31/12/2024')).toBe('Dez/2024')
-    expect(evolutionLabel(null)).toBeNull()
-  })
-})
-
-describe('normalizeEvolution', () => {
-  it('normaliza série de patrimônio com datas variadas', () => {
-    const rows = [
-      { ano: 2023, mes: 3, patrimonio: 100000 },
-      { data: '01/06/2023', saldo: 150000 },
-      { competencia: '2023-09-01', valor: 200000 },
-      { ano: 'invalido', mes: 99, saldo: 999 }
-    ]
-    expect(normalizeEvolution(rows)).toEqual([
-      { label: 'Mar/2023', valor: 100000 },
-      { label: 'Jun/2023', valor: 150000 },
-      { label: 'Set/2023', valor: 200000 }
-    ])
-  })
-
-  it('retorna lista vazia sem dados de evolução', () => {
-    expect(normalizeEvolution(null)).toEqual([])
-    expect(normalizeEvolution([])).toEqual([])
-  })
-})
-
-describe('normalizeDashboardMetrics', () => {
-  it('lê métricas com nomes de campo variáveis', () => {
-    const metrics = normalizeDashboardMetrics({
-      patrimonio: 247049086.7,
-      rentabilidade_mes: 1.11,
-      rentabilidade_acumulada: 39.45,
-      meta_mes: 1.21,
-      meta_acumulado: 33.3,
-      gap_mes: -0.1,
-      gap_acumulado: 6.15,
-      var_1_252: 0.1763
-    })
-    expect(metrics.patrimonio).toBe(247049086.7)
-    expect(metrics.rentabilidadeMes).toBe(1.11)
-    expect(metrics.rentabilidadeAcum).toBe(39.45)
-    expect(metrics.metaMes).toBe(1.21)
-    expect(metrics.metaAcum).toBe(33.3)
-    expect(metrics.gapMes).toBe(-0.1)
-    expect(metrics.gapAcum).toBe(6.15)
-    expect(metrics.varValue).toBe(0.1763)
-  })
-
-  it('lê métricas do último registro de uma série mensal', () => {
-    const metrics = normalizeDashboardMetrics([
-      { mes: 1, patrimonio: 100, rentabilidade_mes: 0.5 },
-      { mes: 2, patrimonio: 200, rentabilidade_mes: 1.11, rentabilidade_acumulada: 39.45 }
-    ])
-    expect(metrics.patrimonio).toBe(200)
-    expect(metrics.rentabilidadeMes).toBe(1.11)
-    expect(metrics.rentabilidadeAcum).toBe(39.45)
-  })
-
-  it('retorna null para campos ausentes', () => {
-    const metrics = normalizeDashboardMetrics({ patrimonio: 100 })
-    expect(metrics.rentabilidadeMes).toBeNull()
-    expect(metrics.gapAcum).toBeNull()
-    expect(metrics.varValue).toBeNull()
-  })
-
-  it('trata payload nulo', () => {
-    const metrics = normalizeDashboardMetrics(null)
-    expect(metrics.patrimonio).toBeNull()
-  })
-})
-
-describe('normalizeClientName', () => {
-  it('extrai nome de campo cliente', () => {
-    expect(normalizeClientName([{ cliente_nome: 'DEMONSTRAÇÃO - LEMA' }])).toBe('DEMONSTRAÇÃO - LEMA')
-  })
-
-  it('extrai nome de campo razao social', () => {
-    expect(normalizeClientName([{ razao_social: 'RPPS Municipal' }])).toBe('RPPS Municipal')
-  })
-
-  it('tenta primeiro payload, depois o segundo', () => {
-    expect(normalizeClientName([{}], [{ rpps: 'Previdência SC' }])).toBe('Previdência SC')
-  })
-
-  it('retorna string vazia para payloads vazios', () => {
-    expect(normalizeClientName(null, undefined, [])).toBe('')
-  })
-})
-
 describe('ranges de período', () => {
   it('monthsAgoRange monta janela a partir da data de referência', () => {
     const range = monthsAgoRange(36, 8, 2026)
@@ -274,119 +166,6 @@ describe('ranges de período', () => {
   })
 })
 
-describe('normalizeDiaryPls', () => {
-  it('agrupa registros diarios por mes e retorna PL', () => {
-    const payload = [
-      { new_pl: '100', month: 1, year: 2025 },
-      { new_pl: '101', month: 1, year: 2025 },
-      { new_pl: '105', month: 2, year: 2025 },
-      { new_pl: '110', month: 2, year: 2025 }
-    ]
-    const result = normalizeDiaryPls(payload)
-    expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ label: 'Jan/2025', valor: 101 })
-    expect(result[1]).toEqual({ label: 'Fev/2025', valor: 110 })
-  })
-
-  it('retorna vazio para payload vazio', () => {
-    expect(normalizeDiaryPls([])).toEqual([])
-    expect(normalizeDiaryPls(null)).toEqual([])
-  })
-
-  it('ignora registros com PL invalido', () => {
-    const payload = [{ new_pl: '0', month: 1, year: 2025 }, { new_pl: '100', month: 2, year: 2025 }]
-    expect(normalizeDiaryPls(payload)).toHaveLength(1)
-  })
-})
-
-describe('normalizeRents', () => {
-  it('calcula rentabilidade mensal entre PLs consecutivos', () => {
-    const payload = [
-      { new_pl: '100', month: 1, year: 2025 },
-      { new_pl: '110', month: 2, year: 2025 },
-      { new_pl: '105', month: 3, year: 2025 }
-    ]
-    const result = normalizeRents(payload)
-    expect(result).toHaveLength(2)
-    expect(result[0].valor).toBeCloseTo(10.0, 1)
-    expect(result[1].valor).toBeCloseTo(-4.545, 1)
-  })
-
-  it('retorna vazio com menos de 2 meses', () => {
-    expect(normalizeRents([{ new_pl: '100', month: 1, year: 2025 }])).toEqual([])
-    expect(normalizeRents([])).toEqual([])
-  })
-})
-
-describe('normalizeInflationRates', () => {
-  it('extrai expected_rent e ipca do registro mais recente', () => {
-    const payload = [
-      { expected_rent: '9.0', ipca: '0.05', month: 6, year: 2025 },
-      { expected_rent: '10.5', ipca: '0.07', month: 7, year: 2026 }
-    ]
-    const result = normalizeInflationRates(payload)
-    expect(result.expectedRent).toBe(10.5)
-    expect(result.ipca).toBe(0.07)
-    expect(result.month).toBe(7)
-    expect(result.year).toBe(2026)
-  })
-
-  it('retorna null para payload vazio', () => {
-    expect(normalizeInflationRates([])).toBeNull()
-    expect(normalizeInflationRates(null)).toBeNull()
-  })
-})
-
-describe('computeDashboardMetrics', () => {
-  const diaryPls = [
-    { label: 'Jan/2025', valor: 200000000 },
-    { label: 'Fev/2025', valor: 202000000 },
-    { label: 'Mar/2025', valor: 247000000 }
-  ]
-  const rents = [
-    { label: 'Fev/2025', valor: 1.0 },
-    { label: 'Mar/2025', valor: 2.475 }
-  ]
-  const inflation = { expectedRent: 10.5, ipca: 0.07, month: 7, year: 2026 }
-  const funds = [
-    { saldo: 100000000, varFundo: 0.386 },
-    { saldo: 147000000, varFundo: 0.2 }
-  ]
-
-  it('calcula patrimonio a partir do ultimo PL', () => {
-    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
-    expect(m.patrimonio).toBe(247000000)
-  })
-
-  it('calcula rentabilidade mes do ultimo rent', () => {
-    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
-    expect(m.rentabilidadeMes).toBeCloseTo(2.475, 2)
-  })
-
-  it('calcula rentabilidade acum de PL', () => {
-    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
-    expect(m.rentabilidadeAcum).toBeCloseTo(23.5, 1)
-  })
-
-  it('calcula meta mes como expected_rent/12', () => {
-    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
-    expect(m.metaMes).toBeCloseTo(0.875, 3)
-  })
-
-  it('calcula var como media ponderada', () => {
-    const m = computeDashboardMetrics(diaryPls, rents, inflation, funds, '36')
-    const expected = (0.386 * 100 / 247) + (0.2 * 147 / 247)
-    expect(m.varValue).toBeCloseTo(expected, 3)
-  })
-
-  it('retorna nulls para dados vazios', () => {
-    const m = computeDashboardMetrics([], [], null, [], '36')
-    expect(m.patrimonio).toBeNull()
-    expect(m.rentabilidadeMes).toBeNull()
-    expect(m.metaMes).toBeNull()
-  })
-})
-
 describe('parseDiaUltimaCota', () => {
   it('extrai month e year de formato DD/MM/YYYY', () => {
     expect(parseDiaUltimaCota('31/12/2025')).toEqual({ year: 2025, month: 12 })
@@ -403,5 +182,95 @@ describe('parseDiaUltimaCota', () => {
 
   it('aceita espacos extras', () => {
     expect(parseDiaUltimaCota(' 31/12/2025 ')).toEqual({ year: 2025, month: 12 })
+  })
+})
+
+describe('yearsInRange', () => {
+  it('lista os anos cobertos por um intervalo dentro do mesmo ano', () => {
+    expect(yearsInRange('01/01/2026', '31/12/2026')).toEqual([2026])
+  })
+
+  it('lista todos os anos entre inicio e fim, inclusive', () => {
+    expect(yearsInRange('01/09/2023', '31/08/2026')).toEqual([2023, 2024, 2025, 2026])
+  })
+})
+
+describe('monthsBetween', () => {
+  it('lista os meses de um intervalo dentro do mesmo ano', () => {
+    expect(monthsBetween('01/06/2026', '31/08/2026')).toEqual([
+      { month: 6, year: 2026 },
+      { month: 7, year: 2026 },
+      { month: 8, year: 2026 }
+    ])
+  })
+
+  it('atravessa a virada de ano corretamente', () => {
+    const months = monthsBetween('01/11/2025', '31/01/2026')
+    expect(months).toEqual([
+      { month: 11, year: 2025 },
+      { month: 12, year: 2025 },
+      { month: 1, year: 2026 }
+    ])
+  })
+})
+
+describe('mergeEvolucaoAnual', () => {
+  it('junta metas/rentabilidades/evolucaoPatrimonio de varios anos', () => {
+    const merged = mergeEvolucaoAnual([
+      { metas: { '1/2025': { mes: 0.5 } }, rentabilidades: { '1/2025': { mes: 1 } }, evolucaoPatrimonio: { '1/2025': 100 } },
+      { metas: { '1/2026': { mes: 0.6 } }, rentabilidades: { '1/2026': { mes: 2 } }, evolucaoPatrimonio: { '1/2026': 200 } }
+    ])
+    expect(merged.metas['1/2025'].mes).toBe(0.5)
+    expect(merged.metas['1/2026'].mes).toBe(0.6)
+    expect(merged.evolucaoPatrimonio['1/2026']).toBe(200)
+  })
+
+  it('trata lista vazia/undefined', () => {
+    expect(mergeEvolucaoAnual([])).toEqual({ metas: {}, rentabilidades: {}, evolucaoPatrimonio: {} })
+    expect(mergeEvolucaoAnual(undefined)).toEqual({ metas: {}, rentabilidades: {}, evolucaoPatrimonio: {} })
+  })
+})
+
+describe('buildEvolucaoSeries', () => {
+  const merged = {
+    metas: { '7/2026': { mes: 0.58 }, '8/2026': { mes: 0.6 } },
+    rentabilidades: { '7/2026': { mes: 1.07 }, '8/2026': { mes: 1.2 } },
+    evolucaoPatrimonio: { '7/2026': 245691649.98, '8/2026': 0 }
+  }
+
+  it('monta a serie com label e valores do UNO por mes', () => {
+    const series = buildEvolucaoSeries(merged, [{ month: 7, year: 2026 }, { month: 8, year: 2026 }])
+    expect(series[0]).toEqual({
+      key: '7/2026',
+      label: 'Jul/2026',
+      month: 7,
+      year: 2026,
+      patrimonio: 245691649.98,
+      rentMes: 1.07,
+      metaMes: 0.58
+    })
+  })
+
+  it('usa null quando o mes nao esta na resposta do UNO', () => {
+    const series = buildEvolucaoSeries(merged, [{ month: 9, year: 2026 }])
+    expect(series[0].patrimonio).toBeNull()
+    expect(series[0].rentMes).toBeNull()
+    expect(series[0].metaMes).toBeNull()
+  })
+})
+
+describe('compoundPercent', () => {
+  it('composicao multiplicativa, nao soma linear', () => {
+    // (1.05 * 1.03 - 1) * 100 = 8.15
+    expect(compoundPercent([5, 3])).toBeCloseTo(8.15, 4)
+  })
+
+  it('ignora meses sem valor', () => {
+    expect(compoundPercent([5, null, 3, undefined])).toBeCloseTo(8.15, 4)
+  })
+
+  it('retorna null quando nao ha nenhum valor', () => {
+    expect(compoundPercent([])).toBeNull()
+    expect(compoundPercent([null, undefined])).toBeNull()
   })
 })

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { yearsInRange } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
@@ -80,34 +81,28 @@ function clientParam(clientId) {
   return clientId ? { client_id: String(clientId) } : {}
 }
 
+// evolucaoAnualCliente devolve, por ano, o Patrimonio/Rentabilidade/Meta
+// mes a mes exatamente como o UNO calcula (mesma fonte que o dashboard real
+// do UNO usa) — uma chamada por ano civil coberto pelo periodo selecionado.
+export async function fetchEvolucaoAnual(ano, clientId) {
+  return callUnoProxy('evolucaoAnualCliente', { consulting_id: '1', ano: String(ano), ...clientParam(clientId) })
+}
+
+export async function fetchClientesList() {
+  return callUnoProxy('clientesUNO', { consulting_id: '1' })
+}
+
+export async function fetchOwnUnoClient() {
+  return callUnoProxy('clienteUNO', { consulting_id: '1' })
+}
+
 export async function fetchUnoDashboard(period) {
-  const rangeParams = {
-    consulting_id: '1',
-    start_date: period.startDate,
-    end_date: period.endDate,
-    ...clientParam(period.clientId)
-  }
+  const years = yearsInRange(period.startDate, period.endDate)
 
-  const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta, metaAnual] =
-    await Promise.all([
-      fetchDemonstrativo(period.month, period.year, period.clientId),
-      callUnoProxy('fundosCliente', rangeParams),
-      callUnoProxy('movimentacoesCliente', rangeParams),
-      callUnoProxy('titulosAnalise', rangeParams),
-      callUnoProxy('enquadramentosCliente', rangeParams),
-      callUnoProxy('disponibilidadesCliente', rangeParams),
-      callUnoProxy('metaCliente', rangeParams),
-      callUnoProxy('metaClientePorAno', { ano: String(period.year), ...clientParam(period.clientId) })
-    ])
+  const [demonstrativo, ...evolucoes] = await Promise.all([
+    fetchDemonstrativo(period.month, period.year, period.clientId),
+    ...years.map((ano) => fetchEvolucaoAnual(ano, period.clientId))
+  ])
 
-  return {
-    demonstrativo,
-    fundos,
-    movimentacoes,
-    titulos,
-    enquadramentos,
-    disponibilidades,
-    meta,
-    metaAnual
-  }
+  return { demonstrativo, evolucoes }
 }
