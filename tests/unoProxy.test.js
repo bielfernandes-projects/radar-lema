@@ -121,6 +121,23 @@ describe('services/unoProxy', () => {
     expect(result.demonstrativo).toEqual([{ fund_id: 1 }])
   })
 
+  it('fetchUnoDashboard: repassa clientId como client_id em todas as chamadas', async () => {
+    const responses = Array.from({ length: 8 }, () => jsonResponse([]))
+    vi.mocked(fetch).mockImplementation(async () => responses.shift())
+
+    const period = {
+      month: 6,
+      year: 2026,
+      startDate: '01/06/2026',
+      endDate: '30/06/2026',
+      clientId: '455'
+    }
+    await fetchUnoDashboard(period)
+
+    const calls = vi.mocked(fetch).mock.calls.map((c) => String(c[0]))
+    expect(calls.every((u) => u.includes('client_id=455'))).toBe(true)
+  })
+
   it('fetchUnoDashboard: retorna metaAnual junto com os demais dados', async () => {
     const seq = [
       jsonResponse([]),

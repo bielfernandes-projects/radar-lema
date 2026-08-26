@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Container,
@@ -9,6 +10,7 @@ import {
   Paper,
   Select,
   Skeleton,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip as MuiTooltip,
@@ -29,6 +31,9 @@ import {
   YAxis
 } from 'recharts'
 import { fetchUnoDashboard } from '../services/unoProxy'
+import { fetchUnoClients } from '../services/unoClientsData'
+import { useAuth } from '../contexts/AuthContext'
+import { isSuperAdmin } from '../utils/auth'
 import {
   normalizeFunds,
   summarizeFunds,
@@ -69,11 +74,11 @@ const MONTH_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - 5 + i)
 
-const CLIENT_NAMES = { 192: 'Demonstração Lema' }
-
 // Cor da linha de Rentabilidade no grafico "Rentabilidade x Meta", igual ao
 // UNO (roxo, distinto da barra verde da Meta).
 const RENTABILIDADE_LINE_COLOR = '#7c4dff'
+
+const CLIENT_STORAGE_KEY = 'radarlema.dashboardUno.clientId'
 
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
@@ -190,6 +195,8 @@ function selectStyles(theme) {
 
 export default function DashboardUno() {
   const theme = useTheme()
+  const { profile } = useAuth()
+  const isSuperAdminUser = isSuperAdmin(profile)
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
@@ -199,8 +206,46 @@ export default function DashboardUno() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  const [clients, setClients] = useState([])
+  const [selectedClientId, setSelectedClientId] = useState(() => {
+    try {
+      return localStorage.getItem(CLIENT_STORAGE_KEY) || ''
+    } catch {
+      return ''
+    }
+  })
 
   useEffect(() => {
+    fetchUnoClients().then(setClients).catch(() => {})
+  }, [])
+
+  // Cliente comum: sempre o proprio vinculo, nao a ultima escolha guardada
+  // (isso e so pra Super Admin trocar de RPPS).
+  useEffect(() => {
+    if (isSuperAdminUser || clients.length === 0) return
+    const own = clients.find((c) => c.id === profile?.uno_client_id)
+    if (own) setSelectedClientId(own.uno_client_id)
+  }, [isSuperAdminUser, clients, profile?.uno_client_id])
+
+  useEffect(() => {
+    if (isSuperAdminUser && !selectedClientId && clients.length > 0) {
+      setSelectedClientId(clients[0].uno_client_id)
+    }
+  }, [isSuperAdminUser, clients, selectedClientId])
+
+  useEffect(() => {
+    if (!isSuperAdminUser || !selectedClientId) return
+    try {
+      localStorage.setItem(CLIENT_STORAGE_KEY, selectedClientId)
+    } catch {
+      // ponytail: localStorage indisponivel (modo privado) — a escolha so nao persiste
+    }
+  }, [isSuperAdminUser, selectedClientId])
+
+  const clientName = clients.find((c) => c.uno_client_id === selectedClientId)?.name || ''
+
+  useEffect(() => {
+    if (!selectedClientId) return
     const fetchData = async () => {
       setLoading(true)
       setError('')
@@ -209,7 +254,8 @@ export default function DashboardUno() {
         const result = await fetchUnoDashboard({
           ...range,
           month: selectedMonth,
-          year: selectedYear
+          year: selectedYear,
+          clientId: selectedClientId
         })
         setData(result)
       } catch (err) {
@@ -219,13 +265,11 @@ export default function DashboardUno() {
     }
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, selectedMonth, selectedYear, reload])
+  }, [period, selectedMonth, selectedYear, selectedClientId, reload])
 
   const funds = normalizeFunds(data?.demonstrativo)
   const summary = summarizeFunds(funds)
   const totalSaldo = summary.totalSaldo
-
-  const clientName = CLIENT_NAMES[192] || ''
 
   const patrimonio = totalSaldo > 0 ? totalSaldo : null
 
@@ -381,10 +425,26 @@ export default function DashboardUno() {
             </Select>
           </FormControl>
 
-          {clientName && (
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-              {clientName}
-            </Typography>
+          {isSuperAdminUser ? (
+            <Autocomplete
+              size="small"
+              sx={{ minWidth: 240 }}
+              options={clients}
+              getOptionLabel={(c) => c.name}
+              isOptionEqualToValue={(a, b) => a.uno_client_id === b.uno_client_id}
+              value={clients.find((c) => c.uno_client_id === selectedClientId) || null}
+              onChange={(_, value) => value && setSelectedClientId(value.uno_client_id)}
+              disableClearable
+              renderInput={(params) => (
+                <TextField {...params} placeholder="Selecione um cliente" sx={selectStyles(theme)} />
+              )}
+            />
+          ) : (
+            clientName && (
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                {clientName}
+              </Typography>
+            )
           )}
         </Box>
 

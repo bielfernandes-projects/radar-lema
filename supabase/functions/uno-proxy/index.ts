@@ -5,8 +5,7 @@ const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const unoAccessToken = Deno.env.get("UNO_ACCESS_TOKEN")!;
 const unoApiBase = "https://unoapp.com.br/server/api/v1/outer_api";
-// Prototipo: o proxy sempre aponta para o perfil de demonstracao. Na fase de
-// integracao plena, o client_id passa a ser derivado do vinculo da conta.
+// Fallback apenas se o perfil nao tiver nenhum cliente vinculado ainda.
 const unoDemoClientId = Deno.env.get("UNO_DEMO_CLIENT_ID") || "192";
 
 const corsHeaders = {
@@ -91,13 +90,13 @@ Deno.serve(async (req) => {
 
   // Acesso restrito a Clientes Lema — Super Admin sempre passa, mesmo sem a
   // flag de cliente (mesma regra de canAccessLemaExclusive no frontend).
-  const { data: profile, error: profileError } = await createClient(
-    supabaseUrl,
-    serviceRole,
-    { auth: { persistSession: false } }
-  )
+  const adminClient = createClient(supabaseUrl, serviceRole, {
+    auth: { persistSession: false }
+  });
+
+  const { data: profile, error: profileError } = await adminClient
     .from("profiles")
-    .select("is_uno_client, user_type, role")
+    .select("is_uno_client, user_type, role, uno_client_id")
     .eq("id", user.id)
     .single();
 
@@ -117,7 +116,39 @@ Deno.serve(async (req) => {
     return new Response("Endpoint invalido", { status: 400, headers: withCors(origin) });
   }
 
-  // Monta a query para a API do UNO, forçando o client id do perfil demo.
+  // Resolve qual cliente UNO real consultar. Cliente comum: sempre o
+  // vinculado ao proprio perfil (ignora qualquer client_id que o front
+  // mande, pra ninguem ver dado de outro RPPS trocando o parametro). Super
+  // Admin: pode escolher qualquer cliente cadastrado em uno_clients — o
+  // valor enviado e validado contra a tabela antes de ser usado.
+  let resolvedClientId: string | null = null;
+
+  if (!isSuperAdmin) {
+    if (profile?.uno_client_id) {
+      const { data: linkedClient } = await adminClient
+        .from("uno_clients")
+        .select("uno_client_id")
+        .eq("id", profile.uno_client_id)
+        .single();
+      resolvedClientId = linkedClient?.uno_client_id ?? null;
+    }
+  } else {
+    const requested = url.searchParams.get("client_id");
+    if (requested) {
+      const { data: match } = await adminClient
+        .from("uno_clients")
+        .select("uno_client_id")
+        .eq("uno_client_id", requested)
+        .single();
+      resolvedClientId = match?.uno_client_id ?? null;
+    }
+  }
+
+  if (!resolvedClientId) {
+    resolvedClientId = unoDemoClientId;
+  }
+
+  // Monta a query para a API do UNO com o client id resolvido.
   const query = new URLSearchParams();
   for (const key of ENDPOINTS[endpoint]) {
     const value = url.searchParams.get(key);
@@ -125,9 +156,9 @@ Deno.serve(async (req) => {
   }
   // Todos os endpoints usam client_id. demonstrativoFundosCliente usa cliente_id.
   if (endpoint === "demonstrativoFundosCliente") {
-    query.set("cliente_id", unoDemoClientId);
+    query.set("cliente_id", resolvedClientId);
   } else {
-    query.set("client_id", unoDemoClientId);
+    query.set("client_id", resolvedClientId);
   }
 
   const targetUrl = `${unoApiBase}/${endpoint}?${query.toString()}`;

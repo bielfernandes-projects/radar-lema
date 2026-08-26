@@ -183,6 +183,9 @@ Deno.serve(async (req) => {
     const isUnoClient = typeof body.is_uno_client === "boolean"
       ? body.is_uno_client
       : undefined;
+    const unoClientId = typeof body.uno_client_id === "string" || body.uno_client_id === null
+      ? body.uno_client_id
+      : undefined;
 
     if (!userId) {
       return json({ error: "user_id obrigatorio" }, 400, origin);
@@ -208,6 +211,9 @@ Deno.serve(async (req) => {
     };
     if (isUnoClient !== undefined) {
       profileUpdate.is_uno_client = isUnoClient;
+    }
+    if (unoClientId !== undefined) {
+      profileUpdate.uno_client_id = unoClientId;
     }
 
     const { error: profileError } = await adminClient

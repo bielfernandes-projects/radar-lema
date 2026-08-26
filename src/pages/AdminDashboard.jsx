@@ -42,6 +42,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { adminApi, USER_TYPES, ROLE_BY_USER_TYPE } from '../services/adminApi'
+import { fetchUnoClients } from '../services/unoClientsData'
 import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
 
@@ -86,7 +87,9 @@ export default function AdminDashboard() {
   const [editName, setEditName] = useState('')
   const [editType, setEditType] = useState('client')
   const [editIsUnoClient, setEditIsUnoClient] = useState(false)
+  const [editUnoClientId, setEditUnoClientId] = useState('')
   const [editBusy, setEditBusy] = useState(false)
+  const [unoClients, setUnoClients] = useState([])
 
   const [resetUser, setResetUser] = useState(null)
   const [resetPassword, setResetPassword] = useState('')
@@ -114,7 +117,7 @@ export default function AdminDashboard() {
 
     const { data: usersData, error: usersError } = await supabase
       .from('profiles')
-      .select('id, email, name, user_type, role, is_uno_client, created_at')
+      .select('id, email, name, user_type, role, is_uno_client, uno_client_id, created_at')
       .order('created_at', { ascending: false })
 
     if (usersError) {
@@ -128,6 +131,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadAll()
+    fetchUnoClients().then(setUnoClients).catch(() => {})
   }, [])
 
   const runAction = async (fn, okMessage) => {
@@ -169,6 +173,7 @@ export default function AdminDashboard() {
     setEditName(user.name || '')
     setEditType(user.user_type)
     setEditIsUnoClient(user.is_uno_client === true)
+    setEditUnoClientId(user.uno_client_id || '')
   }
 
   const handleEdit = async () => {
@@ -179,7 +184,8 @@ export default function AdminDashboard() {
         user_id: editUser.id,
         name: editName,
         user_type: editType,
-        is_uno_client: editIsUnoClient
+        is_uno_client: editIsUnoClient,
+        uno_client_id: editIsUnoClient ? (editUnoClientId || null) : null
       }),
       'Usuário atualizado.'
     )
@@ -506,6 +512,26 @@ export default function AdminDashboard() {
             <Typography variant="caption" color="text.secondary">
               Libera artigos/materiais exclusivos e o Dashboard UNO para esta conta.
             </Typography>
+            {editIsUnoClient && (
+              <FormControl fullWidth>
+                <InputLabel id="edit-uno-client-label">Cliente UNO vinculado</InputLabel>
+                <Select
+                  labelId="edit-uno-client-label"
+                  label="Cliente UNO vinculado"
+                  value={editUnoClientId}
+                  onChange={(e) => setEditUnoClientId(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>Nenhum (Dashboard UNO fica bloqueado)</em>
+                  </MenuItem>
+                  {unoClients.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>

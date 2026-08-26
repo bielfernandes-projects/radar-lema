@@ -57,8 +57,8 @@ function extractUnoErrorMessage(text) {
 // corrente ainda nao fechou, `demonstrativoFundosCliente` devolve 400 (a UNO
 // repassa o erro do Comdinheiro ao consultar data futura). Faz fallback para
 // o ultimo mes fechado quando o mes corrente responde 400.
-async function fetchDemonstrativo(month, year) {
-  const params = { consulting_id: '1', mes: String(month), ano: String(year) }
+async function fetchDemonstrativo(month, year, clientId) {
+  const params = { consulting_id: '1', mes: String(month), ano: String(year), ...clientParam(clientId) }
   try {
     return await callUnoProxy('demonstrativoFundosCliente', params)
   } catch (err) {
@@ -68,30 +68,36 @@ async function fetchDemonstrativo(month, year) {
       return callUnoProxy('demonstrativoFundosCliente', {
         consulting_id: '1',
         mes: String(previous.getMonth() + 1),
-        ano: String(previous.getFullYear())
+        ano: String(previous.getFullYear()),
+        ...clientParam(clientId)
       })
     }
     throw err
   }
 }
 
+function clientParam(clientId) {
+  return clientId ? { client_id: String(clientId) } : {}
+}
+
 export async function fetchUnoDashboard(period) {
   const rangeParams = {
     consulting_id: '1',
     start_date: period.startDate,
-    end_date: period.endDate
+    end_date: period.endDate,
+    ...clientParam(period.clientId)
   }
 
   const [demonstrativo, fundos, movimentacoes, titulos, enquadramentos, disponibilidades, meta, metaAnual] =
     await Promise.all([
-      fetchDemonstrativo(period.month, period.year),
+      fetchDemonstrativo(period.month, period.year, period.clientId),
       callUnoProxy('fundosCliente', rangeParams),
       callUnoProxy('movimentacoesCliente', rangeParams),
       callUnoProxy('titulosAnalise', rangeParams),
       callUnoProxy('enquadramentosCliente', rangeParams),
       callUnoProxy('disponibilidadesCliente', rangeParams),
       callUnoProxy('metaCliente', rangeParams),
-      callUnoProxy('metaClientePorAno', { ano: String(period.year) })
+      callUnoProxy('metaClientePorAno', { ano: String(period.year), ...clientParam(period.clientId) })
     ])
 
   return {
