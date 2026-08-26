@@ -7,6 +7,9 @@ import createAppTheme from './theme/theme'
 import { AuthProvider } from './contexts/AuthContext'
 import { ColorModeProvider, useColorMode } from './contexts/ColorModeContext'
 import { routes } from './routes.jsx'
+import { initPosthog } from './lib/posthog'
+
+initPosthog()
 
 const router = createBrowserRouter(routes)
 

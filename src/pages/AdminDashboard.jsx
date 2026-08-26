@@ -24,11 +24,13 @@ import {
   Snackbar,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   TextField,
   Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
-import { Trash2, Pencil, KeyRound, UserPlus } from 'lucide-react'
+import { Trash2, Pencil, KeyRound, UserPlus, ExternalLink } from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -66,8 +68,52 @@ const toChartData = (rows) =>
     count
   }))
 
+const POSTHOG_INTEGRATIONS_URL =
+  'https://vercel.com/bielfernandes-projects-projects/~/integrations'
+
+function ObservabilityPanel() {
+  const trackingAtivo = Boolean(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN)
+
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <Stack spacing={2}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="h6">Observabilidade</Typography>
+            <Chip
+              label={trackingAtivo ? 'Rastreamento ativo' : 'Rastreamento inativo'}
+              color={trackingAtivo ? 'success' : 'default'}
+              size="small"
+            />
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            O Radar Lema envia eventos de uso (cliques, áreas de mais interação,
+            tempo de permanência, navegação entre páginas) para o PostHog via
+            integração nativa da Vercel. Os dashboards, heatmaps e funis reais
+            ficam no próprio PostHog — abra pelo link abaixo para explorar as
+            métricas.
+          </Typography>
+          <Box>
+            <Button
+              variant="contained"
+              endIcon={<ExternalLink size={18} />}
+              component="a"
+              href={POSTHOG_INTEGRATIONS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir métricas no PostHog
+            </Button>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function AdminDashboard() {
   const { profile } = useAuth()
+  const [tab, setTab] = useState('overview')
   const [stats, setStats] = useState(emptyStats)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -237,16 +283,23 @@ export default function AdminDashboard() {
         <Typography variant="h4" component="h1">
           Painel Admin
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<UserPlus size={20} />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Novo usuário
-        </Button>
+        {tab === 'overview' && (
+          <Button
+            variant="contained"
+            startIcon={<UserPlus size={20} />}
+            onClick={() => setCreateOpen(true)}
+          >
+            Novo usuário
+          </Button>
+        )}
       </Stack>
 
-      {error && (
+      <Tabs value={tab} onChange={(e, value) => setTab(value)} sx={{ mb: 2 }}>
+        <Tab label="Visão geral" value="overview" />
+        <Tab label="Observabilidade" value="observability" />
+      </Tabs>
+
+      {tab === 'overview' && error && (
         <Alert
           severity="error"
           sx={{ mb: 2 }}
@@ -261,6 +314,8 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
+      {tab === 'overview' && (
+      <>
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
           { label: 'Usuários', value: stats.total_users },
@@ -408,6 +463,10 @@ export default function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
+
+      {tab === 'observability' && <ObservabilityPanel />}
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Criar usuário</DialogTitle>
