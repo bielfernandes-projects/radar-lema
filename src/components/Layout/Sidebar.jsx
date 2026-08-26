@@ -85,7 +85,7 @@ const navStructure = [
       { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings', auth: true },
       {
         key: 'whatsappCommunity',
-        label: 'Comunidade Lema no WhatsApp',
+        label: 'Comunidade Lema',
         icon: 'MessageCircle',
         comingSoon: true,
         auth: true
@@ -268,11 +268,12 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                           borderRadius: 1,
                           px: 1.5,
                           py: 0.75,
-                          color: 'success.main',
-                          '&:hover': { backgroundColor: 'success.light', color: 'success.contrastText' },
+                          bgcolor: '#128a0e',
+                          color: '#fff',
+                          '&:hover': { bgcolor: '#128a0e' },
                           '@keyframes sidebarPulse': {
                             '0%, 100%': { opacity: 1 },
-                            '50%': { opacity: 0.55 }
+                            '50%': { opacity: 0.35 }
                           },
                           animation: 'sidebarPulse 1.8s ease-in-out infinite'
                         }}

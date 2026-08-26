@@ -89,18 +89,22 @@ Deno.serve(async (req) => {
     return new Response("Unauthorized", { status: 401, headers: withCors(origin) });
   }
 
-  // Acesso restrito a Clientes Lema.
+  // Acesso restrito a Clientes Lema — Super Admin sempre passa, mesmo sem a
+  // flag de cliente (mesma regra de canAccessLemaExclusive no frontend).
   const { data: profile, error: profileError } = await createClient(
     supabaseUrl,
     serviceRole,
     { auth: { persistSession: false } }
   )
     .from("profiles")
-    .select("is_uno_client")
+    .select("is_uno_client, user_type, role")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile?.is_uno_client) {
+  const isSuperAdmin =
+    profile?.user_type === "super_admin" || profile?.role === "ROLE_SUPER_ADMIN";
+
+  if (profileError || !(profile?.is_uno_client || isSuperAdmin)) {
     return new Response("Acesso restrito a Clientes Lema", {
       status: 403,
       headers: withCors(origin)

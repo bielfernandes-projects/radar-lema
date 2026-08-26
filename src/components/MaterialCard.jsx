@@ -82,7 +82,7 @@ export default function MaterialCard({ material }) {
     setLoadingPreview(true)
     setError('')
     try {
-      const url = await getMaterialUrl(material.storage_path, material.file_name)
+      const url = await getMaterialUrl(material.storage_path, material.file_name, { download: false })
       setPreviewUrl(url)
     } catch (err) {
       setError(err?.message || 'Não foi possível abrir o material.')

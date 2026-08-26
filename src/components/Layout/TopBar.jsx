@@ -46,11 +46,26 @@ export default function TopBar({ onMenuClick }) {
           <Menu size={24} />
         </IconButton>
 
-        <Box
-          sx={{ flexGrow: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }}
-          onClick={() => navigate('/')}
-        >
-          <img src="/favicon-32x32.png" alt="" style={{ width: 28, height: 28, display: 'block' }} />
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="button"
+            onClick={() => navigate('/')}
+            aria-label="Ir para o início"
+            sx={{
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              border: 0,
+              p: 0,
+              m: 0,
+              bgcolor: 'transparent',
+              color: 'inherit',
+              font: 'inherit'
+            }}
+          >
+            <img src="/favicon-32x32.png" alt="" style={{ width: 28, height: 28, display: 'block' }} />
+          </Box>
           <Typography variant="h6" component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
             Radar Lema
           </Typography>

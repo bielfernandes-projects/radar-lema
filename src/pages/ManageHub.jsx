@@ -90,13 +90,13 @@ export default function ManageHub() {
     if (!deleteTarget) return
     const { kind, item } = deleteTarget
     try {
-      if (kind === 'article') {
+      if (kind === 'articles') {
         await deleteArticle(item.id)
         setArticles((prev) => prev.filter((a) => a.id !== item.id))
-      } else if (kind === 'uno_update') {
+      } else if (kind === 'uno_updates') {
         await deleteUnoUpdate(item.id)
         setUpdates((prev) => prev.filter((u) => u.id !== item.id))
-      } else if (kind === 'material') {
+      } else if (kind === 'materials') {
         await deleteMaterial(item.id)
         await deleteMaterialFile(item.storage_path).catch(() => {})
         setMaterials((prev) => prev.filter((m) => m.id !== item.id))
