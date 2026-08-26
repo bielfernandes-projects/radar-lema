@@ -11,6 +11,7 @@ import {
   Skeleton,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip as MuiTooltip,
   Typography,
   useTheme
 } from '@mui/material'
@@ -20,6 +21,7 @@ import {
   BarChart,
   Bar,
   ComposedChart,
+  Legend,
   Line,
   CartesianGrid,
   Tooltip,
@@ -69,6 +71,10 @@ const YEARS = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - 5 + i)
 
 const CLIENT_NAMES = { 192: 'Demonstração Lema' }
 
+// Cor da linha de Rentabilidade no grafico "Rentabilidade x Meta", igual ao
+// UNO (roxo, distinto da barra verde da Meta).
+const RENTABILIDADE_LINE_COLOR = '#7c4dff'
+
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
   return new Intl.NumberFormat('pt-BR', {
@@ -86,6 +92,7 @@ function compactCurrency(value) {
 
 function SummaryCard({ label, info, children }) {
   const theme = useTheme()
+  const icon = <Info size={14} style={{ color: theme.palette.primary.main, cursor: typeof info === 'string' ? 'help' : 'default' }} />
   return (
     <Paper
       className="report-card"
@@ -105,7 +112,7 @@ function SummaryCard({ label, info, children }) {
         <Typography variant="body2" color="text.secondary">
           {label}
         </Typography>
-        {info && <Info size={14} style={{ color: theme.palette.primary.main }} />}
+        {info && (typeof info === 'string' ? <MuiTooltip title={info}>{icon}</MuiTooltip> : icon)}
       </Box>
       {children}
     </Paper>
@@ -125,8 +132,9 @@ function BigValue({ value }) {
   const spaceIndex = formatted.indexOf(' ')
   const currency = spaceIndex >= 0 ? formatted.slice(0, spaceIndex) : ''
   const amount = spaceIndex >= 0 ? formatted.slice(spaceIndex + 1) : formatted
+  const color = value < 0 ? theme.palette.error.main : theme.palette.success.main
   return (
-    <Typography className="value-positive" sx={{ fontSize: 34, fontWeight: 600, color: theme.palette.primary.main, letterSpacing: '-0.02em', textAlign: 'center' }}>
+    <Typography className="value-positive" sx={{ fontSize: 34, fontWeight: 600, color, letterSpacing: '-0.02em', textAlign: 'center' }}>
       <Box component="span" sx={{ fontSize: 20, fontWeight: 400, mr: 0.5 }}>
         {currency}
       </Box>
@@ -135,18 +143,19 @@ function BigValue({ value }) {
   )
 }
 
-function MetricBlock({ label, value, unit, negative }) {
+function MetricBlock({ label, value, unit, negative, tooltip }) {
   const theme = useTheme()
-  return (
-    <Box sx={{ textAlign: 'center' }}>
+  const content = (
+    <Box sx={{ textAlign: 'center', cursor: tooltip ? 'help' : 'default' }}>
       <Box className="report-sub-label" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.25, mb: 0.5 }}>
         <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
           {label}
         </Typography>
+        {tooltip && <Info size={12} style={{ color: theme.palette.primary.main }} />}
       </Box>
       <Typography
         className={negative ? 'value-negative' : 'value-positive'}
-        sx={{ fontSize: 24, fontWeight: 700, color: negative ? theme.palette.error.main : theme.palette.primary.main, textAlign: 'center' }}
+        sx={{ fontSize: 24, fontWeight: 700, color: negative ? theme.palette.error.main : theme.palette.success.main, textAlign: 'center' }}
       >
         {value}
         {unit && (
@@ -157,6 +166,7 @@ function MetricBlock({ label, value, unit, negative }) {
       </Typography>
     </Box>
   )
+  return tooltip ? <MuiTooltip title={tooltip}>{content}</MuiTooltip> : content
 }
 
 function DualMetricCard({ first, second }) {
@@ -282,6 +292,23 @@ export default function DashboardUno() {
     varLabel: ''
   }
 
+  const rentabilidadeMesTooltip = rentabilidadeMes !== null
+    ? `${formatPt(rentabilidadeMes, 5)}% | ${formatCurrency(summary.totalRendimento)}`
+    : null
+
+  const rentabilidadeAcumTooltip = (rentabilidadeAcum !== null && evolution.length >= 2)
+    ? (
+      <>
+        {formatPt(rentabilidadeAcum, 5)}% | {formatCurrency(evolution[evolution.length - 1].valor - evolution[0].valor)}
+        <br />
+        acum. {evolution[0].label} → {evolution[evolution.length - 1].label}
+      </>
+    )
+    : null
+
+  const GAP_TOOLTIP = 'Diferença entre Rentabilidade e Meta'
+  const META_TOOLTIP = 'Estimativa: rentabilidade esperada anual convertida para o período'
+
   const comparisonData = useMemo(() => {
     if (evolution.length === 0) return []
 
@@ -314,7 +341,8 @@ export default function DashboardUno() {
         label: cfg.label,
         value: formatPt(raw, cfg.decimals) ?? '—',
         unit: cfg.unit,
-        negative: isNegative
+        negative: isNegative,
+        tooltip: cfg.tooltip
       }
     }
     return <DualMetricCard first={block(first)} second={block(second)} />
@@ -472,23 +500,23 @@ export default function DashboardUno() {
                 <BigValue value={patrimonio} />
               </SummaryCard>
 
-              <SummaryCard label="Rentabilidade" info>
+              <SummaryCard label="Rentabilidade">
                 {renderMetrics(
                   computedMetrics,
-                  { key: 'rentabilidadeMes', label: 'Mês', unit: '%' },
-                  { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%' }
+                  { key: 'rentabilidadeMes', label: 'Mês', unit: '%', tooltip: rentabilidadeMesTooltip },
+                  { key: 'rentabilidadeAcum', label: 'Acum.', unit: '%', tooltip: rentabilidadeAcumTooltip }
                 )}
               </SummaryCard>
 
               <SummaryCard label="Meta">
                 {renderMetrics(
                   computedMetrics,
-                  { key: 'metaMes', label: 'Mês', unit: '%' },
-                  { key: 'metaAcum', label: 'Acum.', unit: '%' }
+                  { key: 'metaMes', label: 'Mês', unit: '%', tooltip: META_TOOLTIP },
+                  { key: 'metaAcum', label: 'Acum.', unit: '%', tooltip: META_TOOLTIP }
                 )}
               </SummaryCard>
 
-              <SummaryCard label="Gap" info>
+              <SummaryCard label="Gap" info={GAP_TOOLTIP}>
                 {renderMetrics(
                   computedMetrics,
                   { key: 'gapMes', label: 'Mês', unit: ' P.P.', negative: 'auto' },
@@ -497,7 +525,7 @@ export default function DashboardUno() {
               </SummaryCard>
 
               <SummaryCard label="VaR">
-                <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.primary.main }}>
+                <Typography className="value-positive" sx={{ fontSize: 24, fontWeight: 600, color: theme.palette.success.main }}>
                   {formatPt(computedMetrics.varValue, 4) ?? '—'}
                   {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: 14, fontWeight: 400 }}>%</Box>}
                 </Typography>
@@ -610,22 +638,24 @@ export default function DashboardUno() {
                       <Tooltip
                         formatter={(value, name) => [
                           `${formatPt(value, 2)}%`,
-                          (isMensal ? ['rentMes', 'rentAcum'] : ['rentAcum', 'rentMes']).includes(name)
-                            ? 'Rentabilidade' : 'Meta'
+                          name === 'meta' ? 'Meta' : 'Rentabilidade'
                         ]}
                       />
+                      <Legend
+                        formatter={(value) => (value === 'meta' ? 'Meta' : 'Rentabilidade')}
+                      />
                       <Bar
-                        dataKey={isMensal ? 'rentMes' : 'rentAcum'}
-                        name={isMensal ? 'rentMes' : 'rentAcum'}
-                        fill={theme.palette.primary.main}
+                        dataKey={isMensal ? 'metaMes' : 'metaAcum'}
+                        name="meta"
+                        fill={theme.palette.success.main}
                         radius={[3, 3, 0, 0]}
                         barSize={isMensal ? 24 : 32}
                       />
                       <Line
                         type="monotone"
-                        dataKey={isMensal ? 'metaMes' : 'metaAcum'}
-                        name="metaMes"
-                        stroke={theme.palette.warning?.main || '#ed6c02'}
+                        dataKey={isMensal ? 'rentMes' : 'rentAcum'}
+                        name="rentabilidade"
+                        stroke={RENTABILIDADE_LINE_COLOR}
                         strokeWidth={2}
                         dot={false}
                       />
