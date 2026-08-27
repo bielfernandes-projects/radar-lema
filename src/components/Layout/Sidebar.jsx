@@ -63,15 +63,7 @@ const navStructure = [
       { key: 'home', label: 'Início', path: '/', icon: 'Home' },
       { key: 'news', label: 'Notícias', path: '/noticias', icon: 'Newspaper' },
       { key: 'articles', label: 'Artigos', path: '/artigos', icon: 'BookOpen' },
-      { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone' },
       { key: 'materials', label: 'Materiais de Apoio', path: '/materiais', icon: 'FileStack' },
-      {
-        key: 'dashboardUno',
-        label: 'Dashboard UNO',
-        path: '/dashboard-uno',
-        icon: 'LineChart',
-        unoClientOnly: true
-      },
       {
         key: 'events',
         label: 'Eventos',
@@ -81,6 +73,14 @@ const navStructure = [
           { key: 'favorites', label: 'Favoritos', path: '/favoritos' },
           { key: 'past', label: 'Realizados', path: '/realizados' }
         ]
+      },
+      { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone' },
+      {
+        key: 'dashboardUno',
+        label: 'Dashboard UNO',
+        path: '/dashboard-uno',
+        icon: 'LineChart',
+        unoClientOnly: true
       },
       { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings', auth: true },
       {

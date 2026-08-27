@@ -107,7 +107,8 @@ export default function Feed() {
   }, [])
 
   const upcomingEvents = filterEvents(events, {}, [], {
-    excludePast: true
+    excludePast: true,
+    excludeUnconfirmed: true
   }).slice(0, itemCount)
 
   if (loading) {

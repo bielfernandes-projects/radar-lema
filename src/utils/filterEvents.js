@@ -4,10 +4,10 @@ import { MODALITY_LABELS } from './constants'
 export { normalizeDate }
 
 export function filterEvents(events, filters, categories, options = {}) {
-  const { excludePast, sortBy = 'next_date', sortDir = 'asc' } = options
-  let result = excludePast
-    ? events.filter((event) => !event.is_past)
-    : [...events]
+  const { excludePast, excludeUnconfirmed, sortBy = 'next_date', sortDir = 'asc' } = options
+  let result = [...events]
+  if (excludePast) result = result.filter((event) => !event.is_past)
+  if (excludeUnconfirmed) result = result.filter((event) => event.is_confirmed !== false)
 
   if (filters.q?.trim()) {
     const term = filters.q.toLowerCase()
