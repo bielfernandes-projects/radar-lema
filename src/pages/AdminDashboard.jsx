@@ -381,7 +381,7 @@ export default function AdminDashboard() {
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="count" name="Usuários" fill="#1976d2" />
+                    <Bar dataKey="count" name="Usuários" fill="#3B82F6" />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>

@@ -30,7 +30,7 @@ export default defineConfig({
         description: 'Centralizador de eventos para RPPS',
         id: '/',
         lang: 'pt-BR',
-        theme_color: '#1976d2',
+        theme_color: '#3B82F6',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

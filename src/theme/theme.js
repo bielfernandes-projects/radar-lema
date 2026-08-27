@@ -1,29 +1,30 @@
 import { createTheme } from '@mui/material/styles'
 
 const blue = {
-  50: '#eef6ff',
-  100: '#d9ecfe',
-  200: '#bcdcfd',
-  300: '#8ec6fa',
-  400: '#59a8f4',
-  500: '#2f8be8',
-  600: '#1976d2',
-  700: '#1563b4',
-  800: '#155494',
-  900: '#174a7a'
+  50: '#eff6ff',
+  100: '#dbeafe',
+  200: '#bfdbfe',
+  300: '#93c5fd',
+  400: '#60a5fa',
+  500: '#3b82f6',
+  600: '#2563eb',
+  700: '#1d4ed8',
+  800: '#1e40af',
+  900: '#1e3a8a'
 }
 
+// Escala de cinzas "UNO": 100 = terciaria (#EBEEF2), 500 = quaternaria (#768191)
 const neutral = {
   50: '#f7f8fa',
-  100: '#eef0f4',
-  200: '#dfe2ea',
-  300: '#c6cbd8',
-  400: '#a6adbe',
-  500: '#82899e',
-  600: '#6b738a',
-  700: '#565d73',
-  800: '#3b4155',
-  900: '#232840'
+  100: '#ebeef2',
+  200: '#dce0e7',
+  300: '#c2c8d2',
+  400: '#9aa2b1',
+  500: '#768191',
+  600: '#5c6675',
+  700: '#464e5a',
+  800: '#333941',
+  900: '#21252b'
 }
 
 const FAVORITE = {
@@ -37,9 +38,9 @@ export default function createAppTheme(mode) {
     palette: {
       mode,
       primary: {
-        main: blue[600],
+        main: blue[500],
         light: blue[300],
-        dark: blue[800],
+        dark: blue[700],
         contrastText: '#ffffff'
       },
       secondary: {
@@ -58,30 +59,31 @@ export default function createAppTheme(mode) {
             },
             text: {
               primary: '#f1f5f9',
-              secondary: '#94a3b8'
+              secondary: neutral[400]
             }
           }
         : {
             background: {
-              default: '#f6f7f9',
+              default: '#ebeef2',
               paper: '#ffffff'
             },
             text: {
               primary: '#1e293b',
-              secondary: '#5f6b7e'
+              secondary: neutral[500]
             }
           })
     },
     typography: {
-      fontFamily: '"Manrope", "Helvetica Neue", "Arial", sans-serif',
-      h1: { fontFamily: '"Manrope", sans-serif', fontWeight: 800 },
-      h2: { fontFamily: '"Manrope", sans-serif', fontWeight: 800 },
-      h3: { fontFamily: '"Manrope", sans-serif', fontWeight: 800 },
-      h4: { fontFamily: '"Manrope", sans-serif', fontWeight: 700 },
-      h5: { fontFamily: '"Manrope", sans-serif', fontWeight: 700 },
-      h6: { fontFamily: '"Manrope", sans-serif', fontWeight: 700 },
+      fontFamily: '"Open Sans", "Helvetica Neue", "Arial", sans-serif',
+      // Syncopate so tem pesos 400/700 e e bem larga -> letterSpacing negativo nos titulos
+      h1: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
+      h2: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
+      h3: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.01em' },
+      h4: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
+      h5: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
+      h6: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
       subtitle1: { fontWeight: 600 },
-      button: { fontFamily: '"Manrope", sans-serif', fontWeight: 700 }
+      button: { fontWeight: 700 }
     },
     shape: {
       borderRadius: 10
