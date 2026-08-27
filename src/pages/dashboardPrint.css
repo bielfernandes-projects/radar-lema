@@ -1,8 +1,100 @@
-@media print {
-  @page {
-    margin: 10mm;
-  }
+/* Layout "desktop" do relatorio — aplicado via a classe .report-print-mode
+   (controlada por estado React em DashboardUno.jsx), NAO via @media print.
+   Isso e proposital: o Recharts so remede a largura real do grafico atraves
+   de ResizeObserver, e isso e assincrono. Se o forcamento de layout so
+   acontecesse dentro de @media print, o navegador ja teria disparado
+   window.print() (que trava a thread) antes do Recharts ter a chance de
+   remedir — resultando em graficos com a largura antiga (a da tela) no
+   papel. Aplicando a classe ANTES de chamar window.print() (com um delay de
+   dois requestAnimationFrame), o React re-renderiza e o Recharts remede com
+   folga, garantindo que o relatorio saia identico partindo do desktop ou do
+   celular. */
+/* Trava o relatorio numa largura fixa, igual em qualquer dispositivo. Sem
+   isso, o relatorio herda a largura da janela/viewport de origem: no
+   celular fica estreito demais (grafico sobra espaco em branco), e numa
+   janela desktop larga fica maior que a area imprimivel da pagina paisagem
+   e corta na borda direita. 1000px cabe com folga tanto em A4 quanto em
+   Carta (Letter) no formato paisagem com 10mm de margem. */
+#uno-dashboard-report.report-print-mode {
+  width: 1000px !important;
+  max-width: 1000px !important;
+}
 
+/* Padding do Container travado num valor fixo e conhecido — os graficos
+   recebem uma largura calculada em cima desse valor (ver REPORT_CHART_WIDTH
+   em DashboardUno.jsx), entao esse padding nao pode variar por breakpoint. */
+#uno-dashboard-report.report-print-mode .report-container {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-summary-grid {
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 8px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-filters-row {
+  flex-wrap: nowrap !important;
+  margin-bottom: 4px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-header-row {
+  margin-bottom: 8px !important;
+}
+
+/* Esconde os controles interativos (seletor de periodo, Mensal/Acumulado) —
+   nao fazem sentido num relatorio estatico e so ocupam espaco vertical. */
+#uno-dashboard-report.report-print-mode .report-interactive-hide {
+  display: none !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-card {
+  padding: 16px !important;
+}
+
+/* Cards de valores (Patrimonio/Rentabilidade/Meta/Gap/VaR) ficam bem mais
+   baixos no relatorio pra sobrar altura pro primeiro grafico entrar na
+   primeira pagina. */
+#uno-dashboard-report.report-print-mode .report-summary-card {
+  padding: 8px !important;
+  min-height: 90px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-body-stack {
+  gap: 8px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-chart-title {
+  margin-bottom: 8px !important;
+}
+
+#uno-dashboard-report.report-print-mode .report-chart-box {
+  height: 300px !important;
+}
+
+#uno-dashboard-report.report-print-mode .value-big {
+  font-size: 26px !important;
+}
+
+#uno-dashboard-report.report-print-mode .value-big-prefix {
+  font-size: 16px !important;
+}
+
+#uno-dashboard-report.report-print-mode .value-positive:not(.value-big),
+#uno-dashboard-report.report-print-mode .value-negative {
+  font-size: 18px !important;
+}
+
+#uno-dashboard-report.report-print-mode .value-unit {
+  font-size: 12px !important;
+}
+
+@page {
+  size: landscape;
+  margin: 10mm;
+}
+
+@media print {
   /* Remove o TopBar/Sidebar do fluxo de verdade (display:none, nao so
      visibility:hidden) pra nao sobrar uma altura fantasma que gera uma
      segunda pagina em branco. #app-shell e o Box raiz do Layout; o unico
@@ -62,40 +154,5 @@
 
   #uno-dashboard-report .report-button {
     display: none;
-  }
-
-  /* O relatorio sai sempre no "formato desktop", mesmo gerado a partir do
-     celular: forca a grade de 5 colunas, os filtros numa linha so, os
-     espacamentos/paddings e os tamanhos de fonte dos valores pros mesmos
-     valores usados no breakpoint desktop da tela, ignorando os breakpoints
-     mobile do layout normal. */
-  #uno-dashboard-report .report-summary-grid {
-    grid-template-columns: repeat(5, 1fr) !important;
-    gap: 16px !important;
-  }
-
-  #uno-dashboard-report .report-filters-row {
-    flex-wrap: nowrap !important;
-  }
-
-  #uno-dashboard-report .report-card {
-    padding: 24px !important;
-  }
-
-  #uno-dashboard-report .value-big {
-    font-size: 34px !important;
-  }
-
-  #uno-dashboard-report .value-big-prefix {
-    font-size: 20px !important;
-  }
-
-  #uno-dashboard-report .value-positive:not(.value-big),
-  #uno-dashboard-report .value-negative {
-    font-size: 24px !important;
-  }
-
-  #uno-dashboard-report .value-unit {
-    font-size: 14px !important;
   }
 }

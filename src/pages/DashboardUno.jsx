@@ -79,6 +79,17 @@ const RENTABILIDADE_LINE_COLOR = '#7c4dff'
 
 const CLIENT_STORAGE_KEY = 'radarlema.dashboardUno.clientId'
 
+// Largura/altura fixas dos graficos no relatorio impresso — o relatorio ja
+// trava em 1000px de largura (dashboardPrint.css), entao o espaco disponivel
+// pro grafico e sempre o mesmo: 1000 - 32 (padding do Container) - 32
+// (padding do card) = 936px. Usar um numero fixo em vez de deixar o
+// ResponsiveContainer medir sozinho evita depender do ResizeObserver (que e
+// assincrono) terminar a tempo antes do navegador travar a thread pra
+// imprimir — o mesmo bug que fizemos o isPrinting/rAF pra contornar, mas que
+// nao se resolvia 100% do tempo.
+const REPORT_CHART_WIDTH = 936
+const REPORT_CHART_HEIGHT = 300
+
 function formatPt(value, decimals = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null
   return new Intl.NumberFormat('pt-BR', {
@@ -99,7 +110,7 @@ function SummaryCard({ label, info, children }) {
   const icon = <Info size={14} style={{ color: theme.palette.primary.main, cursor: typeof info === 'string' ? 'help' : 'default' }} />
   return (
     <Paper
-      className="report-card"
+      className="report-card report-summary-card"
       variant="outlined"
       sx={{
         borderRadius: 1.4,
@@ -386,24 +397,35 @@ export default function DashboardUno() {
     return <DualMetricCard first={block(first)} second={block(second)} />
   }
 
-  const handlePrint = () => window.print()
+  // O relatorio precisa sair sempre no "formato desktop" (grade cheia,
+  // graficos ocupando 100% da largura), mesmo gerado a partir do celular.
+  // @media print sozinho nao resolve: o Recharts so remede a largura do
+  // grafico via ResizeObserver, e window.print() bloqueia a thread antes
+  // desse remedimento assincrono ter a chance de rodar. Em vez de depender
+  // do timing da impressao, aplicamos a classe "desktop" ANTES de chamar
+  // window.print() (isPrinting vira true, React re-renderiza, o Recharts
+  // remede com folga) e so entao disparamos a impressao de verdade.
+  const [isPrinting, setIsPrinting] = useState(false)
+  const handlePrint = () => setIsPrinting(true)
 
-  // Recharts só remede a largura do gráfico em resposta a um resize real —
-  // window.print() não dispara isso, então o gráfico sai impresso com a
-  // largura estreita medida em tela. Redisparar o resize depois que o CSS de
-  // impressão já foi aplicado (beforeprint) força a remedição na largura do
-  // relatório.
   useEffect(() => {
-    const onBeforePrint = () => window.dispatchEvent(new Event('resize'))
-    window.addEventListener('beforeprint', onBeforePrint)
-    return () => window.removeEventListener('beforeprint', onBeforePrint)
-  }, [])
+    if (!isPrinting) return
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.print())
+    })
+    const onAfterPrint = () => setIsPrinting(false)
+    window.addEventListener('afterprint', onAfterPrint)
+    return () => {
+      cancelAnimationFrame(id)
+      window.removeEventListener('afterprint', onAfterPrint)
+    }
+  }, [isPrinting])
 
   const isMensal = chartMode === 'mensal'
 
   return (
-    <Box id="uno-dashboard-report" sx={{ bgcolor: 'background.default' }}>
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box id="uno-dashboard-report" className={isPrinting ? 'report-print-mode' : undefined} sx={{ bgcolor: 'background.default' }}>
+      <Container className="report-container" maxWidth="xl" sx={{ py: 3 }}>
 
         <Box className="report-filters-row" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
           <FormControl size="small" sx={{ minWidth: { xs: 84, sm: 140 } }}>
@@ -454,6 +476,7 @@ export default function DashboardUno() {
         </Box>
 
         <Box
+          className="report-header-row"
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -493,6 +516,7 @@ export default function DashboardUno() {
         </Box>
 
         <Box
+          className="report-interactive-hide"
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -570,7 +594,7 @@ export default function DashboardUno() {
             {error}
           </Alert>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box className="report-body-stack" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box
               className="report-summary-grid"
               sx={{
@@ -635,7 +659,7 @@ export default function DashboardUno() {
                 p: { xs: 2, md: 3 }
               }}
             >
-              <Typography variant="h6" sx={{ mb: 3 }}>
+              <Typography className="report-chart-title" variant="h6" sx={{ mb: 3 }}>
                 Evolução do Patrimônio
               </Typography>
               {evolution.length === 0 ? (
@@ -645,8 +669,11 @@ export default function DashboardUno() {
                   </Typography>
                 </Box>
               ) : (
-                <Box sx={{ height: 360, width: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <Box className="report-chart-box" sx={{ height: 360, width: '100%' }}>
+                  <ResponsiveContainer
+                    width={isPrinting ? REPORT_CHART_WIDTH : '100%'}
+                    height={isPrinting ? REPORT_CHART_HEIGHT : '100%'}
+                  >
                     <BarChart data={evolution} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                       <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} minTickGap={28} />
@@ -656,7 +683,7 @@ export default function DashboardUno() {
                         width={90}
                       />
                       <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Bar dataKey="valor" name="Patrimônio" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="valor" name="Patrimônio" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} isAnimationActive={!isPrinting} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -672,11 +699,12 @@ export default function DashboardUno() {
                 p: { xs: 2, md: 3 }
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+              <Box className="report-chart-title" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="h6">
                   Rentabilidade x Meta
                 </Typography>
                 <ToggleButtonGroup
+                  className="report-interactive-hide"
                   value={chartMode}
                   exclusive
                   size="small"
@@ -719,8 +747,11 @@ export default function DashboardUno() {
                   </Typography>
                 </Box>
               ) : (
-                <Box sx={{ height: 400, width: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <Box className="report-chart-box" sx={{ height: 400, width: '100%' }}>
+                  <ResponsiveContainer
+                    width={isPrinting ? REPORT_CHART_WIDTH : '100%'}
+                    height={isPrinting ? REPORT_CHART_HEIGHT : '100%'}
+                  >
                     <ComposedChart data={comparisonData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                       <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} minTickGap={28} />
@@ -744,6 +775,7 @@ export default function DashboardUno() {
                         fill={theme.palette.success.main}
                         radius={[3, 3, 0, 0]}
                         barSize={isMensal ? 24 : 32}
+                        isAnimationActive={!isPrinting}
                       />
                       <Line
                         type="monotone"
@@ -752,6 +784,7 @@ export default function DashboardUno() {
                         stroke={RENTABILIDADE_LINE_COLOR}
                         strokeWidth={2}
                         dot={false}
+                        isAnimationActive={!isPrinting}
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
