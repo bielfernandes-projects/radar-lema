@@ -33,6 +33,7 @@ import {
   cardTitleSx
 } from '../theme/cardLayout'
 import ExclusiveBadge from './ExclusiveBadge'
+import LockedClientModal from './LockedClientModal'
 
 export default function MaterialCard({ material }) {
   const { profile } = useAuth()
@@ -41,6 +42,7 @@ export default function MaterialCard({ material }) {
   const [expanded, setExpanded] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [lockedModalOpen, setLockedModalOpen] = useState(false)
 
   const isExclusive = material.visibility === 'lema_client'
   const locked = isExclusive && !canAccessLemaExclusive(profile)
@@ -120,16 +122,15 @@ export default function MaterialCard({ material }) {
         <Box sx={cardSpacerSx} />
 
         <Stack direction="row" alignItems="center" spacing={1} sx={cardFooterSlotSx}>
-          <Tooltip title={locked ? 'Exclusivo para clientes Lema' : ''}>
+          <Tooltip title={locked ? 'Exclusivo para Clientes Lema — fale com um consultor' : ''}>
             <span>
               {isPdf ? (
                 <Button
                   size="small"
                   variant="outlined"
                   startIcon={loadingPreview ? <Loader2 size={16} /> : <Eye size={16} />}
-                  onClick={handleOpen}
-                  disabled={locked || loadingPreview}
-                  sx={locked ? { cursor: 'not-allowed' } : undefined}
+                  onClick={locked ? () => setLockedModalOpen(true) : handleOpen}
+                  disabled={loadingPreview}
                 >
                   Abrir
                 </Button>
@@ -138,9 +139,8 @@ export default function MaterialCard({ material }) {
                   size="small"
                   variant="outlined"
                   startIcon={downloading ? <Loader2 size={16} /> : <Download size={16} />}
-                  onClick={handleDownload}
-                  disabled={locked || downloading}
-                  sx={locked ? { cursor: 'not-allowed' } : undefined}
+                  onClick={locked ? () => setLockedModalOpen(true) : handleDownload}
+                  disabled={downloading}
                 >
                   {downloading ? 'Preparando...' : 'Baixar'}
                 </Button>
@@ -177,6 +177,10 @@ export default function MaterialCard({ material }) {
           <Button onClick={() => setPreviewUrl(null)}>Fechar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Conteudo travado nao vira beco sem saida: o clique abre o mesmo CTA de
+          consultor usado no Dashboard UNO, em vez de um botao morto. */}
+      <LockedClientModal open={lockedModalOpen} onClose={() => setLockedModalOpen(false)} />
 
       {/* O erro vai para Snackbar, e nao para dentro do card: um Alert no corpo
           muda a altura do card e desalinha a linha inteira da grade. */}
