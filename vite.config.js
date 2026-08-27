@@ -27,7 +27,8 @@ export default defineConfig({
       manifest: {
         name: 'Radar Lema',
         short_name: 'Radar Lema',
-        description: 'Centralizador de eventos para RPPS',
+        description:
+          'Hub da Lema para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais e dashboard de investimentos.',
         id: '/',
         lang: 'pt-BR',
         theme_color: '#3B82F6',

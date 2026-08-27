@@ -1,0 +1,5 @@
+# Radar Lema é um hub privado (todo o conteúdo exige login).
+# Não bloqueamos o crawl para que a tag <meta name="robots" content="noindex">
+# do index.html seja lida e respeitada.
+User-agent: *
+Allow: /

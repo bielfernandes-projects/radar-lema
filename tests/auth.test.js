@@ -23,6 +23,10 @@ describe('utils/auth', () => {
     expect(isSuperAdmin({ user_type: 'staff' })).toBe(false)
   })
 
+  it('Super Admin identificado só pela role legada também é staff tier', () => {
+    expect(isStaffTier({ role: 'ROLE_SUPER_ADMIN' })).toBe(true)
+  })
+
   it('canAccessLemaExclusive libera super_admin mesmo sem is_uno_client', () => {
     expect(canAccessLemaExclusive({ user_type: 'super_admin', is_uno_client: false })).toBe(true)
     expect(canAccessLemaExclusive({ role: 'ROLE_SUPER_ADMIN', is_uno_client: false })).toBe(true)

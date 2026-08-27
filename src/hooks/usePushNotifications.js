@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { urlBase64ToUint8Array } from '../lib/vapid'
+import { unsubscribePushForDevice } from '../services/pushData'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
 
@@ -87,15 +88,7 @@ export function usePushNotifications() {
   }, [])
 
   const disable = useCallback(async () => {
-    const registration = await navigator.serviceWorker?.ready
-    const subscription = await registration?.pushManager?.getSubscription()
-    await subscription?.unsubscribe()
-
-    const userId = await getUserId()
-    if (userId) {
-      await supabase.from('push_subscriptions').delete().eq('user_id', userId)
-    }
-
+    await unsubscribePushForDevice(await getUserId())
     setSubscribed(false)
     return { success: true }
   }, [])

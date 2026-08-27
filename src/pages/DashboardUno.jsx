@@ -30,19 +30,11 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import { fetchUnoDashboard } from '../services/unoProxy'
-import { fetchUnoClients, fetchOwnUnoClientName } from '../services/unoClientsData'
+import { fetchUnoDashboard, fetchUnoClients, fetchOwnUnoClientName } from '../services/unoProxy'
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdmin } from '../utils/auth'
-import {
-  normalizeFunds,
-  summarizeFunds,
-  rangeForPeriod,
-  mergeEvolucaoAnual,
-  monthsBetween,
-  buildEvolucaoSeries,
-  compoundPercent
-} from '../utils/uno'
+import { rangeForPeriod } from '../utils/uno'
+import { buildUnoDashboardViewModel } from '../utils/unoDashboard'
 import { formatCurrency } from '../utils/formatters'
 import './dashboardPrint.css'
 
@@ -290,96 +282,39 @@ export default function DashboardUno() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, selectedMonth, selectedYear, selectedClientId, reload])
 
-  // VaR: media ponderada do VAR_PAR de cada fundo (Comdinheiro), unica coisa
-  // que ainda vem do demonstrativo mensal — Patrimonio/Rentabilidade/Meta
-  // vem inteiros do evolucaoAnualCliente (fonte que o proprio UNO usa).
-  const funds = normalizeFunds(data?.demonstrativo)
-  const fundsSaldo = summarizeFunds(funds).totalSaldo
-  const varValue = fundsSaldo > 0
-    ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / fundsSaldo), 0)
-    : null
-
-  const merged = useMemo(() => mergeEvolucaoAnual(data?.evolucoes), [data])
-
-  const range = useMemo(
-    () => rangeForPeriod(period, selectedMonth, selectedYear),
-    [period, selectedMonth, selectedYear]
+  const vm = useMemo(
+    () => buildUnoDashboardViewModel(data, { period, month: selectedMonth, year: selectedYear }),
+    [data, period, selectedMonth, selectedYear]
   )
 
-  const series = useMemo(
-    () => buildEvolucaoSeries(merged, monthsBetween(range.startDate, range.endDate)),
-    [merged, range.startDate, range.endDate]
-  )
-
-  const lastPoint = series.length > 0 ? series[series.length - 1] : null
-  const patrimonio = lastPoint?.patrimonio ?? null
-  const rentabilidadeMes = lastPoint?.rentMes ?? null
-  const metaMes = lastPoint?.metaMes ?? null
-  const rentabilidadeAcum = compoundPercent(series.map((s) => s.rentMes))
-  const metaAcum = compoundPercent(series.map((s) => s.metaMes))
-  const gapMes = (metaMes !== null && rentabilidadeMes !== null) ? rentabilidadeMes - metaMes : null
-  const gapAcum = (rentabilidadeAcum !== null && metaAcum !== null) ? rentabilidadeAcum - metaAcum : null
-
+  const patrimonio = vm.patrimonio
   const computedMetrics = {
-    rentabilidadeMes,
-    rentabilidadeAcum,
-    metaMes,
-    metaAcum,
-    gapMes,
-    gapAcum,
-    varValue
+    rentabilidadeMes: vm.rentabilidade.mes,
+    rentabilidadeAcum: vm.rentabilidade.acum,
+    metaMes: vm.meta.mes,
+    metaAcum: vm.meta.acum,
+    gapMes: vm.gap.mes,
+    gapAcum: vm.gap.acum,
+    varValue: vm.varValue
   }
 
-  // R$ do mes/periodo: mesma fonte que o UNO usa no tooltip (rendimento
-  // financeiro do demonstrativo para o mes; diferenca de patrimonio real —
-  // ja livre de aportes/resgates, pois vem do proprio evolucaoAnualCliente —
-  // para o acumulado do periodo).
-  const summary = summarizeFunds(funds)
-  const rentabilidadeMesTooltip = rentabilidadeMes !== null
-    ? `${formatPt(rentabilidadeMes, 5)}% | ${formatCurrency(summary.totalRendimento)}`
+  // Tooltips: o view-model devolve os numeros; a montagem da string/JSX fica
+  // aqui porque depende do tema/formatadores de exibicao.
+  const rentabilidadeMesTooltip = vm.tooltips.rentMes
+    ? `${formatPt(vm.tooltips.rentMes.pct, 5)}% | ${formatCurrency(vm.tooltips.rentMes.rendimento)}`
     : null
-
-  const firstPatrimonio = series.find((s) => s.patrimonio !== null)?.patrimonio ?? null
-  const rentabilidadeAcumTooltip = (rentabilidadeAcum !== null && lastPoint && firstPatrimonio !== null)
-    ? (
-      <>
-        {formatPt(rentabilidadeAcum, 5)}% | {formatCurrency((lastPoint.patrimonio ?? 0) - firstPatrimonio)}
-        <br />
-        acum. {series[0]?.label} → {lastPoint.label}
-      </>
-    )
-    : null
+  const rentabilidadeAcumTooltip = vm.tooltips.rentAcum ? (
+    <>
+      {formatPt(vm.tooltips.rentAcum.pct, 5)}% | {formatCurrency(vm.tooltips.rentAcum.valor)}
+      <br />
+      acum. {vm.tooltips.rentAcum.fromLabel} → {vm.tooltips.rentAcum.toLabel}
+    </>
+  ) : null
 
   const GAP_TOOLTIP = 'Diferença entre Rentabilidade e Meta'
 
-  const comparisonData = useMemo(() => {
-    let accRent = 1
-    let accMeta = 1
-    let hasRent = false
-    let hasMeta = false
-    return series.map((s) => {
-      if (s.rentMes !== null) {
-        accRent *= 1 + Number(s.rentMes) / 100
-        hasRent = true
-      }
-      if (s.metaMes !== null) {
-        accMeta *= 1 + Number(s.metaMes) / 100
-        hasMeta = true
-      }
-      return {
-        label: s.label,
-        rentMes: s.rentMes !== null ? Number(Number(s.rentMes).toFixed(4)) : null,
-        metaMes: s.metaMes !== null ? Number(Number(s.metaMes).toFixed(4)) : null,
-        rentAcum: hasRent ? Number(((accRent - 1) * 100).toFixed(4)) : null,
-        metaAcum: hasMeta ? Number(((accMeta - 1) * 100).toFixed(4)) : null
-      }
-    })
-  }, [series])
-
-  const evolution = useMemo(
-    () => series.filter((s) => s.patrimonio !== null).map((s) => ({ label: s.label, valor: s.patrimonio })),
-    [series]
-  )
+  const comparisonData = vm.comparison
+  const evolution = vm.evolution
 
   const renderMetrics = (base, first, second) => {
     const block = (cfg) => {
@@ -462,6 +397,13 @@ export default function DashboardUno() {
               value={clients.find((c) => c.uno_client_id === selectedClientId) || null}
               onChange={(_, value) => value && setSelectedClientId(value.uno_client_id)}
               disableClearable
+              // dois clientes reais do UNO podem ter o mesmo "municipio" (ex.:
+              // "Espírito Santo - BR"); a key tem que ser o id, não o label.
+              renderOption={(props, option) => (
+                <li {...props} key={option.uno_client_id}>
+                  {option.name}
+                </li>
+              )}
               renderInput={(params) => (
                 <TextField {...params} placeholder="Selecione um cliente" sx={selectStyles(theme)} />
               )}

@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { isStaffTier, isSuperAdmin, canAccessLemaExclusive } from '../../utils/auth'
+import { buildNavTree } from '../../utils/navTree'
 import LockedClientModal from '../LockedClientModal'
 
 const ICONS = {
@@ -55,71 +55,6 @@ const ICONS = {
   MessageCircle
 }
 
-const navStructure = [
-  {
-    group: 'main',
-    label: 'Principal',
-    items: [
-      { key: 'home', label: 'Início', path: '/', icon: 'Home' },
-      { key: 'news', label: 'Notícias', path: '/noticias', icon: 'Newspaper' },
-      { key: 'articles', label: 'Artigos', path: '/artigos', icon: 'BookOpen' },
-      { key: 'materials', label: 'Materiais de Apoio', path: '/materiais', icon: 'FileStack' },
-      {
-        key: 'events',
-        label: 'Eventos',
-        icon: 'CalendarDays',
-        children: [
-          { key: 'eventsList', label: 'Todos os Eventos', path: '/eventos' },
-          { key: 'favorites', label: 'Favoritos', path: '/favoritos' },
-          { key: 'past', label: 'Realizados', path: '/realizados' }
-        ]
-      },
-      { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone' },
-      {
-        key: 'dashboardUno',
-        label: 'Dashboard UNO',
-        path: '/dashboard-uno',
-        icon: 'LineChart',
-        unoClientOnly: true
-      },
-      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings', auth: true },
-      {
-        key: 'whatsappCommunity',
-        label: 'Comunidade Lema',
-        icon: 'MessageCircle',
-        comingSoon: true,
-        auth: true
-      }
-    ]
-  },
-  {
-    group: 'staff',
-    label: 'Gestão',
-    items: [
-      { key: 'hub', label: 'Hub', path: '/gestao/hub', icon: 'FolderTree' },
-      {
-        key: 'eventsMgmt',
-        label: 'Eventos',
-        icon: 'CalendarDays',
-        children: [
-          { key: 'eventsListMgmt', label: 'Gerenciar Eventos', path: '/gestao' },
-          { key: 'categories', label: 'Categorias', path: '/categorias' }
-        ]
-      },
-      { key: 'moderation', label: 'Moderação', path: '/moderacao', icon: 'ShieldAlert' }
-    ],
-    show: (profile) => isStaffTier(profile)
-  },
-  {
-    group: 'admin',
-    label: 'Administração',
-    items: [
-      { key: 'admin', label: 'Painel Admin', path: '/admin', icon: 'ShieldCheck' }
-    ],
-    show: (profile) => isSuperAdmin(profile)
-  }
-]
-
 const isActive = (pathname, itemPath) => {
   if (itemPath === '/') return pathname === '/'
   return pathname.startsWith(itemPath)
@@ -133,7 +68,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
   const [expandedGroups, setExpandedGroups] = useState({})
   const [clientModalOpen, setClientModalOpen] = useState(false)
 
-  const visibleSections = navStructure.filter(section => !section.show || section.show(profile))
+  const visibleSections = buildNavTree(profile)
 
   const toggleGroup = (groupKey) => {
     setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))
@@ -211,11 +146,10 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
               {section.items.map((item) => {
                 const IconComponent = ICONS[item.icon]
                 const active = item.path ? isActive(location.pathname, item.path) : false
-                const hasChildren = item.children && item.children.length > 0
                 const isExpanded = expandedGroups[item.key]
 
-                if (item.unoClientOnly) {
-                  const locked = !canAccessLemaExclusive(profile)
+                if (item.state === 'locked') {
+                  const locked = true
                   return (
                     <ListItemButton
                       key={item.key}
@@ -260,7 +194,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                   )
                 }
 
-                if (item.comingSoon) {
+                if (item.state === 'comingSoon') {
                   return (
                     <Tooltip key={item.key} title="Em breve" placement="right">
                       <ListItemButton
@@ -296,7 +230,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                   )
                 }
 
-                if (hasChildren) {
+                if (item.state === 'group') {
                   return (
                     <Box key={item.key}>
                       <ListItemButton
@@ -373,10 +307,6 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                       </Collapse>
                     </Box>
                   )
-                }
-
-                if (item.action === 'logout') {
-                  return null
                 }
 
                 return (

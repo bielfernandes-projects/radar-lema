@@ -44,7 +44,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { adminApi, USER_TYPES, ROLE_BY_USER_TYPE } from '../services/adminApi'
-import { fetchUnoClients } from '../services/unoClientsData'
+import { fetchUnoClients } from '../services/unoProxy'
 import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
 

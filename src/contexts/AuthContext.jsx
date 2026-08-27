@@ -7,6 +7,7 @@ import {
   useState
 } from 'react'
 import { supabase } from '../lib/supabase'
+import { unsubscribePushForDevice } from '../services/pushData'
 
 const AuthContext = createContext(null)
 
@@ -90,18 +91,7 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
-    const userId = data.session?.user?.id
-
-    if (userId && 'serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker?.ready
-      const subscription = await registration?.pushManager?.getSubscription()
-      await subscription?.unsubscribe()
-      await supabase
-        .from('push_subscriptions')
-        .delete()
-        .eq('user_id', userId)
-    }
-
+    await unsubscribePushForDevice(data.session?.user?.id).catch(() => {})
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)

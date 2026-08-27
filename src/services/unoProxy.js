@@ -3,19 +3,19 @@ import { yearsInRange } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
-async function fetchProxy(method, endpoint, params = {}, body = undefined) {
+// A Edge Function uno-proxy só aceita GET (endpoint + params na query string).
+async function fetchProxy(endpoint, params = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
 
   const query = new URLSearchParams({ endpoint, ...params })
   const res = await fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
-    method,
+    method: 'GET',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session?.access_token || ''}`
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined
+    }
   })
 
   if (!res.ok) {
@@ -37,11 +37,7 @@ async function fetchProxy(method, endpoint, params = {}, body = undefined) {
 }
 
 export async function callUnoProxy(endpoint, params = {}) {
-  return fetchProxy('GET', endpoint, params)
-}
-
-export async function callUnoProxyPost(endpoint, body = {}) {
-  return fetchProxy('POST', endpoint, {}, body)
+  return fetchProxy(endpoint, params)
 }
 
 function extractUnoErrorMessage(text) {
@@ -94,6 +90,27 @@ export async function fetchClientesList() {
 
 export async function fetchOwnUnoClient() {
   return callUnoProxy('clienteUNO', { consulting_id: '1' })
+}
+
+// outer_api/clientesUNO ja devolve "municipio" formatado como "Cidade - UF"
+// (mesmo texto que aparece no seletor de clientes do UNO).
+function formatClientName(row) {
+  return row?.municipio || row?.nome_rpps || `Cliente ${row?.id}`
+}
+
+/** Lista todos os clientes reais do UNO (Super Admin apenas — a Edge Function rejeita outros papeis). */
+export async function fetchUnoClients() {
+  const rows = await fetchClientesList()
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({ uno_client_id: String(row.id), name: formatClientName(row) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Nome do cliente UNO vinculado ao proprio usuario (resolvido no servidor). */
+export async function fetchOwnUnoClientName() {
+  const row = await fetchOwnUnoClient()
+  const record = Array.isArray(row) ? row[0] : row
+  return record ? formatClientName(record) : ''
 }
 
 export async function fetchUnoDashboard(period) {

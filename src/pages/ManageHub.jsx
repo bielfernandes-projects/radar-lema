@@ -23,10 +23,7 @@ import {
   Typography
 } from '@mui/material'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { fetchArticles, deleteArticle } from '../services/articlesData'
-import { fetchUnoUpdates, deleteUnoUpdate } from '../services/unoUpdatesData'
-import { fetchMaterials, deleteMaterial, deleteMaterialFile } from '../services/materialsData'
+import { HUB_KINDS, hubKind, removeHubContent } from '../services/hubContent'
 import { visibilityLabel, unoUpdateTypeLabel, formatHubDate } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'
 
@@ -38,10 +35,7 @@ export default function ManageHub() {
   const navigate = useNavigate()
   const location = useLocation()
   const [tab, setTab] = useState('articles')
-  const [articles, setArticles] = useState([])
-  const [updates, setUpdates] = useState([])
-  const [materials, setMaterials] = useState([])
-  const [news, setNews] = useState([])
+  const [itemsByKind, setItemsByKind] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -63,19 +57,10 @@ export default function ManageHub() {
     setLoading(true)
     setError('')
     try {
-      const [articlesData, updatesData, materialsData, newsRows] = await Promise.all([
-        fetchArticles(),
-        fetchUnoUpdates(),
-        fetchMaterials(),
-        supabase
-          .from('news')
-          .select('id, title, source, published_at')
-          .order('published_at', { ascending: false })
-      ])
-      setArticles(articlesData)
-      setUpdates(updatesData)
-      setMaterials(materialsData)
-      setNews(newsRows.data ?? [])
+      const results = await Promise.all(HUB_KINDS.map((k) => k.fetchList()))
+      setItemsByKind(
+        Object.fromEntries(HUB_KINDS.map((k, i) => [k.kind, results[i]]))
+      )
     } catch {
       setError('Erro ao carregar o conteúdo do hub.')
     }
@@ -90,26 +75,11 @@ export default function ManageHub() {
     if (!deleteTarget) return
     const { kind, item } = deleteTarget
     try {
-      if (kind === 'articles') {
-        await deleteArticle(item.id)
-        setArticles((prev) => prev.filter((a) => a.id !== item.id))
-      } else if (kind === 'uno_updates') {
-        await deleteUnoUpdate(item.id)
-        setUpdates((prev) => prev.filter((u) => u.id !== item.id))
-      } else if (kind === 'materials') {
-        await deleteMaterial(item.id)
-        await deleteMaterialFile(item.storage_path).catch(() => {})
-        setMaterials((prev) => prev.filter((m) => m.id !== item.id))
-      } else if (kind === 'news') {
-        const { data: deleted, error: deleteError } = await supabase
-          .from('news')
-          .delete()
-          .eq('id', item.id)
-          .select('id')
-        if (deleteError) throw deleteError
-        if (!deleted?.length) throw new Error('Exclusão não permitida para esta notícia.')
-        setNews((prev) => prev.filter((n) => n.id !== item.id))
-      }
+      await removeHubContent(kind, item)
+      setItemsByKind((prev) => ({
+        ...prev,
+        [kind]: (prev[kind] ?? []).filter((i) => i.id !== item.id)
+      }))
       setDeleteSnackbar(true)
     } catch {
       setError('Erro ao excluir o item.')
@@ -117,25 +87,14 @@ export default function ManageHub() {
     setDeleteTarget(null)
   }
 
+  const active = hubKind(tab)
   const term = query.trim().toLowerCase()
-  const filterByTerm = (items, keys) =>
-    term
-      ? items.filter((item) => keys.some((k) => item[k]?.toLowerCase().includes(term)))
-      : items
-
-  const visibleArticles = filterByTerm(articles, ['title', 'author'])
-  const visibleUpdates = filterByTerm(updates, ['title'])
-  const visibleMaterials = filterByTerm(materials, ['title', 'description'])
-  const visibleNews = filterByTerm(news, ['title', 'source'])
-
-  const visibleItems =
-    tab === 'articles'
-      ? visibleArticles
-      : tab === 'uno_updates'
-        ? visibleUpdates
-        : tab === 'materials'
-          ? visibleMaterials
-          : visibleNews
+  const allItems = itemsByKind[tab] ?? []
+  const visibleItems = term
+    ? allItems.filter((item) =>
+        active.searchKeys.some((k) => item[k]?.toLowerCase().includes(term))
+      )
+    : allItems
 
   if (loading) {
     return (
@@ -154,12 +113,8 @@ export default function ManageHub() {
         <Button
           variant="contained"
           startIcon={<Plus size={20} />}
-          disabled={tab === 'news'}
-          onClick={() => {
-            if (tab === 'articles') navigate('/gestao/artigos/novo')
-            else if (tab === 'uno_updates') navigate('/gestao/novidades-uno/novo')
-            else if (tab === 'materials') navigate('/gestao/materiais/novo')
-          }}
+          disabled={active.readOnly}
+          onClick={() => active.newPath && navigate(active.newPath)}
         >
           Novo
         </Button>
@@ -186,10 +141,9 @@ export default function ManageHub() {
       )}
 
       <Tabs value={tab} onChange={(e, value) => setTab(value)} sx={{ mb: 2 }}>
-        <Tab label="Artigos" value="articles" />
-        <Tab label="Novidades UNO" value="uno_updates" />
-        <Tab label="Materiais" value="materials" />
-        <Tab label="Notícias" value="news" />
+        {HUB_KINDS.map((k) => (
+          <Tab key={k.kind} label={k.label} value={k.kind} />
+        ))}
       </Tabs>
 
       <TextField
@@ -203,17 +157,17 @@ export default function ManageHub() {
 
       {visibleItems.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
-          {tab === 'news'
-            ? news.length === 0
+          {active.kind === 'news'
+            ? allItems.length === 0
               ? 'Nenhuma notícia ingerida ainda.'
               : 'Nenhuma notícia encontrada para esta busca.'
             : 'Nenhum item encontrado.'}
         </Typography>
       ) : (
         <Stack spacing={2}>
-          {tab === 'news' && (
+          {active.kind === 'news' && (
             <Typography variant="body2" color="text.secondary">
-              {news.length} notícias ingeridas automaticamente dos feeds. Use a
+              {allItems.length} notícias ingeridas automaticamente dos feeds. Use a
               busca para filtrar e exclua notícias que não fazem sentido — elas
               voltarão na próxima ingestão se ainda estiverem no feed.
             </Typography>
@@ -251,14 +205,10 @@ export default function ManageHub() {
                   </Box>
 
                   <Stack direction="row" spacing={1}>
-                    {tab !== 'news' && (
+                    {!active.readOnly && (
                       <Tooltip title="Editar">
                         <IconButton
-                          onClick={() => {
-                            if (tab === 'articles') navigate(`/gestao/artigos/${item.id}/editar`)
-                            else if (tab === 'uno_updates') navigate(`/gestao/novidades-uno/${item.id}/editar`)
-                            else if (tab === 'materials') navigate(`/gestao/materiais/${item.id}/editar`)
-                          }}
+                          onClick={() => navigate(active.editPath(item.id))}
                           aria-label="Editar"
                         >
                           <Pencil size={20} />

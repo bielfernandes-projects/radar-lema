@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
+import {
+  isSuperAdminProfile,
+  canAccessLemaExclusive,
+  resolveUnoClientId
+} from "../_shared/access.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -103,10 +108,9 @@ Deno.serve(async (req) => {
     .eq("id", user.id)
     .single();
 
-  const isSuperAdmin =
-    profile?.user_type === "super_admin" || profile?.role === "ROLE_SUPER_ADMIN";
+  const isSuperAdmin = isSuperAdminProfile(profile);
 
-  if (profileError || !(profile?.is_uno_client || isSuperAdmin)) {
+  if (profileError || !canAccessLemaExclusive(profile)) {
     return new Response("Acesso restrito a Clientes Lema", {
       status: 403,
       headers: withCors(origin)
@@ -140,9 +144,12 @@ Deno.serve(async (req) => {
     // pra ninguem ver dado de outro RPPS trocando o parametro). Super Admin:
     // pode escolher qualquer client_id (o proprio UNO valida/rejeita se nao
     // existir).
-    const resolvedClientId = isSuperAdmin
-      ? url.searchParams.get("client_id") || unoDemoClientId
-      : profile?.uno_client_id || unoDemoClientId;
+    const resolvedClientId = resolveUnoClientId({
+      isSuperAdmin,
+      requestedClientId: url.searchParams.get("client_id"),
+      ownClientId: profile?.uno_client_id,
+      fallback: unoDemoClientId
+    });
 
     for (const key of ENDPOINTS[endpoint]) {
       const value = url.searchParams.get(key);

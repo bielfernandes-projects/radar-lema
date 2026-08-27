@@ -48,7 +48,7 @@ describe('ManageHub exclusao', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Excluir' }))
 
     await waitFor(() => {
-      expect(deleteArticle).toHaveBeenCalledWith('a1')
+      expect(deleteArticle).toHaveBeenCalledWith('a1', expect.anything())
     })
   })
 })
