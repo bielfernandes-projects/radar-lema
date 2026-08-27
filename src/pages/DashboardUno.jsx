@@ -478,7 +478,17 @@ export default function DashboardUno() {
           </Button>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            mb: 3,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           <ToggleButtonGroup
             value={period}
             exclusive
@@ -491,6 +501,7 @@ export default function DashboardUno() {
               borderRadius: 999,
               p: 0.5,
               gap: 0.5,
+              flexShrink: 0,
               '& .MuiToggleButtonGroup-grouped': {
                 borderRadius: '999px !important',
                 border: 'none',

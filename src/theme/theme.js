@@ -87,6 +87,13 @@ export default function createAppTheme(mode) {
       borderRadius: 10
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          'html, body': {
+            overflowX: 'hidden'
+          }
+        }
+      },
       MuiButton: {
         styleOverrides: {
           root: {

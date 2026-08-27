@@ -68,11 +68,11 @@ const toChartData = (rows) =>
     count
   }))
 
-const POSTHOG_INTEGRATIONS_URL =
-  'https://vercel.com/bielfernandes-projects-projects/~/integrations'
+const POSTHOG_SHARED_DASHBOARD_URL = 'https://eu.posthog.com/shared/_tGp6JNlPMDGsDIiT6FrKd5QyvANxg'
 
 function ObservabilityPanel() {
   const trackingAtivo = Boolean(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN)
+  const embedUrl = import.meta.env.VITE_POSTHOG_SHARED_DASHBOARD_URL
 
   return (
     <Card variant="outlined">
@@ -89,22 +89,48 @@ function ObservabilityPanel() {
           <Typography variant="body2" color="text.secondary">
             O Radar Lema envia eventos de uso (cliques, áreas de mais interação,
             tempo de permanência, navegação entre páginas) para o PostHog via
-            integração nativa da Vercel. Os dashboards, heatmaps e funis reais
-            ficam no próprio PostHog — abra pelo link abaixo para explorar as
-            métricas.
+            integração nativa da Vercel. O dashboard abaixo é o mesmo do PostHog,
+            embutido aqui.
           </Typography>
-          <Box>
-            <Button
-              variant="contained"
-              endIcon={<ExternalLink size={18} />}
-              component="a"
-              href={POSTHOG_INTEGRATIONS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Abrir métricas no PostHog
-            </Button>
-          </Box>
+          {embedUrl ? (
+            <Box>
+              <Box
+                component="iframe"
+                src={embedUrl}
+                title="Dashboard PostHog"
+                width="100%"
+                height={600}
+                frameBorder="0"
+                allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                sx={{ border: 'none', borderRadius: 1 }}
+              />
+              <Button
+                size="small"
+                endIcon={<ExternalLink size={16} />}
+                component="a"
+                href={POSTHOG_SHARED_DASHBOARD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ mt: 1 }}
+              >
+                Abrir no PostHog
+              </Button>
+            </Box>
+          ) : (
+            <Box>
+              <Button
+                variant="contained"
+                endIcon={<ExternalLink size={18} />}
+                component="a"
+                href={POSTHOG_SHARED_DASHBOARD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir métricas no PostHog
+              </Button>
+            </Box>
+          )}
         </Stack>
       </CardContent>
     </Card>
