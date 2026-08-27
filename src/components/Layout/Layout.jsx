@@ -24,7 +24,7 @@ export default function Layout({ children }) {
   const drawerWidth = 280
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box id="app-shell" sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Top Bar */}
       <TopBar onMenuClick={() => setMobileOpen(true)} />
 

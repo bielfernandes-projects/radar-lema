@@ -143,8 +143,8 @@ function BigValue({ value }) {
   const amount = spaceIndex >= 0 ? formatted.slice(spaceIndex + 1) : formatted
   const color = value < 0 ? theme.palette.error.main : theme.palette.success.main
   return (
-    <Typography className="value-positive" sx={{ fontSize: { xs: 24, sm: 34 }, fontWeight: 600, color, letterSpacing: '-0.02em', textAlign: 'center' }}>
-      <Box component="span" sx={{ fontSize: { xs: 15, sm: 20 }, fontWeight: 400, mr: 0.5 }}>
+    <Typography className="value-positive value-big" sx={{ fontSize: { xs: 24, sm: 34 }, fontWeight: 600, color, letterSpacing: '-0.02em', textAlign: 'center' }}>
+      <Box component="span" className="value-big-prefix" sx={{ fontSize: { xs: 15, sm: 20 }, fontWeight: 400, mr: 0.5 }}>
         {currency}
       </Box>
       {amount}
@@ -168,7 +168,7 @@ function MetricBlock({ label, value, unit, negative, tooltip }) {
       >
         {value}
         {unit && (
-          <Box component="span" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>
+          <Box component="span" className="value-unit" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>
             {unit}
           </Box>
         )}
@@ -388,6 +388,17 @@ export default function DashboardUno() {
 
   const handlePrint = () => window.print()
 
+  // Recharts só remede a largura do gráfico em resposta a um resize real —
+  // window.print() não dispara isso, então o gráfico sai impresso com a
+  // largura estreita medida em tela. Redisparar o resize depois que o CSS de
+  // impressão já foi aplicado (beforeprint) força a remedição na largura do
+  // relatório.
+  useEffect(() => {
+    const onBeforePrint = () => window.dispatchEvent(new Event('resize'))
+    window.addEventListener('beforeprint', onBeforePrint)
+    return () => window.removeEventListener('beforeprint', onBeforePrint)
+  }, [])
+
   const isMensal = chartMode === 'mensal'
 
   return (
@@ -464,12 +475,15 @@ export default function DashboardUno() {
               borderRadius: 999,
               fontWeight: 600,
               fontSize: 13,
-              minWidth: { xs: 0, sm: 'auto' },
-              px: { xs: 1.5, sm: 3 },
-              py: 1.2,
+              minWidth: { xs: 40, sm: 'auto' },
+              width: { xs: 40, sm: 'auto' },
+              height: { xs: 40, sm: 'auto' },
+              p: { xs: 0, sm: undefined },
+              px: { xs: 0, sm: 3 },
+              py: { xs: 0, sm: 1.2 },
               bgcolor: theme.palette.primary.main,
               '&:hover': { bgcolor: theme.palette.primary.dark },
-              '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } }
+              '& .MuiButton-startIcon': { m: { xs: 0, sm: undefined }, mr: { xs: 0, sm: 1 } }
             }}
           >
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -607,7 +621,7 @@ export default function DashboardUno() {
               >
                 <Typography className="value-positive" sx={{ fontSize: { xs: 17, sm: 24 }, fontWeight: 600, color: theme.palette.success.main }}>
                   {formatPt(computedMetrics.varValue, 4) ?? '—'}
-                  {computedMetrics.varValue !== null && <Box component="span" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>%</Box>}
+                  {computedMetrics.varValue !== null && <Box component="span" className="value-unit" sx={{ fontSize: { xs: 11, sm: 14 }, fontWeight: 400 }}>%</Box>}
                 </Typography>
               </SummaryCard>
             </Box>

@@ -1,17 +1,26 @@
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 10mm;
   }
 
-  #uno-dashboard-report,
-  #uno-dashboard-report * {
-    visibility: visible;
+  /* Remove o TopBar/Sidebar do fluxo de verdade (display:none, nao so
+     visibility:hidden) pra nao sobrar uma altura fantasma que gera uma
+     segunda pagina em branco. #app-shell e o Box raiz do Layout; o unico
+     filho que deve continuar visivel e o <main> com o conteudo da pagina. */
+  #app-shell > *:not(main) {
+    display: none !important;
+  }
+
+  #app-shell,
+  #app-shell main {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
   }
 
   #uno-dashboard-report {
-    position: absolute;
-    left: 0;
-    top: 0;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -56,13 +65,37 @@
   }
 
   /* O relatorio sai sempre no "formato desktop", mesmo gerado a partir do
-     celular: forca a grade de 5 colunas e os filtros numa linha so,
-     ignorando os breakpoints mobile do layout normal da tela. */
+     celular: forca a grade de 5 colunas, os filtros numa linha so, os
+     espacamentos/paddings e os tamanhos de fonte dos valores pros mesmos
+     valores usados no breakpoint desktop da tela, ignorando os breakpoints
+     mobile do layout normal. */
   #uno-dashboard-report .report-summary-grid {
     grid-template-columns: repeat(5, 1fr) !important;
+    gap: 16px !important;
   }
 
   #uno-dashboard-report .report-filters-row {
     flex-wrap: nowrap !important;
+  }
+
+  #uno-dashboard-report .report-card {
+    padding: 24px !important;
+  }
+
+  #uno-dashboard-report .value-big {
+    font-size: 34px !important;
+  }
+
+  #uno-dashboard-report .value-big-prefix {
+    font-size: 20px !important;
+  }
+
+  #uno-dashboard-report .value-positive:not(.value-big),
+  #uno-dashboard-report .value-negative {
+    font-size: 24px !important;
+  }
+
+  #uno-dashboard-report .value-unit {
+    font-size: 14px !important;
   }
 }
