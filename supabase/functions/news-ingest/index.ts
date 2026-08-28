@@ -446,10 +446,20 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Expurgo: mantém ~6 meses de notícia para não estourar o limite de 500 MB
+  // do banco. `purge_old_news` só é executável pela service_role.
+  let purged = 0;
+  const { data: purgeData, error: purgeError } = await supabase.rpc(
+    "purge_old_news"
+  );
+  if (purgeError) console.error("purge_old_news error", purgeError.message);
+  else if (typeof purgeData === "number") purged = purgeData;
+
   const fetched = feedReport.reduce((acc, feed) => acc + feed.fetched, 0);
 
   return Response.json({
     inserted,
+    purged,
     fetched,
     skipped: Math.max(0, fetched - inserted),
     feeds: feedReport
