@@ -17,7 +17,7 @@ const IOS_HELP =
 const FALLBACK_HELP =
   'Para instalar o app, use o menu do seu navegador e escolha "Instalar aplicativo" (desktop) ou "Adicionar a Tela de Inicio" (Android).'
 
-export default function InstallAppIcon() {
+export default function InstallAppIcon({ pulse = false }) {
   const { install, canPrompt, isInstalled, isIOS } = usePWAInstall()
   const [open, setOpen] = useState(false)
 
@@ -38,6 +38,17 @@ export default function InstallAppIcon() {
           aria-label="Instalar app"
           size="small"
           onClick={handleClick}
+          sx={{
+            color: pulse ? 'primary.main' : undefined,
+            '@media (prefers-reduced-motion: no-preference)': {
+              '@keyframes installPulse': {
+                '0%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.55)' },
+                '70%': { boxShadow: '0 0 0 12px rgba(59, 130, 246, 0)' },
+                '100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }
+              },
+              animation: pulse ? 'installPulse 2s ease-out infinite' : undefined
+            }
+          }}
         >
           <Download size={20} />
         </IconButton>

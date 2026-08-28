@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
+import { makeCallSendPush } from "../_shared/sendPush.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -7,46 +8,7 @@ const supabase = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false }
 });
 
-const SEND_PUSH_URL = `${supabaseUrl}/functions/v1/send-push`;
-
-interface SendPushResult {
-  sent?: number;
-  gone?: number;
-  failed?: number;
-  total?: number;
-}
-
-async function callSendPush(body: {
-  userIds?: string[];
-  eventCategoryIds?: string[];
-  audience?: "all" | "uno_clients";
-  payload: { title: string; body?: string; eventId?: string; url?: string };
-}): Promise<{ ok: boolean; result?: SendPushResult }> {
-  try {
-    const res = await fetch(SEND_PUSH_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceRole}`
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      console.error("send-push error", res.status, await res.text());
-      return { ok: false };
-    }
-    let result: SendPushResult | undefined;
-    try {
-      result = (await res.json()) as SendPushResult;
-    } catch {
-      result = undefined;
-    }
-    return { ok: true, result };
-  } catch (err) {
-    console.error("send-push exception", err);
-    return { ok: false };
-  }
-}
+const callSendPush = makeCallSendPush(supabaseUrl, serviceRole);
 
 Deno.serve(async (req) => {
   if (req.headers.get("Authorization") !== `Bearer ${serviceRole}`) {
@@ -125,42 +87,75 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 3) Outbox do hub: novidades UNO (todos) e artigos exclusivos (Clientes Lema).
+  // 3) Outbox do hub: novidades UNO, artigos e materiais de apoio.
   const { data: hubPending, error: hubError } = await supabase
     .from("v_hub_notification_outbox")
-    .select("id, content_type, content_id, title, subtitle")
-    .limit(10);
+    .select("id, content_type, content_id, title, visibility")
+    .limit(50);
 
   if (hubError) console.error("hub outbox error", hubError.message);
 
-  for (const row of (hubPending || []) as {
+  type HubRow = {
     id: string;
-    content_type: "uno_update" | "article";
+    content_type: "uno_update" | "article" | "material";
     content_id: string;
     title: string;
-    subtitle: string | null;
-  }[]) {
-    const isUpdate = row.content_type === "uno_update";
+    visibility: string | null;
+  };
+  const hubRows = (hubPending || []) as HubRow[];
+
+  const markHubDispatched = (ids: string[]) =>
+    supabase
+      .from("hub_notification_outbox")
+      .update({ dispatched_at: new Date().toISOString() })
+      .in("id", ids);
+
+  // 3a) Novidades UNO — uma notificação por item (são raras e individuais).
+  for (const row of hubRows.filter((r) => r.content_type === "uno_update")) {
     const outcome = await callSendPush({
-      audience: isUpdate ? "all" : "uno_clients",
+      audience: "all",
+      topic: "uno_updates",
       payload: {
-        title: isUpdate
-          ? `Novidade UNO: ${row.title}`
-          : `Novo artigo: ${row.title}`,
-        body: isUpdate
-          ? "Atualizações e avisos do sistema UNO."
-          : "Conteúdo exclusivo para Clientes Lema.",
-        url: isUpdate
-          ? `/novidade/${row.content_id}`
-          : `/artigo/${row.content_id}`
+        title: `Novidade UNO: ${row.title}`,
+        body: "Atualizações e avisos do sistema UNO.",
+        url: `/novidade/${row.content_id}`
       }
     });
+    if (outcome.ok) await markHubDispatched([row.id]);
+  }
 
-    if (outcome.ok) {
-      await supabase
-        .from("hub_notification_outbox")
-        .update({ dispatched_at: new Date().toISOString() })
-        .eq("id", row.id);
+  // 3b) Artigos e materiais — agrupados por rodada para não floodar
+  // (ex.: backlog do blog-ingest). 1 item = título; N itens = contagem.
+  const groups = [
+    { type: "article" as const, topic: "articles" as const, one: "Novo artigo", many: "novos artigos", list: "/artigos", detail: (id: string) => `/artigo/${id}` },
+    { type: "material" as const, topic: "materials" as const, one: "Novo material de apoio", many: "novos materiais de apoio", list: "/materiais", detail: (_id: string) => "/materiais" }
+  ];
+
+  for (const g of groups) {
+    const items = hubRows.filter((r) => r.content_type === g.type);
+    if (items.length === 0) continue;
+
+    const buckets: [HubRow[], "all" | "uno_clients"][] = [
+      [items.filter((r) => r.visibility !== "lema_client"), "all"],
+      [items.filter((r) => r.visibility === "lema_client"), "uno_clients"]
+    ];
+
+    for (const [subset, audience] of buckets) {
+      if (subset.length === 0) continue;
+      const payload =
+        subset.length === 1
+          ? {
+              title: `${g.one}: ${subset[0].title}`,
+              body: "Toque para conferir.",
+              url: g.detail(subset[0].content_id)
+            }
+          : {
+              title: `${subset.length} ${g.many}`,
+              body: "Toque para conferir.",
+              url: g.list
+            };
+      const outcome = await callSendPush({ audience, topic: g.topic, payload });
+      if (outcome.ok) await markHubDispatched(subset.map((r) => r.id));
     }
   }
 
@@ -168,7 +163,7 @@ Deno.serve(async (req) => {
     JSON.stringify({
       newEvents: (pending || []).length,
       dueReminders: (due || []).length,
-      hubOutbox: (hubPending || []).length
+      hubOutbox: hubRows.length
     }),
     { headers: { "Content-Type": "application/json" } }
   );

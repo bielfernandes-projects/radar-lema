@@ -78,10 +78,21 @@ curl -X POST "https://SEU-PROJETO.supabase.co/functions/v1/send-push" \
 Para "novo evento" por categoria, use `eventCategoryIds` em vez de `userIds`
 — o servidor envia a todos os assins com push ativo e categoria compatível.
 
-## Disparo automático (novos eventos / lembretes)
+## Preferências por tópico (matriz da Config)
+
+`notification_settings.topics` (JSONB, migration `20260828000001`) guarda, por
+tipo de conteúdo **não-evento**, os canais escolhidos:
+`{ "news": {"push": true, "email": false}, "articles": {...}, "materials": {...}, "uno_updates": {...} }`.
+Ausência de chave = desligado (opt-in — ninguém passa a receber sozinho).
+Eventos continuam em `categories_enabled` (agora **IDs** de categoria; `['*']` =
+todas). `send-push` aceita `topic` opcional: com `audience`, filtra os
+destinatários por `topics[topic].push = true` além de `push_enabled`. O canal
+**E-mail** é só coluna desabilitada na UI — não há envio.
+
+## Disparo automático (novos eventos / lembretes / hub / notícias)
 
 Implementado de ponta a ponta. A Edge Function `notification-scheduler` roda a
-cada minuto via `pg_cron` + `pg_net` e faz dois trabalhos:
+cada minuto via `pg_cron` + `pg_net` e faz três trabalhos:
 
 1. **Eventos novos por categoria** — lê `notification_outbox` (linhas criadas
    por trigger no INSERT de evento confirmado), chama `send-push` com
@@ -89,6 +100,18 @@ cada minuto via `pg_cron` + `pg_net` e faz dois trabalhos:
 2. **Lembretes** — lê `get_due_reminders()` (janela de 2 min antes do início,
    horário em `America/Sao_Paulo`, dedup por `reminder_dispatch`) e chama
    `send-push` com `userIds` do dono do lembrete.
+3. **Conteúdo do hub** — lê `v_hub_notification_outbox`:
+   - `uno_update` → uma por item, `audience: 'all'`, `topic: 'uno_updates'`.
+   - `article` / `material` → **agrupados por rodada** (1 item = título; N = "N
+     novos artigos"), separados por `visibility` (`public` → `audience: 'all'`;
+     `lema_client` → `audience: 'uno_clients'`), `topic: 'articles'|'materials'`.
+     Triggers `queue_article_on_insert` (agora sem filtro de visibilidade) e
+     `queue_material_on_insert` enfileiram todo INSERT.
+
+O **`news-ingest`** dispara direto (sem outbox): ao terminar, conta as linhas
+inseridas de fato (`upsert(...).select()` com `ignoreDuplicates`) e, se > 0,
+chama `send-push` uma vez com `topic: 'news'` ("N novas notícias de mercado").
+A helper `callSendPush` vive em `supabase/functions/_shared/sendPush.ts`.
 
 Cada disparo grava o resultado do `send-push` (`{sent, gone, failed, total}`)
 nas colunas `result` de `notification_outbox` e `reminder_dispatch` — auditoria
@@ -97,7 +120,8 @@ no banco, sem depender dos logs do dashboard.
 ### Deploy
 
 ```bash
-supabase functions deploy notification-scheduler
+supabase functions deploy notification-scheduler send-push news-ingest
+supabase db push   # migration 20260828000001 (coluna topics + triggers/view)
 ```
 
 A função usa as mesmas secrets do `send-push` (`SUPABASE_URL` e
@@ -238,11 +262,14 @@ push para re-assinar.
 'autoUpdate'`).
 - iOS: Web Push funciona a partir do iOS 16.4 nos apps instalados via "Adicionar
   à Tela de Início" somente.
-- O toggle "Notificar novos eventos" usa `categories_enabled` (default `[]`,
-  opt-in; `['*']` = todas). Sem ele, o usuário não recebe aviso de evento novo,
-  mas continua recebendo lembretes dos eventos favoritados.
-- Lembretes hoje são enviados **somente via push**. O canal E-mail está
-  desabilitado na UI ("em breve").
+- A linha "Eventos" da matriz usa `categories_enabled` (default `[]`, opt-in;
+  `['*']` = todas; senão **IDs** de categoria). Sem ela, o usuário não recebe
+  aviso de evento novo, mas continua recebendo lembretes dos favoritados.
+- Os demais tópicos (news/articles/materials/uno_updates) usam
+  `notification_settings.topics[topic].push` (opt-in). A coluna **E-mail** da
+  matriz fica desabilitada e não persiste nada — o `topics` já comporta
+  `{push, email}` para quando o canal de e-mail existir.
+- Lembretes também são **somente via push** hoje ("em breve" para e-mail).
 - `push_enabled` (notification_settings) é a "intenção"; a presença real de uma
   row em `push_subscriptions` é o que o servidor usa para enviar. O `signOut`
   remove a subscription do dispositivo (limpeza da linha em `push_subscriptions`).

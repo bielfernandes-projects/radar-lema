@@ -603,8 +603,14 @@ Fluxo completo de notificações push:
      pública VAPID e grava a subscription em `push_subscriptions`
      (`{ endpoint, p256dh, auth }`). Ao desativar, cancela a subscription e
      remove a linha.
-   - Ativar/desativar notificação por email (placeholder, `email_enabled`).
-   - Selecionar categorias de interesse (`categories_enabled` como `TEXT[]`).
+   - **Matriz de notificações** (aba "Notificações", `<Table>` de 3 colunas
+     rótulo · Celular · E-mail): por tipo de conteúdo o usuário liga/desliga o
+     canal **Celular** (push). Linhas: Notícias de Mercado, Artigos, Materiais
+     de apoio, Novidades UNO — persistidas em `notification_settings.topics`
+     (JSONB `{ [topic]: { push, email } }`, opt-in: ausência = desligado) — e
+     **Eventos**, que continua em `categories_enabled` com `<Autocomplete>` de
+     categorias (`['*']` = todas; guarda **IDs** de categoria). A coluna
+     **E-mail** aparece desabilitada ("Em breve") — não há envio de e-mail.
    - Testar notificação local com `new Notification()`.
    - Visualizar, editar e remover lembretes ativos agrupados por evento
      (cada lembrete mostra offset formatado, ex. "3 dias antes · E-mail").
@@ -618,13 +624,28 @@ Fluxo completo de notificações push:
 ### Disparo automático
 
 O envio é agendado de verdade: a Edge Function `notification-scheduler` roda a
-cada minuto via `pg_cron` + `pg_net` e faz dois trabalhos — (1) eventos novos
+cada minuto via `pg_cron` + `pg_net` e faz três trabalhos — (1) eventos novos
 confirmados por categoria (lê o outbox `notification_outbox` populado pelo
-trigger `queue_new_event_notification` e chama `send-push` com `eventCategoryIds`)
-e (2) lembretes push vencidos (RPC `get_due_reminders()`, janela de ~1 min antes
-de `start_time`, registrados em `reminder_dispatch` para não reenviar). O job do
-cron é registrado em deploy (não versionado) por exigir a service role key.
-Canal **E-mail** do lembrete ainda não é enviado ("em breve").
+trigger `queue_new_event_notification` e chama `send-push` com `eventCategoryIds`);
+(2) lembretes push vencidos (RPC `get_due_reminders()`, janela de ~1 min antes
+de `start_time`, registrados em `reminder_dispatch` para não reenviar); e
+(3) conteúdo do hub via `hub_notification_outbox` / view
+`v_hub_notification_outbox` — **novidades UNO** (uma por item, `audience: 'all'`,
+`topic: 'uno_updates'`), **artigos** e **materiais de apoio** (agrupados por
+rodada — 1 item = título, N itens = contagem — para não floodar com o backlog do
+`blog-ingest`; audience por `visibility`: `public` → todos, `lema_client` →
+Clientes Lema). Todo INSERT em `articles`/`materials` enfileira.
+
+**Notícias de mercado**: o `news-ingest`, ao terminar, conta as linhas
+realmente inseridas (`upsert ... .select()` com `ignoreDuplicates`) e, se > 0,
+dispara **uma** notificação-resumo ("N novas notícias de mercado",
+`topic: 'news'`).
+
+`send-push` aceita `topic` opcional junto de `audience`: além de
+`push_enabled = true`, o usuário precisa ter
+`notification_settings.topics[topic].push = true`. O job do cron é registrado em
+deploy (não versionado) por exigir a service role key. Nenhum canal **E-mail**
+(lembrete ou matriz) é enviado ainda ("em breve").
 Ver `push-notifications.md` para o runbook completo de ativação (VAPID keys,
 deploy das functions, secrets e registro do job).
 
@@ -782,6 +803,21 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 > localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-28** — Ícone de instalar com pulsação + matriz de notificações:
+  - **Login**: `<InstallAppIcon pulse />` — halo azul pulsante (`@keyframes`
+    inline, respeita `prefers-reduced-motion`) chamando atenção para instalar o
+    PWA.
+  - **Configurações em abas**: Perfil · Notificações · Lembretes · Instalar app
+    (padrão `<Tabs>` já usado em `/admin` e `/gestao/hub`).
+  - **Matriz de notificações**: coluna Celular (push) por tipo de conteúdo
+    (Notícias, Artigos, Materiais, Novidades UNO, Eventos); coluna E-mail
+    desabilitada. Nova coluna `notification_settings.topics` (JSONB).
+  - **Disparo ampliado**: `notification-scheduler` passa a cobrir artigos
+    (qualquer visibilidade, agrupados por rodada) e materiais; `news-ingest`
+    manda um resumo push por rodada. `send-push` ganha filtro por `topic`.
+  - **Bug corrigido**: `categories_enabled` agora guarda **IDs** de categoria
+    (a UI salvava nomes, mas `send-push` comparava IDs — só `['*']` funcionava).
 
 - **2026-08-28** — Login/cadastro fora do enquadramento de "eventos" e senha forte:
   - **Copy**: subtítulos do `Login` e do `SignUp` deixam de citar "evento"

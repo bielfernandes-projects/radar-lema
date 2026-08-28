@@ -5,7 +5,16 @@ import { useUserData } from './useUserData'
 const DEFAULTS = {
   push_enabled: false,
   email_enabled: false,
-  categories_enabled: []
+  categories_enabled: [],
+  topics: {}
+}
+
+// Tópicos não-evento da matriz de notificações. Eventos ficam em
+// `categories_enabled`. `topics` guarda { [topic]: { push, email } }.
+export const NOTIFICATION_TOPICS = ['news', 'articles', 'materials', 'uno_updates']
+
+export function topicChannel(settings, topic, channel) {
+  return settings?.topics?.[topic]?.[channel] === true
 }
 
 export function useNotificationSettings() {

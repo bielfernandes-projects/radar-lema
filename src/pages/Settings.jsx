@@ -21,13 +21,24 @@ import {
   ListItemText,
   Stack,
   Switch,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tabs,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material'
 import { Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
-import { useNotificationSettings } from '../hooks/useNotificationSettings'
+import {
+  useNotificationSettings,
+  topicChannel
+} from '../hooks/useNotificationSettings'
 import ReminderDialog from '../components/ReminderDialog'
 import InstallAppButton from '../components/InstallAppButton'
 import PasswordToggle from '../components/PasswordToggle'
@@ -36,6 +47,15 @@ import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useAuth } from '../contexts/AuthContext'
 import { validatePassword } from '../utils/auth'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
+
+// Linhas fixas da matriz de notificações (tópicos não-evento). Eventos é uma
+// linha à parte, com seleção de categorias.
+const NOTIFICATION_ROWS = [
+  { key: 'news', label: 'Notícias de Mercado' },
+  { key: 'articles', label: 'Artigos' },
+  { key: 'materials', label: 'Materiais de apoio' },
+  { key: 'uno_updates', label: 'Novidades UNO' }
+]
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -51,6 +71,7 @@ export default function Settings() {
     saveSettings,
     loading: settingsLoading
   } = useNotificationSettings()
+  const [tab, setTab] = useState('perfil')
   const [categories, setCategories] = useState([])
   const [eventsMap, setEventsMap] = useState({})
   const [testResult, setTestResult] = useState('')
@@ -74,6 +95,11 @@ export default function Settings() {
   const [nameMessage, setNameMessage] = useState('')
   const [nameError, setNameError] = useState('')
 
+  // categories_enabled é persistido como IDs de categoria ('*' = todas). O
+  // Autocomplete exibe nomes; traduzimos na fronteira de persistência.
+  const catName = (id) => categories.find((c) => c.id === id)?.name || id
+  const catId = (name) => categories.find((c) => c.name === name)?.id || name
+
   useEffect(() => {
     supabase
       .from('categories')
@@ -91,13 +117,13 @@ export default function Settings() {
   useEffect(() => {
     if (settings && categories.length > 0) {
       setPushEnabled(settings.push_enabled)
-      setNewEventsEnabled((settings.categories_enabled || []).length > 0)
+      const enabled = settings.categories_enabled || []
+      setNewEventsEnabled(enabled.length > 0)
       setSelectedCategories(
-        settings.categories_enabled?.includes('*')
-          ? ['Todas']
-          : settings.categories_enabled || []
+        enabled.includes('*') ? ['Todas'] : enabled.map(catName)
       )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, categories])
 
   useEffect(() => {
@@ -141,15 +167,38 @@ export default function Settings() {
     }
   }
 
+  // Liga o switch mestre de push (permissão + subscription) se ainda estiver
+  // desligado. Usado antes de ativar qualquer linha da matriz.
+  const ensurePushMaster = async () => {
+    if (pushEnabled) return true
+    try {
+      await enablePush()
+      await saveSettings({ push_enabled: true })
+      setPushEnabled(true)
+      return true
+    } catch (e) {
+      setTestResult(e?.message || 'Não foi possível ativar as notificações.')
+      return false
+    }
+  }
+
+  const handleTopicToggle = async (topic, value) => {
+    if (value && !(await ensurePushMaster())) return
+    const nextTopics = {
+      ...(settings?.topics || {}),
+      [topic]: { ...(settings?.topics?.[topic] || {}), push: value }
+    }
+    await saveSettings({ topics: nextTopics })
+  }
+
   const handleNewEventsToggle = async (value) => {
     if (value) {
-      const selection = selectedCategories.length
-        ? selectedCategories
-        : ['Todas']
+      if (!(await ensurePushMaster())) return
+      const names = selectedCategories.length ? selectedCategories : ['Todas']
       setNewEventsEnabled(true)
-      setSelectedCategories(selection)
+      setSelectedCategories(names)
       await saveSettings({
-        categories_enabled: selection.includes('Todas') ? ['*'] : selection
+        categories_enabled: names.includes('Todas') ? ['*'] : names.map(catId)
       })
     } else {
       setNewEventsEnabled(false)
@@ -164,7 +213,7 @@ export default function Settings() {
       await saveSettings({ categories_enabled: ['*'] })
     } else {
       setSelectedCategories(value)
-      await saveSettings({ categories_enabled: value })
+      await saveSettings({ categories_enabled: value.map(catId) })
     }
   }
 
@@ -292,6 +341,20 @@ export default function Settings() {
         Configurações
       </Typography>
 
+      <Tabs
+        value={tab}
+        onChange={(e, value) => setTab(value)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ mb: 3 }}
+      >
+        <Tab label="Perfil" value="perfil" />
+        <Tab label="Notificações" value="notificacoes" />
+        <Tab label="Lembretes" value="lembretes" />
+        <Tab label="Instalar app" value="instalar" />
+      </Tabs>
+
+      {tab === 'perfil' && (
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -396,11 +459,13 @@ export default function Settings() {
           </Stack>
         </CardContent>
       </Card>
+      )}
 
+      {tab === 'notificacoes' && (
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Notificações push
+            Notificações
           </Typography>
           <Stack spacing={2}>
             <Stack
@@ -409,9 +474,9 @@ export default function Settings() {
               justifyContent="space-between"
             >
               <Box>
-                <Typography>Receber notificacoes push</Typography>
+                <Typography>Receber notificações push</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Ative para receber avisos antes dos eventos favoritos.
+                  Ative para escolher abaixo o que quer receber no celular.
                 </Typography>
               </Box>
               <Switch
@@ -427,57 +492,100 @@ export default function Settings() {
                 transition: 'opacity 0.2s'
               }}
             >
-              <Stack spacing={2}>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                >
-                  <Box>
-                    <Typography>Notificar novos eventos</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Receba avisos sobre novos eventos das categorias
-                      selecionadas.
-                    </Typography>
-                  </Box>
-                  <Switch
-                    checked={newEventsEnabled}
-                    onChange={(e) => handleNewEventsToggle(e.target.checked)}
-                  />
-                </Stack>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell />
+                    <TableCell align="center">Celular</TableCell>
+                    <TableCell align="center">E-mail</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {NOTIFICATION_ROWS.map((row) => (
+                    <TableRow key={row.key}>
+                      <TableCell>{row.label}</TableCell>
+                      <TableCell align="center">
+                        <Switch
+                          size="small"
+                          checked={topicChannel(settings, row.key, 'push')}
+                          onChange={(e) =>
+                            handleTopicToggle(row.key, e.target.checked)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Em breve">
+                          <span>
+                            <Switch size="small" disabled />
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell sx={{ verticalAlign: 'top' }}>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        Eventos
+                      </Typography>
+                      <Autocomplete
+                        multiple
+                        size="small"
+                        disabled={!newEventsEnabled}
+                        options={['Todas', ...categories.map((c) => c.name)]}
+                        value={selectedCategories}
+                        onChange={(e, newValue) =>
+                          handleCategoriesChange(newValue)
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Categorias"
+                            placeholder="Todas"
+                          />
+                        )}
+                        sx={{ maxWidth: 320 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center" sx={{ verticalAlign: 'top' }}>
+                      <Switch
+                        size="small"
+                        checked={newEventsEnabled}
+                        onChange={(e) =>
+                          handleNewEventsToggle(e.target.checked)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell align="center" sx={{ verticalAlign: 'top' }}>
+                      <Tooltip title="Em breve">
+                        <span>
+                          <Switch size="small" disabled />
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
 
-                <Autocomplete
-                  multiple
-                  disabled={!newEventsEnabled}
-                  options={['Todas', ...categories.map((c) => c.name)]}
-                  value={selectedCategories}
-                  onChange={(e, newValue) => handleCategoriesChange(newValue)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Quais categorias notificar"
-                      helperText="Selecione 'Todas' para receber de todas as categorias."
-                    />
-                  )}
-                />
-
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleTestNotification}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  Testar notificação
-                </Button>
-                {testResult && (
-                  <Alert severity="warning">{testResult}</Alert>
-                )}
-              </Stack>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleTestNotification}
+                sx={{ mt: 2 }}
+              >
+                Testar notificação
+              </Button>
+              {testResult && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  {testResult}
+                </Alert>
+              )}
             </Box>
           </Stack>
         </CardContent>
       </Card>
+      )}
 
+      {tab === 'lembretes' && (
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -568,7 +676,9 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {tab === 'instalar' && (
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -581,6 +691,7 @@ export default function Settings() {
           <InstallAppButton />
         </CardContent>
       </Card>
+      )}
 
       <Dialog
         open={removeDialog.open}

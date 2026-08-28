@@ -111,7 +111,7 @@ export default function Login() {
           sx={{ p: 4, position: 'relative', width: '100%', maxWidth: 480 }}
         >
           <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-            <InstallAppIcon />
+            <InstallAppIcon pulse />
           </Box>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <img

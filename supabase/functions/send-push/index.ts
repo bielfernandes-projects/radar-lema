@@ -49,13 +49,27 @@ async function sendOne(row: SubscriptionRow, payload: PushPayload): Promise<stri
 // Resolve os usuarios-alvo de um audience do hub.
 //   - 'all': todos os usuarios com push ativo (notification_settings.push_enabled)
 //   - 'uno_clients': apenas os que tambem sao Clientes Lema (is_uno_client)
-async function resolveAudience(audience: "all" | "uno_clients"): Promise<string[]> {
+// Se `topic` for informado, alem de push_enabled o usuario precisa ter
+// notification_settings.topics[topic].push = true (opt-in por tipo de conteudo).
+async function resolveAudience(
+  audience: "all" | "uno_clients",
+  topic?: string
+): Promise<string[]> {
   const { data: settings } = await supabase
     .from("notification_settings")
-    .select("user_id")
+    .select("user_id, topics")
     .eq("push_enabled", true);
 
-  const enabledIds = new Set((settings || []).map((s) => s.user_id as string));
+  const enabledIds = new Set(
+    (settings || [])
+      .filter((s) =>
+        topic
+          ? (s.topics as Record<string, { push?: boolean }> | null)?.[topic]
+              ?.push === true
+          : true
+      )
+      .map((s) => s.user_id as string)
+  );
 
   if (audience === "all") {
     return Array.from(enabledIds);
@@ -80,6 +94,7 @@ Deno.serve(async (req) => {
     userIds?: string[];
     eventCategoryIds?: string[];
     audience?: "all" | "uno_clients";
+    topic?: string;
     payload: PushPayload;
   };
   try {
@@ -88,7 +103,7 @@ Deno.serve(async (req) => {
     return new Response("JSON invalido", { status: 400 });
   }
 
-  const { eventCategoryIds, audience, payload } = body;
+  const { eventCategoryIds, audience, topic, payload } = body;
 
   if (!payload?.title) {
     return new Response("payload.title e obrigatorio", { status: 400 });
@@ -136,7 +151,7 @@ Deno.serve(async (req) => {
     }
     targetUserIds = Array.from(targeted);
   } else if (hasAudience) {
-    const resolved = await resolveAudience(audience!);
+    const resolved = await resolveAudience(audience!, topic);
     if (resolved.length === 0) {
       return Response.json({ sent: 0, gone: 0, failed: 0, total: 0 });
     }

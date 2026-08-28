@@ -9,6 +9,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 import { XMLParser } from "https://esm.sh/fast-xml-parser@4.5.0";
+import { makeCallSendPush } from "../_shared/sendPush.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -16,6 +17,8 @@ const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false }
 });
+
+const callSendPush = makeCallSendPush(supabaseUrl, serviceRole);
 
 interface FeedSource {
   name: string;
@@ -411,10 +414,10 @@ Deno.serve(async (req) => {
 
   let inserted = 0;
   if (allRows.length > 0) {
-    const { data, error } = await supabase.from("news").upsert(allRows, {
-      onConflict: "url",
-      ignoreDuplicates: true
-    });
+    const { data, error } = await supabase
+      .from("news")
+      .upsert(allRows, { onConflict: "url", ignoreDuplicates: true })
+      .select("id");
 
     if (error) {
       console.error("news-ingest insert error", error.message);
@@ -423,7 +426,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    inserted = Array.isArray(data) ? data.length : allRows.length;
+    // Com ignoreDuplicates, `.select()` retorna só as linhas realmente inseridas.
+    inserted = Array.isArray(data) ? data.length : 0;
+  }
+
+  // Resumo por rodada: uma única notificação push com a contagem de novidades.
+  if (inserted > 0) {
+    await callSendPush({
+      audience: "all",
+      topic: "news",
+      payload: {
+        title:
+          inserted === 1
+            ? "Nova notícia de mercado"
+            : `${inserted} novas notícias de mercado`,
+        body: "Toque para ver as últimas notícias.",
+        url: "/noticias"
+      }
+    });
   }
 
   const fetched = feedReport.reduce((acc, feed) => acc + feed.fetched, 0);
