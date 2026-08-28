@@ -492,25 +492,52 @@ export default function Settings() {
                 transition: 'opacity 0.2s'
               }}
             >
-              <Table size="small">
+              <Table
+                size="small"
+                sx={{
+                  tableLayout: 'fixed',
+                  width: '100%',
+                  '& td, & th': { px: 1 },
+                  '& td:first-of-type, & th:first-of-type': {
+                    pl: 0,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word'
+                  }
+                }}
+              >
                 <TableHead>
                   <TableRow>
                     <TableCell />
-                    <TableCell align="center">Celular</TableCell>
-                    <TableCell align="center">E-mail</TableCell>
+                    <TableCell align="center" sx={{ width: 72 }}>
+                      Celular
+                    </TableCell>
+                    <TableCell align="center" sx={{ width: 72 }}>
+                      E-mail
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {NOTIFICATION_ROWS.map((row) => (
+                  {[
+                    ...NOTIFICATION_ROWS.map((r) => ({
+                      key: r.key,
+                      label: r.label,
+                      checked: topicChannel(settings, r.key, 'push'),
+                      onToggle: (v) => handleTopicToggle(r.key, v)
+                    })),
+                    {
+                      key: 'events',
+                      label: 'Eventos',
+                      checked: newEventsEnabled,
+                      onToggle: (v) => handleNewEventsToggle(v)
+                    }
+                  ].map((row) => (
                     <TableRow key={row.key}>
                       <TableCell>{row.label}</TableCell>
                       <TableCell align="center">
                         <Switch
                           size="small"
-                          checked={topicChannel(settings, row.key, 'push')}
-                          onChange={(e) =>
-                            handleTopicToggle(row.key, e.target.checked)
-                          }
+                          checked={row.checked}
+                          onChange={(e) => row.onToggle(e.target.checked)}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -522,49 +549,28 @@ export default function Settings() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow>
-                    <TableCell sx={{ verticalAlign: 'top' }}>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        Eventos
-                      </Typography>
-                      <Autocomplete
-                        multiple
-                        size="small"
-                        disabled={!newEventsEnabled}
-                        options={['Todas', ...categories.map((c) => c.name)]}
-                        value={selectedCategories}
-                        onChange={(e, newValue) =>
-                          handleCategoriesChange(newValue)
-                        }
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Categorias"
-                            placeholder="Todas"
-                          />
-                        )}
-                        sx={{ maxWidth: 320 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: 'top' }}>
-                      <Switch
-                        size="small"
-                        checked={newEventsEnabled}
-                        onChange={(e) =>
-                          handleNewEventsToggle(e.target.checked)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: 'top' }}>
-                      <Tooltip title="Em breve">
-                        <span>
-                          <Switch size="small" disabled />
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </Table>
+
+              {newEventsEnabled && (
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={['Todas', ...categories.map((c) => c.name)]}
+                  value={selectedCategories}
+                  onChange={(e, newValue) =>
+                    handleCategoriesChange(newValue)
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Categorias de eventos"
+                      placeholder="Todas"
+                    />
+                  )}
+                  sx={{ mt: 2, width: '100%' }}
+                />
+              )}
 
               <Button
                 size="small"
