@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Lema — Pitch (resumo)</title>
+
+<!-- Fontes: Syncopate (display, identidade do app) + Open Sans (corpo, identidade do app)
+     + DM Mono (chrome do template Cobalt Grid) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Open+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   TOKENS — Cobalt Grid recolorido para o Radar Lema
+   Papel creme original do template + azul do app.
+   Trocar aqui muda o deck inteiro.
+   =========================================== */
+:root {
+    /* --- Cores --- */
+    --paper:      #F0EBDE;  /* creme original do Cobalt Grid */
+    --paper-2:    #E6E0CE;  /* creme profundo */
+    --ink:        #3B82F6;  /* AZUL DO APP: display, réguas, grade, decoração */
+    --ink-deep:   #1D4ED8;  /* primary.dark do app: corpo e labels (contraste 5,6:1) */
+    --grid:       rgba(59, 130, 246, 0.20);
+    --ink-faint:  rgba(59, 130, 246, 0.28);
+    --ink-15:     rgba(59, 130, 246, 0.15);
+
+    /* O #3B82F6 sobre creme dá só 3,1:1 — reprova em texto pequeno.
+       Por isso todo corpo de texto usa --ink-deep (5,6:1). Sem terceira cor. */
+
+    --stage-bg: #23262B;   /* letterbox fora do palco */
+    --slide-bg: var(--paper);
+
+    /* --- Tipografia (autorada no palco de 1920×1080) --- */
+    --font-display: 'Syncopate', 'Open Sans', sans-serif;
+    --font-body: 'Open Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+
+    /* Syncopate é MUITO larga e só tem 400/700 — as escalas do Cobalt Grid
+       (feitas para uma serifada estreita) foram reduzidas ~45%. */
+    --t-hero: 104px;
+    --t-closing: 88px;
+    --t-chapter: 68px;
+    --t-quote: 60px;
+    --t-numeral: 132px;
+    --t-headline: 52px;
+    --t-row: 30px;
+
+    /* Corpo em Open Sans, subido ~1.5x do template: isto é um deck de
+       projetor apresentado ao vivo, não uma revista lida de perto. */
+    --t-callout: 30px;
+    --t-lede: 26px;
+    --t-body: 22px;
+    --t-micro-strong: 16px;
+    --t-micro: 15px;
+    --t-micro-sm: 13px;
+    --t-mono: 15px;
+    --t-mono-sm: 14px;
+
+    /* --- Espaçamento --- */
+    --edge: 72px;
+    --pad-top: 96px;
+    --pad-bottom: 116px;
+    --gap-lg: 56px;
+    --gap-md: 32px;
+    --gap-sm: 20px;
+    --gap-xs: 14px;
+
+    /* --- Movimento --- */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur: 0.6s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   (viewport-base.css — incluído na íntegra)
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ===========================================
+   GRADE DE PAPEL MILIMETRADO
+   Permanente atrás de TODO slide. Não é decoração opcional —
+   é o tom da tela no Cobalt Grid e não pode ser desligada.
+
+   Vai no BACKGROUND do .slide, não num ::before: todo slide também
+   carrega a classe .hairlines, e um elemento só tem um ::before —
+   as réguas e a grade brigavam pelo mesmo pseudo e a grade sumia.
+   Precisa vir depois do viewport-base.css, que zera o background.
+   =========================================== */
+.slide {
+    background-color: var(--paper);
+    background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+    background-size: 42px 42px;
+}
+
+/* ===========================================
+   CHROME UNIVERSAL — hairlines, número de página, dica de navegação
+   Todo slide herda. Não authorar por slide.
+   =========================================== */
+.hairlines::before,
+.hairlines::after {
+    content: '';
+    position: absolute;
+    left: var(--edge);
+    right: var(--edge);
+    height: 1.5px;
+    background: var(--ink);
+    z-index: 4;
+}
+.hairlines::before { top: 28px; }
+.hairlines::after  { bottom: 22px; }
+
+.pagenum {
+    position: absolute;
+    right: var(--edge);
+    bottom: 52px;
+    z-index: 5;
+    font-family: var(--font-mono);
+    font-size: var(--t-mono-sm);
+    color: var(--ink);
+    letter-spacing: 0.06em;
+}
+
+.nav-hint {
+    position: fixed;
+    left: var(--edge);
+    bottom: 52px;
+    z-index: 5;
+    font-family: var(--font-mono);
+    font-size: var(--t-mono-sm);
+    color: var(--ink);
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+}
+
+/* Retângulo de conteúdo, dentro do chrome */
+.frame {
+    position: absolute;
+    inset: var(--pad-top) var(--edge) var(--pad-bottom);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===========================================
+   TIPOGRAFIA
+   Syncopate 700 = display. Open Sans = corpo. DM Mono = chrome.
+   =========================================== */
+.d-hero, .d-closing, .d-chapter, .d-quote, .headline, .row-h, .numeral {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--ink);
+}
+.d-hero    { font-size: var(--t-hero);     line-height: 1.02; letter-spacing: -0.02em; }
+.d-closing { font-size: var(--t-closing);  line-height: 1.05; letter-spacing: -0.02em; }
+.d-chapter { font-size: var(--t-chapter);  line-height: 1.08; letter-spacing: -0.02em; }
+.d-quote   { font-size: var(--t-quote);    line-height: 1.15; letter-spacing: -0.015em; }
+.headline  { font-size: var(--t-headline); line-height: 1.05; letter-spacing: -0.015em; }
+.row-h     { font-size: var(--t-row);      line-height: 1.15; letter-spacing: -0.01em; }
+.numeral   { font-size: var(--t-numeral);  line-height: 0.92; letter-spacing: -0.03em; }
+
+/* Corpo — sempre --ink-deep, nunca --ink (contraste no projetor) */
+.callout { font-family: var(--font-body); font-size: var(--t-callout); font-weight: 400; line-height: 1.35; color: var(--ink-deep); }
+.lede    { font-family: var(--font-body); font-size: var(--t-lede);    font-weight: 400; line-height: 1.45; color: var(--ink-deep); }
+.body    { font-family: var(--font-body); font-size: var(--t-body);    font-weight: 400; line-height: 1.5;  color: var(--ink-deep); }
+
+/* Labels — Open Sans 600 caixa alta com tracking largo (regra do template) */
+.micro, .micro-strong, .micro-sm {
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--ink-deep);
+    line-height: 1;
+}
+.micro-strong { font-size: var(--t-micro-strong); letter-spacing: 0.18em; }
+.micro        { font-size: var(--t-micro);        letter-spacing: 0.16em; }
+.micro-sm     { font-size: var(--t-micro-sm);     letter-spacing: 0.18em; }
+
+/* Chrome mono */
+.mono, .mono-sm {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+}
+.mono    { font-size: var(--t-mono);    letter-spacing: 0.04em; }
+.mono-sm { font-size: var(--t-mono-sm); letter-spacing: 0.06em; }
+
+/* ===========================================
+   DECORAÇÕES ASSINATURA DO COBALT GRID
+   =========================================== */
+
+/* Coluna pixel-glitch — escadinha de scanlines verticais.
+   Só em slides declarativos (capa, capítulo, citação, fechamento). */
+.glitch {
+    position: absolute;
+    top: 0;
+    height: 1080px;
+    z-index: 3;
+    pointer-events: none;
+}
+.glitch.right { right: 0; }
+.glitch.left  { left: 0; }
+
+/* Patch QR 8×8 — pontuação gráfica. O fundo cor de papel + o outset de 1.5px
+   é o que mantém o mosaico legível por cima da grade e do glitch. */
+.qr {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 1.5px;
+    background: var(--paper);
+    padding: 4px;
+    box-shadow: 0 0 0 1.5px var(--paper);
+    z-index: 5;
+}
+.qr i { background: transparent; }
+.qr i.on { background: var(--ink); }
+
+/* Topbar: headline à esquerda, tag mono à direita, régua de 1.5px embaixo.
+   Padrão universal de cabeçalho de seção. */
+.topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--gap-lg);
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: var(--gap-lg);
+}
+
+/* Divisória fraca entre linhas de listas densas */
+.rule-faint { border-bottom: 1px solid var(--ink-faint); }
+
+/* Régua sólida acima de atribuição / assinatura */
+.rule-solid { border-top: 1px solid var(--ink); padding-top: 18px; }
+
+/* Barras pixel-stack — dados desenhados como pilhas de células da grade.
+   Célula "off" = cor da grade, "on" = azul cheio. */
+.stack { display: flex; flex-direction: column-reverse; gap: 4px; height: 100%; justify-content: flex-start; }
+.stack b { display: block; height: 13px; background: var(--grid); }
+.stack b.on { background: var(--ink); }
+
+/* Coluna de labels mono na vertical, ancorada na borda */
+.vstack {
+    position: absolute;
+    right: var(--edge);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: flex;
+    gap: 26px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+/* ===========================================
+   IMAGENS — telas reais do app
+   Sem raio de borda e sem sombra: o sistema é chapado.
+   Moldura = régua de 1.5px, como todo o resto.
+   =========================================== */
+.shot {
+    border: 1.5px solid var(--ink);
+    background: var(--paper-2);
+    object-fit: contain;
+    object-position: top center;
+    display: block;
+}
+.logo {
+    /* O logo tem fundo branco; multiply funde no creme sem precisar recortar. */
+    mix-blend-mode: multiply;
+}
+
+/* ===========================================
+   ANIMAÇÃO — uma revelação escalonada por slide
+   =========================================== */
+.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.13s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.21s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.29s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.37s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.45s; }
+.slide.visible .reveal:nth-child(7) { transition-delay: 0.53s; }
+
+/* O glitch entra deslizando de lado */
+.glitch { opacity: 0; transform: translateX(40px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
+.glitch.left { transform: translateX(-40px); }
+.slide.visible .glitch { opacity: 1; transform: translateX(0); }
+
+/* ===========================================
+   LAYOUTS DE SLIDE
+   =========================================== */
+
+/* Capa — assinatura no ALTO à esquerda, não embaixo: o canto inferior
+   esquerdo é da dica de navegação, e os dois colidiam. */
+.cover-frame { justify-content: center; }
+.cover-meta { position: absolute; left: var(--edge); top: 58px; z-index: 5; display: flex; gap: 28px; align-items: center; }
+
+/* Slide de statement (capítulo / citação / manifesto) */
+.statement { justify-content: center; max-width: 1180px; }
+
+/* Grade de cards (mapa de módulos) */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ink-faint); border: 1px solid var(--ink-faint); flex: 1; }
+/* space-between: o QR ancora no topo e o texto desce até a base. Sem isso
+   sobra um vazio no pé do card e o slide lê como wireframe. */
+.card { background: var(--paper); padding: 36px 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+.card .qr { width: 52px; height: 52px; margin-bottom: 4px; }
+
+/* Slide de screenshot em formato desktop (só o relatório impresso) */
+.shot-split { display: grid; grid-template-columns: 1.35fr 1fr; gap: var(--gap-lg); flex: 1; min-height: 0; }
+.shot-split .shot { width: 100%; height: 100%; }
+/* max-width: ao lado de um celular estreito sobra ~1400px de coluna e a
+   linha passava de 100 caracteres. ~75 é o limite confortável de leitura. */
+.shot-copy { display: flex; flex-direction: column; justify-content: center; gap: var(--gap-md); max-width: 920px; }
+
+/* --- CELULAR ---
+   O Radar é um PWA mobile-first: as telas do app aparecem no formato em que o
+   cliente realmente usa. Moldura é um retângulo estrito com régua de 1.5px —
+   o sistema não tem canto arredondado nem sombra, e um "device mockup"
+   realista brigaria com isso. */
+.phone {
+    border: 1.5px solid var(--ink);
+    background: var(--paper-2);
+    display: block;
+    object-fit: cover;
+    object-position: top center;
+    aspect-ratio: 390 / 844;
+}
+/* Um celular grande + coluna de texto */
+.phone-split { display: grid; grid-template-columns: auto 1fr; gap: var(--gap-lg); flex: 1; min-height: 0; align-items: center; }
+.phone-split .phone { height: 660px; width: auto; }
+/* Fileira de celulares, cada um com legenda mono embaixo */
+.phone-row { display: flex; gap: 30px; align-items: flex-start; }
+.phone-row figure { display: flex; flex-direction: column; gap: 14px; }
+.phone-row .phone { height: 560px; width: auto; }
+.phone-row figcaption { text-align: center; }
+
+/* Bullets */
+.bullets { display: flex; flex-direction: column; gap: 22px; }
+.bullets li { list-style: none; display: grid; grid-template-columns: 56px 1fr; gap: 4px; align-items: start; }
+.bullets li > .mono { padding-top: 6px; }
+
+/* Lista índice numerada */
+.index { display: flex; flex-direction: column; flex: 1; }
+/* 200px: "01" em Syncopate 76px mede ~166px — com 88px o numeral
+   transbordava por cima do título da linha. */
+.index li { list-style: none; flex: 1; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center; border-bottom: 1px solid var(--ink-faint); padding: 4px 0; }
+.index li:last-child { border-bottom: none; }
+
+/* Grade de números grandes */
+.figures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--ink-faint); border: 1px solid var(--ink-faint); }
+.figure { background: var(--paper); padding: 30px 28px 26px; display: flex; flex-direction: column; gap: 10px; }
+.figure .numeral { font-size: 104px; }
+
+/* Ledger (tabela densa).
+   As linhas esticam para preencher a altura do frame — sem isso sobra um
+   vazio grande no pé do slide e a grade exposta lê como wireframe. */
+.ledger { display: flex; flex-direction: column; flex: 1; }
+.ledger .lrow { display: grid; grid-template-columns: 0.9fr 1.9fr 0.7fr; gap: 32px; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--ink-faint); }
+.ledger .lrow:not(.lhead) { flex: 1; }
+.ledger .lhead { flex: 0 0 auto; border-bottom: 1.5px solid var(--ink); padding-bottom: 12px; }
+.ledger .lrow:last-child { border-bottom: none; }
+
+/* Timeline com pixel-stack */
+/* Colunas estreitas e fixas: em 1fr sobre 1776px cada barra virava um bloco
+   largo e perdia a leitura de "pilha de células da grade".
+   20 células de 13px + 4px de gap = 340px — a pilha comporta o máximo. */
+.timeline { display: grid; grid-template-columns: repeat(7, 150px); gap: 44px; align-items: end; justify-content: start; height: 390px; }
+.tcol { display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: flex-end; }
+.tcol .stack { height: 340px; }
+
+/* Fechamento */
+.closing-frame { justify-content: center; align-items: flex-end; text-align: right; }
+
+/* ===========================================
+   EDIÇÃO INLINE — hover no canto sup. esquerdo, ou tecla E
+   =========================================== */
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle {
+    position: fixed; top: 16px; left: 16px; z-index: 10001;
+    width: 44px; height: 44px; border: 1.5px solid var(--ink);
+    background: var(--paper); color: var(--ink); font-size: 18px; cursor: pointer;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--ink); color: var(--paper); }
+body.editing [contenteditable="true"]:hover { outline: 1.5px dashed var(--ink-faint); }
+body.editing [contenteditable="true"]:focus { outline: 1.5px solid var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- Padrão de scanline compartilhado por todas as colunas pixel-glitch.
+     Um único def evita IDs duplicados no documento. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="scan" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="3.2" height="9" fill="#3B82F6"></rect>
+    </pattern>
+  </defs>
+</svg>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ============================================================
+     01 — CAPA
+     ============================================================ -->
+<section class="slide title-slide active hairlines" aria-label="Capa">
+    <svg class="glitch right" width="560" height="1080" viewBox="0 0 560 1080" aria-hidden="true">
+        <rect x="200" y="0"   width="360" height="150" fill="url(#scan)" opacity="0.55"/>
+        <rect x="120" y="150" width="440" height="130" fill="url(#scan)" opacity="0.8"/>
+        <rect x="260" y="280" width="300" height="170" fill="url(#scan)" opacity="0.45"/>
+        <rect x="60"  y="450" width="500" height="140" fill="url(#scan)"/>
+        <rect x="300" y="590" width="260" height="120" fill="url(#scan)" opacity="0.6"/>
+        <rect x="170" y="710" width="390" height="160" fill="url(#scan)" opacity="0.85"/>
+        <rect x="340" y="870" width="220" height="210" fill="url(#scan)" opacity="0.4"/>
+    </svg>
+    <div class="frame cover-frame">
+        <p class="micro-strong reveal" style="margin-bottom:28px">Proposta de produto · Ecossistema Lema</p>
+        <h1 class="d-hero reveal" style="max-width:1150px">Radar<br>Lema</h1>
+        <p class="callout reveal" style="max-width:860px;margin-top:36px">
+            De agenda de eventos a <strong style="font-weight:600">hub da Lema para RPPS</strong> —
+            e a um novo canal de captação de clientes.
+        </p>
+    </div>
+    <div class="cover-meta">
+        <img class="logo" src="assets/logo.png" alt="Radar Lema" width="104" height="104">
+        <span class="mono">radarlema.app · agosto 2026 · versão resumida</span>
+    </div>
+    <span class="pagenum">01</span>
+</section>
+
+<!-- ============================================================
+     02 — O PROBLEMA (cliente + Lema)
+     ============================================================ -->
+<section class="slide hairlines" aria-label="O problema">
+    <svg class="glitch right" width="380" height="1080" viewBox="0 0 380 1080" aria-hidden="true" style="opacity:.6">
+        <rect x="180" y="120" width="200" height="180" fill="url(#scan)" opacity="0.5"/>
+        <rect x="80"  y="300" width="300" height="150" fill="url(#scan)" opacity="0.75"/>
+        <rect x="240" y="450" width="140" height="200" fill="url(#scan)" opacity="0.4"/>
+        <rect x="120" y="650" width="260" height="170" fill="url(#scan)" opacity="0.6"/>
+    </svg>
+    <div class="frame statement" style="max-width:1320px">
+        <p class="micro-strong reveal" style="margin-bottom:32px">O problema</p>
+        <h2 class="d-chapter reveal">A informação existe.<br>O relacionamento, não.</h2>
+        <div class="rule-solid reveal" style="margin-top:52px;max-width:1180px;display:grid;grid-template-columns:1fr 1fr;gap:64px">
+            <div>
+                <p class="micro" style="margin-bottom:14px">Para o cliente</p>
+                <p class="body">O dirigente de RPPS precisa de seis lugares para se manter atualizado —
+                   resolução no Gov.br, notícia num portal, material num e-mail antigo,
+                   evento num grupo de WhatsApp — e não tem tempo para nenhum.</p>
+            </div>
+            <div>
+                <p class="micro" style="margin-bottom:14px">Para a Lema</p>
+                <p class="body">O relacionamento acontece em picos: comitê, evento, renovação.
+                   Entre um e outro, a Lema some do dia a dia do cliente — e da conversa
+                   de quem ainda não é cliente.</p>
+            </div>
+        </div>
+    </div>
+    <span class="pagenum">02</span>
+</section>
+
+<!-- ============================================================
+     03 — A SOLUÇÃO: O HUB
+     ============================================================ -->
+<section class="slide hairlines" aria-label="Os módulos do hub">
+    <div class="frame">
+        <div class="topbar reveal">
+            <h2 class="headline">Um hub, seis frentes</h2>
+            <span class="mono">EM PRODUÇÃO</span>
+        </div>
+        <div class="cards reveal">
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Eventos</h3><p class="body">Agenda do setor com filtros, sessões, recorrência e lembrete no celular.</p></div>
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Notícias</h3><p class="body">Oito fontes do setor agregadas de hora em hora, classificadas por tema.</p></div>
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Artigos</h3><p class="body">Análises da Lema, sincronizadas do blog três vezes por dia.</p></div>
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Materiais</h3><p class="body">Manuais e resoluções em biblioteca privada, com prévia de PDF no app.</p></div>
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Novidades UNO</h3><p class="body">Atualização, manutenção ou instabilidade do sistema — avisada por push.</p></div>
+            <div class="card" style="justify-content:flex-start;gap:22px"><h3 class="row-h">Dashboard UNO</h3><p class="body">Carteira do RPPS em tempo real. Exclusivo de Cliente Lema.</p></div>
+        </div>
+        <p class="lede rule-solid reveal" style="margin-top:var(--gap-md)">
+            O time da Lema faz curadoria. Não faz digitação — a ingestão é automática.
+        </p>
+    </div>
+    <span class="pagenum">03</span>
+</section>
+
+<!-- ============================================================
+     04 — FEED  [screenshot: assets/feed.png]
+     ============================================================ -->
+<section class="slide hairlines" aria-label="O feed">
+    <div class="frame">
+        <div class="topbar reveal">
+            <h2 class="headline">Tudo que importa,<br>numa tela</h2>
+            <span class="mono">TELA INICIAL · PWA MOBILE</span>
+        </div>
+        <div class="phone-split reveal">
+            <img class="phone" src="assets/feed.png" alt="Feed do Radar Lema no celular: próximos eventos, notícias de mercado, artigos e novidades do UNO">
+            <div class="shot-copy">
+                <p class="lede">Quatro seções carregadas em paralelo. O cliente encontra o que precisa
+                   antes de decidir o que estava procurando.</p>
+                <ul class="bullets">
+                    <li><span class="mono">→</span><span class="body">Instala como app na tela inicial, sem loja</span></li>
+                    <li><span class="mono">→</span><span class="body">Notificação por push, com o app fechado</span></li>
+                    <li><span class="mono">→</span><span class="body">Curtida e comentário em todo conteúdo</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <span class="pagenum">04</span>
+</section>
+
+<!-- ============================================================
+     05 — DASHBOARD UNO  [screenshot: assets/dashboard-uno.png]
+     ============================================================ -->
+<section class="slide hairlines" aria-label="Dashboard UNO">
+    <div class="frame">
+        <div class="topbar reveal">
+            <h2 class="headline">O diferencial:<br>Dashboard UNO</h2>
+            <span class="mono">EXCLUSIVO · CLIENTE LEMA</span>
+        </div>
+        <div class="phone-split reveal">
+            <img class="phone" src="assets/dashboard-uno.png" alt="Dashboard UNO no celular: patrimônio, rentabilidade, meta, gap e VaR, com gráficos de evolução">
+            <div class="shot-copy">
+                <p class="lede">A carteira do RPPS, ao vivo, no bolso — dentro do mesmo app do conteúdo,
+                   com relatório em PDF pronto para a reunião do comitê.</p>
+                <ul class="bullets">
+                    <li><span class="mono">→</span><span class="body">Patrimônio, rentabilidade, meta, gap e VaR</span></li>
+                    <li><span class="mono">→</span><span class="body">Dados do próprio sistema UNO, não uma cópia</span></li>
+                    <li><span class="mono">→</span><span class="body">Um RPPS não enxerga a carteira de outro — regra no banco</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <span class="pagenum">05</span>
+</section>
+
+<!-- ============================================================
+     06 — O CADEADO VIRA LEAD  [screenshot: assets/cadeado.png]
+     ============================================================ -->
+<section class="slide hairlines" aria-label="Captação de leads">
+    <div class="frame">
+        <div class="topbar reveal">
+            <h2 class="headline">Cada cadeado<br>é um lead</h2>
+            <span class="mono">CAPTAÇÃO DE LEADS</span>
+        </div>
+        <div class="phone-split reveal">
+            <img class="phone" src="assets/cadeado.png" alt="Conteúdo marcado como exclusivo para Cliente Lema, bloqueado para quem não é cliente">
+            <div class="shot-copy">
+                <p class="lede">Quem não é Cliente Lema <strong style="font-weight:600">vê o título</strong> — e esbarra no cadeado.</p>
+                <ol class="bullets">
+                    <li><span class="mono">01</span><span class="body">O conteúdo público atrai o RPPS não-cliente, sem esforço comercial</span></li>
+                    <li><span class="mono">02</span><span class="body">O clique num material exclusivo qualifica: interesse no assunto específico</span></li>
+                    <li><span class="mono">03</span><span class="body">O cadeado já abre com "Falar com um consultor" — falta registrar o lead</span></li>
+                </ol>
+                <p class="micro-sm" style="opacity:.8">O caminho está construído. Falta ligar a outra ponta: o funil comercial.</p>
+            </div>
+        </div>
+    </div>
+    <span class="pagenum">06</span>
+</section>
+
+<!-- ============================================================
+     07 — PROVA + CUSTO
+     ============================================================ -->
+<section class="slide hairlines" aria-label="Estado atual e custo">
+    <div class="frame">
+        <div class="topbar reveal">
+            <h2 class="headline">Não é protótipo.<br>Está em produção.</h2>
+            <span class="mono">09/07/2026 → 27/08/2026</span>
+        </div>
+        <div class="figures reveal">
+            <div class="figure"><span class="numeral">27</span><span class="micro">Telas</span></div>
+            <div class="figure"><span class="numeral">19</span><span class="micro">Tabelas</span></div>
+            <div class="figure"><span class="numeral">52</span><span class="micro">Migrações</span></div>
+            <div class="figure"><span class="numeral">45</span><span class="micro">Regras de acesso</span></div>
+        </div>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-lg);align-items:start;margin-top:var(--gap-lg)">
+            <div style="border-right:1px solid var(--ink-faint);padding-right:var(--gap-lg)">
+                <p class="micro" style="margin-bottom:16px">Como foi construído</p>
+                <p class="lede">Sete semanas, uma pessoa, 84 entregas — inteiramente em
+                   <strong style="font-weight:600">vibe code</strong> (desenvolvimento assistido por IA),
+                   sem equipe alocada e sem orçamento de projeto.</p>
+                <p class="body" style="margin-top:16px">Suíte de testes automatizada, 12 ADRs, banco 100% versionado.</p>
+            </div>
+            <div>
+                <p class="micro" style="margin-bottom:16px">Custo de manutenção</p>
+                <p class="numeral" style="font-size:96px">R$&nbsp;0<span style="font-size:34px;letter-spacing:0"> /mês</span></p>
+                <p class="lede" style="margin-top:12px">Vercel, Supabase e PostHog, todos dentro do plano gratuito.</p>
+                <p class="body" style="margin-top:16px">Como produto oficial, a licença comercial da Vercel custa US$ 20/mês —
+                   ou nada, na infraestrutura que a Lema já tem.</p>
+            </div>
+        </div>
+    </div>
+    <span class="pagenum">07</span>
+</section>
+
+<!-- ============================================================
+     08 — O PEDIDO (fechamento)
+     ============================================================ -->
+<section class="slide hairlines" aria-label="O pedido">
+    <svg class="glitch left" width="380" height="1080" viewBox="0 0 380 1080" aria-hidden="true">
+        <rect x="0" y="0"   width="220" height="170" fill="url(#scan)" opacity="0.45"/>
+        <rect x="0" y="170" width="330" height="140" fill="url(#scan)" opacity="0.8"/>
+        <rect x="0" y="310" width="180" height="180" fill="url(#scan)" opacity="0.5"/>
+        <rect x="0" y="490" width="360" height="150" fill="url(#scan)"/>
+        <rect x="0" y="640" width="210" height="130" fill="url(#scan)" opacity="0.6"/>
+        <rect x="0" y="770" width="300" height="170" fill="url(#scan)" opacity="0.85"/>
+        <rect x="0" y="940" width="150" height="140" fill="url(#scan)" opacity="0.4"/>
+    </svg>
+    <div class="frame closing-frame">
+        <p class="micro-strong reveal" style="margin-bottom:28px">A meta</p>
+        <h2 class="d-closing reveal">Tornar o Radar<br>um produto<br>da Lema.</h2>
+        <div class="rule-solid reveal" style="margin-top:48px;max-width:940px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:left">
+            <div>
+                <p class="micro" style="margin-bottom:14px">Pedido</p>
+                <p class="body">O aval para o Radar deixar de ser iniciativa individual e virar produto —
+                   marketing, comercial e tecnologia juntos.</p>
+            </div>
+            <div>
+                <p class="micro" style="margin-bottom:14px">Conteúdo</p>
+                <p class="body">O time alimentando artigos e materiais — a máquina de ingestão já está pronta.</p>
+            </div>
+            <div>
+                <p class="micro" style="margin-bottom:14px">Comercial</p>
+                <p class="body">Registrar e distribuir os leads do cadeado, em vez de um e-mail enviado à mão.</p>
+            </div>
+        </div>
+        <p class="lede reveal" style="margin-top:44px;max-width:840px;text-align:left">
+            Próximos passos já mapeados: Comunidade Lema no WhatsApp e lembrete por e-mail.
+        </p>
+    </div>
+    <img class="logo" src="assets/logo.png" alt="" width="88" height="88" style="position:absolute;right:var(--edge);top:58px;z-index:5" aria-hidden="true">
+    <span class="pagenum">08</span>
+</section>
+</main>
+</div>
+
+<span class="nav-hint">← → NAVEGAR</span>
+
+<!-- Edição inline: hover no canto superior esquerdo, ou tecla E -->
+<div class="edit-hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Modo edição (E)" aria-label="Modo edição">✏️</button>
+
+<script>
+/* ===========================================
+   CONTROLADOR DA APRESENTAÇÃO
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.current = 0;
+        this.stage = document.getElementById('deckStage');
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        // #N na URL abre direto o slide N (usado para exportar screenshots).
+        const fromHash = parseInt(location.hash.replace('#', ''), 10);
+        this.showSlide(Number.isFinite(fromHash) ? fromHash - 1 : 0);
+        window.addEventListener('hashchange', () => {
+            const n = parseInt(location.hash.replace('#', ''), 10);
+            if (Number.isFinite(n)) this.showSlide(n - 1);
+        });
+    }
+
+    /* Escala o palco de 1920×1080 inteiro com UM transform.
+       Letterboxa nas bordas; nunca reflui o conteúdo do slide. */
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute('contenteditable')) return;
+            if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) {
+                e.preventDefault(); this.next();
+            } else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) {
+                e.preventDefault(); this.prev();
+            } else if (e.key === 'Home') {
+                e.preventDefault(); this.showSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault(); this.showSlide(this.slides.length - 1);
+            }
+        });
+    }
+
+    setupTouchNav() {
+        let startX = 0;
+        document.addEventListener('touchstart', (e) => { startX = e.changedTouches[0].clientX; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - startX;
+            if (Math.abs(dx) > 50) { dx < 0 ? this.next() : this.prev(); }
+        }, { passive: true });
+    }
+
+    setupWheelNav() {
+        let lock = false;
+        document.addEventListener('wheel', (e) => {
+            if (lock || Math.abs(e.deltaY) < 20) return;
+            lock = true;
+            e.deltaY > 0 ? this.next() : this.prev();
+            setTimeout(() => { lock = false; }, 600);
+        }, { passive: true });
+    }
+
+    next() { this.showSlide(this.current + 1); }
+    prev() { this.showSlide(this.current - 1); }
+
+    showSlide(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === this.current);
+            slide.classList.toggle('visible', i === this.current);
+        });
+    }
+}
+
+/* ===========================================
+   EDIÇÃO INLINE — clicar em qualquer texto e digitar.
+   Salva no localStorage; Ctrl+S baixa o HTML atualizado.
+   =========================================== */
+class InlineEditor {
+    constructor() {
+        this.isActive = false;
+        this.selector = 'h1, h2, h3, p, span.body, li span, .micro, .micro-sm, .micro-strong, .mono, .mono-sm, .numeral, .callout, .lede, .body';
+        this.restore();
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's' && this.isActive) { e.preventDefault(); this.download(); }
+        });
+    }
+
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        document.querySelectorAll(this.selector).forEach((el) => {
+            if (this.isActive) {
+                el.setAttribute('contenteditable', 'true');
+                el.addEventListener('blur', this.save);
+            } else {
+                el.removeAttribute('contenteditable');
+            }
+        });
+    }
+
+    save = () => {
+        try {
+            localStorage.setItem('radar-pitch-resumo', document.querySelector('.deck-stage').innerHTML);
+        } catch (err) { /* modo privado / storage bloqueado — segue sem salvar */ }
+    };
+
+    restore() {
+        try {
+            const saved = localStorage.getItem('radar-pitch-resumo');
+            if (saved) document.querySelector('.deck-stage').innerHTML = saved;
+        } catch (err) { /* idem */ }
+    }
+
+    download() {
+        const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'radar-lema-pitch-resumo.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+}
+
+const deck = new SlidePresentation();
+const editor = new InlineEditor();
+
+/* Botão de edição: aparece no hover do canto, com 400ms de carência.
+   NÃO usar seletor irmão de CSS — pointer-events quebra a cadeia de hover. */
+const hotzone = document.querySelector('.edit-hotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+const showBtn = () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); };
+const hideBtn = () => {
+    hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400);
+};
+hotzone.addEventListener('mouseenter', showBtn);
+hotzone.addEventListener('mouseleave', hideBtn);
+editToggle.addEventListener('mouseenter', showBtn);
+editToggle.addEventListener('mouseleave', hideBtn);
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+        editor.toggleEditMode();
+    }
+});
+</script>
+</body>
+</html>
