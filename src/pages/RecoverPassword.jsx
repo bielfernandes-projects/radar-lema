@@ -10,6 +10,7 @@ import {
   Typography
 } from '@mui/material'
 import { supabase } from '../lib/supabase'
+import { validatePassword } from '../utils/auth'
 import PasswordToggle from '../components/PasswordToggle'
 
 export default function RecoverPassword() {
@@ -45,8 +46,9 @@ export default function RecoverPassword() {
     event.preventDefault()
     setError('')
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.')
+    const pwdError = validatePassword(password)
+    if (pwdError) {
+      setError(pwdError)
       return
     }
 
@@ -97,6 +99,7 @@ export default function RecoverPassword() {
               required
               autoComplete="new-password"
               autoFocus
+              helperText="Mínimo de 8 caracteres, com maiúscula, minúscula, número e símbolo"
               InputProps={{
                 endAdornment: (
                   <PasswordToggle

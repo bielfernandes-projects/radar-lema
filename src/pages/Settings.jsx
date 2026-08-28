@@ -34,6 +34,7 @@ import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useAuth } from '../contexts/AuthContext'
+import { validatePassword } from '../utils/auth'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 export default function Settings() {
@@ -207,8 +208,9 @@ export default function Settings() {
       setPasswordError('Preencha todos os campos.')
       return
     }
-    if (newPassword.length < 6) {
-      setPasswordError('A nova senha deve ter ao menos 6 caracteres.')
+    const pwdError = validatePassword(newPassword)
+    if (pwdError) {
+      setPasswordError(pwdError)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -353,7 +355,7 @@ export default function Settings() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
-              helperText="Mínimo de 6 caracteres."
+              helperText="Mínimo de 8 caracteres, com maiúscula, minúscula, número e símbolo."
               InputProps={{
                 endAdornment: (
                   <PasswordToggle

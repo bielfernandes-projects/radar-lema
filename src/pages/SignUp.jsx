@@ -15,6 +15,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import createAppTheme from '../theme/theme'
 import { useAuth } from '../contexts/AuthContext'
 import { useColorMode } from '../contexts/ColorModeContext'
+import { validatePassword } from '../utils/auth'
 import PasswordToggle from '../components/PasswordToggle'
 
 export default function SignUp() {
@@ -47,8 +48,9 @@ export default function SignUp() {
     event.preventDefault()
     setError('')
 
-    if (password.length < 6) {
-      setError('A senha deve ter no mínimo 6 caracteres.')
+    const pwdError = validatePassword(password)
+    if (pwdError) {
+      setError(pwdError)
       return
     }
 
@@ -121,7 +123,7 @@ export default function SignUp() {
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-              Crie sua conta para acompanhar os eventos para RPPS
+              Crie sua conta para acessar conteúdo exclusivo para RPPS
             </Typography>
           </Box>
 
@@ -140,7 +142,6 @@ export default function SignUp() {
               onChange={(event) => setName(event.target.value)}
               required
               autoComplete="name"
-              autoFocus
             />
 
             <TextField
@@ -163,7 +164,7 @@ export default function SignUp() {
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="new-password"
-              helperText="Mínimo de 6 caracteres"
+              helperText="Mínimo de 8 caracteres, com maiúscula, minúscula, número e símbolo"
               InputProps={{
                 endAdornment: (
                   <PasswordToggle
@@ -228,7 +229,7 @@ function translateError(message) {
     return 'Este e-mail já está cadastrado. Tente fazer login.'
   }
   if (lower.includes('password')) {
-    return 'A senha deve ter no mínimo 6 caracteres.'
+    return 'A senha não atende aos requisitos de segurança.'
   }
   if (lower.includes('too many requests')) {
     return 'Muitas tentativas. Tente novamente mais tarde.'

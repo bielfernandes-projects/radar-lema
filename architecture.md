@@ -304,6 +304,17 @@ Todas as tabelas têm RLS habilitado:
   `utils/auth.js`: `isStaffTier(profile)` (staff|super_admin) e
   `isSuperAdmin(profile)` (role `ROLE_SUPER_ADMIN` ou user_type
   `super_admin`) centralizam as checagens.
+- **Política de senha**: `utils/auth.js` `validatePassword(pwd)` exige no
+  mínimo 8 caracteres com letra maiúscula, minúscula, número e símbolo
+  (retorna string de erro ou `''`). Aplicada no cliente em `SignUp`,
+  `RecoverPassword` e na troca de senha da `Config`. O mesmo requisito é
+  imposto pelo Supabase via `supabase/config.toml` `[auth]`
+  (`minimum_password_length = 8`, `password_requirements =
+  "lower_upper_letters_digits_symbols"`) — precisa ser aplicado no projeto
+  cloud pelo painel (Authentication → Password) ou `supabase config push`.
+  Rejeições do GoTrue são traduzidas no `translateError` do `SignUp`.
+- As telas `Login`/`SignUp` não usam mais `autoFocus` no primeiro campo,
+  para não abrir o teclado automaticamente no celular ao carregar a tela.
 
 ## Serviços
 
@@ -771,6 +782,18 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
 > localmente: edge functions não passam por typecheck local.
 
 ## Histórico de mudanças
+
+- **2026-08-28** — Login/cadastro fora do enquadramento de "eventos" e senha forte:
+  - **Copy**: subtítulos do `Login` e do `SignUp` deixam de citar "evento"
+    ("Inteligência e conteúdo exclusivo para RPPS" / "Crie sua conta para
+    acessar conteúdo exclusivo para RPPS"); removida a linha "Ambientes de
+    teste interno utilizam o cadastro abaixo." do `Login`.
+  - **Teclado no mobile**: removido `autoFocus` do primeiro campo em
+    `Login` (e-mail) e `SignUp` (nome) para não abrir o teclado ao carregar.
+  - **Senha forte**: novo `validatePassword` em `utils/auth.js` (mín. 8
+    caracteres com maiúscula, minúscula, número e símbolo), usado em
+    `SignUp`, `RecoverPassword` e troca de senha da `Config`. Mesma regra
+    no Supabase via `supabase/config.toml` `[auth]`.
 
 - **2026-08-14** — Refinamentos de UI/UX e de gestão do hub (pós-agregador RSS):
   - **Perfil na Configurações**: nova primeira seção "Perfil" em

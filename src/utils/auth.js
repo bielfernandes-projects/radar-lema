@@ -10,6 +10,18 @@ export async function getUserId() {
   return data.session?.user?.id || null
 }
 
+// Regra de senha forte usada no cadastro e na redefinição de senha. Retorna
+// string de erro ou '' quando válida (mesmo estilo de src/utils/eventForm.js).
+// O Supabase (config.toml [auth]) aplica a mesma regra no servidor.
+export function validatePassword(pwd) {
+  if (pwd.length < 8) return 'A senha deve ter no mínimo 8 caracteres.'
+  if (!/[a-z]/.test(pwd)) return 'A senha deve conter ao menos uma letra minúscula.'
+  if (!/[A-Z]/.test(pwd)) return 'A senha deve conter ao menos uma letra maiúscula.'
+  if (!/[0-9]/.test(pwd)) return 'A senha deve conter ao menos um número.'
+  if (!/[^A-Za-z0-9]/.test(pwd)) return 'A senha deve conter ao menos um símbolo.'
+  return ''
+}
+
 export function isSuperAdmin(profile) {
   return (
     profile?.user_type === 'super_admin' ||

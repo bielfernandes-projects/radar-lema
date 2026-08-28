@@ -120,7 +120,7 @@ export default function Login() {
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-              Descubra o seu próximo evento para RPPS
+              Inteligência e conteúdo exclusivo para RPPS
             </Typography>
           </Box>
 
@@ -140,7 +140,6 @@ export default function Login() {
               onChange={(event) => setEmail(event.target.value)}
               required
               autoComplete="email"
-              autoFocus
             />
 
             <TextField
@@ -167,15 +166,6 @@ export default function Login() {
                 Esqueci minha senha
               </Button>
             </Box>
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              align="center"
-              sx={{ display: 'block', mt: 1 }}
-            >
-              Ambientes de teste interno utilizam o cadastro abaixo.
-            </Typography>
 
             <Button
               type="submit"
