@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import { yearsInRange } from '../utils/uno'
+import { yearsInRange, parseFimCarteira } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
@@ -50,24 +50,21 @@ function extractUnoErrorMessage(text) {
   }
 }
 
-// O demonstrativo mensal so existe para meses fechados: enquanto o mes
-// corrente ainda nao fechou, `demonstrativoFundosCliente` devolve 400 (a UNO
-// repassa o erro do Comdinheiro ao consultar data futura). Faz fallback para
-// o ultimo mes fechado quando o mes corrente responde 400.
-async function fetchDemonstrativo(month, year, clientId) {
+// O demonstrativo mensal so existe para meses fechados: enquanto um mes nao
+// fechou (o mes calendario corrente, ou qualquer mes sem atualizacao de cota
+// pro cliente — ex. um cliente que so atualiza esporadicamente), a UNO
+// devolve 400. Anda pra tras ate achar o ultimo mes fechado (limite de 12
+// tentativas pra nao entrar em loop se o cliente nao tiver dado nenhum).
+async function fetchDemonstrativo(month, year, clientId, attemptsLeft = 12) {
   const params = { consulting_id: '1', mes: String(month), ano: String(year), ...clientParam(clientId) }
   try {
-    return await callUnoProxy('demonstrativoFundosCliente', params)
+    const data = await callUnoProxy('demonstrativoFundosCliente', params)
+    return { data, month, year }
   } catch (err) {
-    if (err?.status === 400) {
+    if (err?.status === 400 && attemptsLeft > 0) {
       const previous = new Date(year, month - 1, 1)
       previous.setMonth(previous.getMonth() - 1)
-      return callUnoProxy('demonstrativoFundosCliente', {
-        consulting_id: '1',
-        mes: String(previous.getMonth() + 1),
-        ano: String(previous.getFullYear()),
-        ...clientParam(clientId)
-      })
+      return fetchDemonstrativo(previous.getMonth() + 1, previous.getFullYear(), clientId, attemptsLeft - 1)
     }
     throw err
   }
@@ -102,7 +99,11 @@ function formatClientName(row) {
 export async function fetchUnoClients() {
   const rows = await fetchClientesList()
   return (Array.isArray(rows) ? rows : [])
-    .map((row) => ({ uno_client_id: String(row.id), name: formatClientName(row) }))
+    .map((row) => ({
+      uno_client_id: String(row.id),
+      name: formatClientName(row),
+      fimCarteira: parseFimCarteira(row.fim_carteira)
+    }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -113,6 +114,13 @@ export async function fetchOwnUnoClientName() {
   return record ? formatClientName(record) : ''
 }
 
+/** Ultimo mes com carteira calculada pro cliente vinculado ao proprio usuario. */
+export async function fetchOwnUnoClientFimCarteira() {
+  const row = await fetchOwnUnoClient()
+  const record = Array.isArray(row) ? row[0] : row
+  return parseFimCarteira(record?.fim_carteira)
+}
+
 export async function fetchUnoDashboard(period) {
   const years = yearsInRange(period.startDate, period.endDate)
 
@@ -121,5 +129,8 @@ export async function fetchUnoDashboard(period) {
     ...years.map((ano) => fetchEvolucaoAnual(ano, period.clientId))
   ])
 
-  return { demonstrativo, evolucoes }
+  // month/year devolvidos podem ser anteriores aos pedidos (fallback do
+  // fetchDemonstrativo) — o chamador usa isso pra corrigir o mes selecionado
+  // na tela quando o mes pedido nao tinha dado fechado.
+  return { demonstrativo: demonstrativo.data, demonstrativoMonth: demonstrativo.month, demonstrativoYear: demonstrativo.year, evolucoes }
 }

@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { callUnoProxy, fetchUnoDashboard, fetchEvolucaoAnual, fetchClientesList, fetchOwnUnoClient } from '../src/services/unoProxy'
+import {
+  callUnoProxy,
+  fetchUnoDashboard,
+  fetchEvolucaoAnual,
+  fetchClientesList,
+  fetchOwnUnoClient,
+  fetchUnoClients,
+  fetchOwnUnoClientFimCarteira
+} from '../src/services/unoProxy'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: {
@@ -98,7 +106,7 @@ describe('services/unoProxy', () => {
     }
   })
 
-  it('fetchUnoDashboard: demonstrativo do mes corrente com 400 faz fallback p/ mes anterior', async () => {
+  it('fetchUnoDashboard: demonstrativo do mes corrente com 400 faz fallback p/ mes anterior e informa o mes usado', async () => {
     const seq = [
       jsonResponse({ message: 'Request failed with status code 400' }, 400),
       jsonResponse([]),
@@ -114,6 +122,28 @@ describe('services/unoProxy', () => {
     expect(calls[0]).toContain('mes=8')
     expect(calls.filter((u) => u.includes('mes=7'))).toHaveLength(1)
     expect(result.demonstrativo).toEqual([{ fund_id: 1 }])
+    expect(result.demonstrativoMonth).toBe(7)
+    expect(result.demonstrativoYear).toBe(2026)
+  })
+
+  it('fetchUnoDashboard: cliente sem dado ha varios meses anda pra tras ate achar um mes fechado', async () => {
+    // fetchDemonstrativo roda em paralelo com a chamada a evolucaoAnualCliente
+    // (Promise.all), entao a ordem de chegada dos fetches nao e deterministica —
+    // responde com base no endpoint/mes pedidos em vez de uma fila sequencial.
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const u = new URL(String(url))
+      if (u.searchParams.get('endpoint') === 'evolucaoAnualCliente') return jsonResponse([])
+      const mes = u.searchParams.get('mes')
+      if (mes === '5') return jsonResponse([{ fund_id: 9 }])
+      return jsonResponse({ message: '400' }, 400)
+    })
+
+    const period = { month: 8, year: 2026, startDate: '14/04/2026', endDate: '14/08/2026' }
+    const result = await fetchUnoDashboard(period)
+
+    expect(result.demonstrativo).toEqual([{ fund_id: 9 }])
+    expect(result.demonstrativoMonth).toBe(5)
+    expect(result.demonstrativoYear).toBe(2026)
   })
 
   it('fetchUnoDashboard: demonstrativo do mes corrente OK nao faz fallback', async () => {
@@ -127,6 +157,8 @@ describe('services/unoProxy', () => {
     expect(calls).toHaveLength(2)
     expect(calls.filter((u) => u.includes('mes=7'))).toHaveLength(0)
     expect(result.demonstrativo).toEqual([{ fund_id: 1 }])
+    expect(result.demonstrativoMonth).toBe(8)
+    expect(result.demonstrativoYear).toBe(2026)
   })
 
   it('fetchUnoDashboard: repassa clientId como client_id em todas as chamadas', async () => {
@@ -154,5 +186,23 @@ describe('services/unoProxy', () => {
     const result = await fetchUnoDashboard(period)
 
     expect(result.evolucoes).toEqual([evolucaoBody])
+  })
+
+  it('fetchUnoClients: expoe fimCarteira parseado de fim_carteira', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse([
+        { id: 192, municipio: 'DEMONSTRAÇÃO - LEMA', fim_carteira: '7/2026' },
+        { id: 5, nome_rpps: 'RPPS SEM CARTEIRA', fim_carteira: null }
+      ])
+    )
+    const clients = await fetchUnoClients()
+    expect(clients.find((c) => c.uno_client_id === '192').fimCarteira).toEqual({ month: 7, year: 2026 })
+    expect(clients.find((c) => c.uno_client_id === '5').fimCarteira).toBeNull()
+  })
+
+  it('fetchOwnUnoClientFimCarteira: parseia fim_carteira do proprio cliente', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse([{ id: 192, fim_carteira: '7/2026' }]))
+    const fimCarteira = await fetchOwnUnoClientFimCarteira()
+    expect(fimCarteira).toEqual({ month: 7, year: 2026 })
   })
 })

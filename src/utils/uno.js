@@ -103,6 +103,20 @@ export function parseDiaUltimaCota(dia) {
 }
 
 /**
+ * parseFimCarteira: extrai { month, year } de "M/AAAA" (sem zero a esquerda) —
+ * campo que clientesUNO/clienteUNO devolvem com o ultimo mes em que o cliente
+ * tem carteira calculada. E o mesmo limite que o seletor de mes do
+ * unoapp.com.br aplica pra esse cliente (clientes sem atualizacao recente de
+ * cota ficam parados nesse mes, mesmo com o mes calendario ja fechado).
+ */
+export function parseFimCarteira(value) {
+  const str = String(value ?? '').trim()
+  const m = str.match(/^(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  return { month: Number(m[1]), year: Number(m[2]) }
+}
+
+/**
  * yearsInRange: lista os anos (inteiros) cobertos por um intervalo
  * "DD/MM/YYYY" (inclusive nas duas pontas). Usado para saber quantas
  * chamadas a evolucaoAnualCliente (uma por ano) sao necessarias.

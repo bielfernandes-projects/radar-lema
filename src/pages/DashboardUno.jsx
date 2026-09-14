@@ -30,7 +30,12 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import { fetchUnoDashboard, fetchUnoClients, fetchOwnUnoClientName } from '../services/unoProxy'
+import {
+  fetchUnoDashboard,
+  fetchUnoClients,
+  fetchOwnUnoClientName,
+  fetchOwnUnoClientFimCarteira
+} from '../services/unoProxy'
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdmin } from '../utils/auth'
 import { rangeForPeriod } from '../utils/uno'
@@ -221,6 +226,7 @@ export default function DashboardUno() {
   const [reload, setReload] = useState(0)
   const [clients, setClients] = useState([])
   const [ownClientName, setOwnClientName] = useState('')
+  const [ownClientFimCarteira, setOwnClientFimCarteira] = useState(null)
   const [selectedClientId, setSelectedClientId] = useState(() => {
     try {
       return localStorage.getItem(CLIENT_STORAGE_KEY) || ''
@@ -236,6 +242,7 @@ export default function DashboardUno() {
       fetchUnoClients().then(setClients).catch(() => {})
     } else if (profile?.uno_client_id) {
       fetchOwnUnoClientName().then(setOwnClientName).catch(() => {})
+      fetchOwnUnoClientFimCarteira().then(setOwnClientFimCarteira).catch(() => {})
       setSelectedClientId(profile.uno_client_id)
     }
   }, [isSuperAdminUser, profile?.uno_client_id])
@@ -245,6 +252,22 @@ export default function DashboardUno() {
       setSelectedClientId(clients[0].uno_client_id)
     }
   }, [isSuperAdminUser, clients, selectedClientId])
+
+  // O mes calendario "fechado" nem sempre tem carteira calculada: um cliente
+  // sem atualizacao de cota recente (ex. "Demonstracao Lema", parado em
+  // julho) fica com Rentabilidade/Meta vazias no mes atual. `fim_carteira`
+  // (clientesUNO/clienteUNO) e o mesmo limite que o seletor de mes do
+  // unoapp.com.br aplica pra esse cliente — usa como mes padrao ao trocar
+  // de cliente.
+  useEffect(() => {
+    if (!selectedClientId) return
+    const fimCarteira = isSuperAdminUser
+      ? clients.find((c) => c.uno_client_id === selectedClientId)?.fimCarteira
+      : ownClientFimCarteira
+    if (!fimCarteira) return
+    setSelectedMonth(fimCarteira.month)
+    setSelectedYear(fimCarteira.year)
+  }, [selectedClientId, isSuperAdminUser, clients, ownClientFimCarteira])
 
   useEffect(() => {
     if (!isSuperAdminUser || !selectedClientId) return
@@ -272,11 +295,21 @@ export default function DashboardUno() {
           year: selectedYear,
           clientId: selectedClientId
         })
+        // O mes pedido pode nao ter fechado (mes calendario corrente, ou um
+        // cliente que nao atualiza cota todo mes): fetchUnoDashboard ja caiu
+        // pro ultimo mes fechado do lado da API. Reflete isso no seletor em
+        // vez de mostrar "Agosto" selecionado com dado de Julho.
+        if (result.demonstrativoMonth !== selectedMonth || result.demonstrativoYear !== selectedYear) {
+          setSelectedMonth(result.demonstrativoMonth)
+          setSelectedYear(result.demonstrativoYear)
+          return
+        }
         setData(result)
       } catch (err) {
         setError(err.message || 'Erro ao carregar o dashboard do UNO.')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps

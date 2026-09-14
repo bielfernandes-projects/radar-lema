@@ -33,15 +33,15 @@ describe('unoProxy: clientes do UNO', () => {
       ])
     )
     expect(await fetchUnoClients()).toEqual([
-      { uno_client_id: '580', name: 'Cruzeta - RN' },
-      { uno_client_id: '192', name: 'Demonstração - Lema' }
+      { uno_client_id: '580', name: 'Cruzeta - RN', fimCarteira: null },
+      { uno_client_id: '192', name: 'Demonstração - Lema', fimCarteira: null }
     ])
     expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain('endpoint=clientesUNO')
   })
 
   it('fetchUnoClients cai para nome_rpps quando falta municipio', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse([{ id: 5, nome_rpps: 'INSTITUTO X' }]))
-    expect(await fetchUnoClients()).toEqual([{ uno_client_id: '5', name: 'INSTITUTO X' }])
+    expect(await fetchUnoClients()).toEqual([{ uno_client_id: '5', name: 'INSTITUTO X', fimCarteira: null }])
   })
 
   it('fetchOwnUnoClientName resolve o nome do proprio vinculo', async () => {
