@@ -30,24 +30,15 @@ import {
   Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
-import { Trash2, Pencil, KeyRound, UserPlus } from 'lucide-react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts'
+import { Trash2, Pencil, KeyRound, UserPlus, Users, Building2 } from 'lucide-react'
+import { useTheme } from '@mui/material/styles'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { adminApi, USER_TYPES, ROLE_BY_USER_TYPE } from '../services/adminApi'
 import { fetchUnoClients } from '../services/unoProxy'
 import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
-import UsageDashboard from '../components/UsageDashboard'
+import UsageDashboard, { Kpi } from '../components/UsageDashboard'
 
 const emptyStats = {
   total_users: 0,
@@ -63,15 +54,10 @@ const USER_TYPE_LABELS = {
   super_admin: 'Super Admin'
 }
 
-const toChartData = (rows) =>
-  (rows || []).map(({ month, count }) => ({
-    month: month ? month.split('-').reverse().join('/') : month,
-    count
-  }))
-
 export default function AdminDashboard() {
   const { profile } = useAuth()
-  const [tab, setTab] = useState('overview')
+  const theme = useTheme()
+  const [tab, setTab] = useState('observability')
   const [stats, setStats] = useState(emptyStats)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -241,7 +227,7 @@ export default function AdminDashboard() {
         <Typography variant="h4" component="h1">
           Painel Admin
         </Typography>
-        {tab === 'overview' && (
+        {tab === 'users' && (
           <Button
             variant="contained"
             startIcon={<UserPlus size={20} />}
@@ -253,11 +239,11 @@ export default function AdminDashboard() {
       </Stack>
 
       <Tabs value={tab} onChange={(e, value) => setTab(value)} sx={{ mb: 2 }}>
-        <Tab label="Visão geral" value="overview" />
         <Tab label="Observabilidade" value="observability" />
+        <Tab label="Usuários" value="users" />
       </Tabs>
 
-      {tab === 'overview' && error && (
+      {tab === 'users' && error && (
         <Alert
           severity="error"
           sx={{ mb: 2 }}
@@ -272,77 +258,25 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
-      {tab === 'overview' && (
+      {tab === 'users' && (
       <>
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: 'Usuários', value: stats.total_users },
-          { label: 'Eventos', value: stats.total_events },
-          { label: 'Favoritos', value: stats.total_favorites }
-        ].map(({ label, value }) => (
-          <Grid size={{ xs: 12, sm: 4 }} key={label}>
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h3" color="primary">
-                  {value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total de {label.toLowerCase()}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Crescimento de usuários
-              </Typography>
-              <Box sx={{ position: 'relative', width: '100%', height: 260, minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={toChartData(stats.users_by_month)}
-                    margin={{ top: 5, right: 65, bottom: 5, left: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" name="Usuários" fill="#3B82F6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
+        <Grid size={{ xs: 6 }}>
+          <Kpi
+            icon={<Users size={18} />}
+            label="Total de usuários"
+            value={users.length}
+            accent={theme.palette.primary.main}
+          />
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Favoritos por mês
-              </Typography>
-              <Box sx={{ position: 'relative', width: '100%', height: 260, minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={toChartData(stats.favorites_by_month)}
-                    margin={{ top: 5, right: 65, bottom: 5, left: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" name="Favoritos" fill="#e0436f" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
+        <Grid size={{ xs: 6 }}>
+          <Kpi
+            icon={<Building2 size={18} />}
+            label="Usuários Lema"
+            value={users.filter((u) => u.is_uno_client === true).length}
+            hint="Clientes Lema (UNO)"
+            accent={theme.palette.secondary.main}
+          />
         </Grid>
       </Grid>
 
@@ -424,7 +358,7 @@ export default function AdminDashboard() {
       </>
       )}
 
-      {tab === 'observability' && <UsageDashboard />}
+      {tab === 'observability' && <UsageDashboard stats={stats} />}
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Criar usuário</DialogTitle>

@@ -12,7 +12,7 @@ import {
   Typography
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
-import { Lock, MousePointerClick, UserPlus, Users } from 'lucide-react'
+import { CalendarDays, Heart, Lock, MousePointerClick, UserPlus, Users } from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -50,9 +50,15 @@ const dayLabel = (iso) => {
   return `${day}/${month}`
 }
 
+const toMonthSeries = (rows) =>
+  (rows || []).map(({ month, count }) => ({
+    month: month ? month.split('-').reverse().join('/') : month,
+    count
+  }))
+
 const toSeries = (rows) => (rows || []).map((r) => ({ day: dayLabel(r.day), count: r.count }))
 
-function Kpi({ icon, label, value, hint, accent }) {
+export function Kpi({ icon, label, value, hint, accent }) {
   const theme = useTheme()
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
@@ -107,7 +113,7 @@ function ChartCard({ title, subtitle, children }) {
   )
 }
 
-export default function UsageDashboard() {
+export default function UsageDashboard({ stats }) {
   const theme = useTheme()
   const [days, setDays] = useState(30)
   const [data, setData] = useState(null)
@@ -192,7 +198,7 @@ export default function UsageDashboard() {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
             icon={<Users size={18} />}
             label="Usuários ativos"
@@ -201,7 +207,7 @@ export default function UsageDashboard() {
             accent={primary}
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
             icon={<UserPlus size={18} />}
             label="Contas criadas"
@@ -210,7 +216,7 @@ export default function UsageDashboard() {
             accent={theme.palette.success.main}
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
             icon={<Lock size={18} />}
             label="Cadeado aberto"
@@ -219,12 +225,30 @@ export default function UsageDashboard() {
             accent={theme.palette.warning.main}
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
             icon={<MousePointerClick size={18} />}
             label="Leads ao comercial"
             value={data.lock_clicked}
             hint={`${conversion}% de quem abriu o cadeado`}
+            accent={theme.palette.favorite?.main || primary}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 4 }}>
+          <Kpi
+            icon={<CalendarDays size={18} />}
+            label="Eventos"
+            value={stats?.total_events ?? 0}
+            hint="cadastrados na plataforma"
+            accent={theme.palette.info.main}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 4 }}>
+          <Kpi
+            icon={<Heart size={18} />}
+            label="Favoritos"
+            value={stats?.total_favorites ?? 0}
+            hint="eventos favoritados"
             accent={theme.palette.favorite?.main || primary}
           />
         </Grid>
@@ -290,6 +314,32 @@ export default function UsageDashboard() {
                 <XAxis dataKey="day" {...axisProps} minTickGap={24} />
                 <YAxis allowDecimals={false} {...axisProps} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: alpha(primary, 0.08) }} formatter={(v) => [v, 'Leads']} />
+                <Bar dataKey="count" fill={theme.palette.favorite?.main || primary} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+          <ChartCard title="Crescimento de usuários" subtitle="Novas contas por mês (histórico completo)">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={toMonthSeries(stats?.users_by_month)} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
+                <XAxis dataKey="month" {...axisProps} />
+                <YAxis allowDecimals={false} {...axisProps} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: alpha(primary, 0.08) }} formatter={(v) => [v, 'Usuários']} />
+                <Bar dataKey="count" fill={primary} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+          <ChartCard title="Favoritos por mês" subtitle="Eventos favoritados">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={toMonthSeries(stats?.favorites_by_month)} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
+                <XAxis dataKey="month" {...axisProps} />
+                <YAxis allowDecimals={false} {...axisProps} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: alpha(primary, 0.08) }} formatter={(v) => [v, 'Favoritos']} />
                 <Bar dataKey="count" fill={theme.palette.favorite?.main || primary} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
