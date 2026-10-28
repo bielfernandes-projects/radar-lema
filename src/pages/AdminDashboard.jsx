@@ -30,7 +30,7 @@ import {
   Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
-import { Trash2, Pencil, KeyRound, UserPlus, ExternalLink } from 'lucide-react'
+import { Trash2, Pencil, KeyRound, UserPlus } from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -47,6 +47,7 @@ import { adminApi, USER_TYPES, ROLE_BY_USER_TYPE } from '../services/adminApi'
 import { fetchUnoClients } from '../services/unoProxy'
 import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
+import UsageDashboard from '../components/UsageDashboard'
 
 const emptyStats = {
   total_users: 0,
@@ -67,76 +68,6 @@ const toChartData = (rows) =>
     month: month ? month.split('-').reverse().join('/') : month,
     count
   }))
-
-const POSTHOG_SHARED_DASHBOARD_URL = 'https://eu.posthog.com/shared/V6mKdV-_bWk-ZFsMHk12EtJkyjZ6pQ'
-const POSTHOG_EMBED_URL = 'https://eu.posthog.com/embedded/V6mKdV-_bWk-ZFsMHk12EtJkyjZ6pQ'
-
-function ObservabilityPanel() {
-  const trackingAtivo = Boolean(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN)
-  const embedUrl = POSTHOG_EMBED_URL
-
-  return (
-    <Card variant="outlined">
-      <CardContent>
-        <Stack spacing={2}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="h6">Observabilidade</Typography>
-            <Chip
-              label={trackingAtivo ? 'Rastreamento ativo' : 'Rastreamento inativo'}
-              color={trackingAtivo ? 'success' : 'default'}
-              size="small"
-            />
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            O RPPapp envia eventos de uso (cliques, áreas de mais interação,
-            tempo de permanência, navegação entre páginas) para o PostHog via
-            integração nativa da Vercel. O dashboard abaixo é o mesmo do PostHog,
-            embutido aqui.
-          </Typography>
-          {embedUrl ? (
-            <Box>
-              <Box
-                component="iframe"
-                src={embedUrl}
-                title="Dashboard PostHog"
-                width="100%"
-                height={600}
-                frameBorder="0"
-                allowFullScreen
-                sandbox="allow-scripts allow-same-origin allow-popups"
-                sx={{ border: 'none', borderRadius: 1 }}
-              />
-              <Button
-                size="small"
-                endIcon={<ExternalLink size={16} />}
-                component="a"
-                href={POSTHOG_SHARED_DASHBOARD_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ mt: 1 }}
-              >
-                Abrir no PostHog
-              </Button>
-            </Box>
-          ) : (
-            <Box>
-              <Button
-                variant="contained"
-                endIcon={<ExternalLink size={18} />}
-                component="a"
-                href={POSTHOG_SHARED_DASHBOARD_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Abrir métricas no PostHog
-              </Button>
-            </Box>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
-  )
-}
 
 export default function AdminDashboard() {
   const { profile } = useAuth()
@@ -493,7 +424,7 @@ export default function AdminDashboard() {
       </>
       )}
 
-      {tab === 'observability' && <ObservabilityPanel />}
+      {tab === 'observability' && <UsageDashboard />}
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Criar usuário</DialogTitle>

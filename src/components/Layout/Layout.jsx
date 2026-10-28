@@ -3,6 +3,7 @@ import { Box } from '@mui/material'
 import { useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import { logEvent, sectionOf } from '../../lib/analytics'
 
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -20,6 +21,18 @@ export default function Layout({ children }) {
       setMobileOpen(false)
     }
   }, [location.pathname, isDesktop])
+
+  useEffect(() => {
+    logEvent('screen_view', sectionOf(location.pathname))
+  }, [location.pathname])
+
+  // Presenca ao vivo: sinal a cada 2 min enquanto a aba esta visivel.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') logEvent('ping')
+    }, 120000)
+    return () => clearInterval(id)
+  }, [])
 
   const drawerWidth = 280
 

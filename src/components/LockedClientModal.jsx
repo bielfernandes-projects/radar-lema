@@ -12,6 +12,7 @@ import {
 import { Lock, Mail } from 'lucide-react'
 import { useEffect } from 'react'
 import { track } from '../lib/posthog'
+import { logEvent } from '../lib/analytics'
 
 const CONTACT_EMAIL = 'comercial@lemaef.com.br'
 
@@ -24,7 +25,10 @@ const mailtoHref = () =>
 
 export default function LockedClientModal({ open, onClose }) {
   useEffect(() => {
-    if (open) track('cadeado_aberto')
+    if (open) {
+      track('cadeado_aberto')
+      logEvent('lock_opened')
+    }
   }, [open])
 
   return (
@@ -63,7 +67,10 @@ export default function LockedClientModal({ open, onClose }) {
         <Button
           component="a"
           href={mailtoHref()}
-          onClick={() => track('cadeado_lead_clicado')}
+          onClick={() => {
+            track('cadeado_lead_clicado')
+            logEvent('lock_clicked')
+          }}
           variant="contained"
           startIcon={<Mail size={18} />}
         >
