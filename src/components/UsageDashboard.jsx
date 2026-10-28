@@ -203,7 +203,7 @@ export default function UsageDashboard({ stats }) {
             icon={<Users size={18} />}
             label="Usuários ativos"
             value={data.active_users}
-            hint={`${data.screen_views} telas vistas`}
+            hint={`${data.screen_views} ${data.screen_views === 1 ? 'tela vista' : 'telas vistas'}`}
             accent={primary}
           />
         </Grid>
