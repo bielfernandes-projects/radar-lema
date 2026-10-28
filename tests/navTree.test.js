@@ -39,9 +39,9 @@ describe('buildNavTree', () => {
     expect(itemState(buildNavTree({ user_type: 'super_admin' }), 'dashboardUno')).toBe('normal')
   })
 
-  it('Comunidade Lema é sempre "em breve"; Eventos é um grupo', () => {
+  it('Comunidade Lema está oculta por enquanto; Eventos é um grupo', () => {
     const tree = buildNavTree({ user_type: 'client' })
-    expect(itemState(tree, 'whatsappCommunity')).toBe('comingSoon')
+    expect(itemState(tree, 'whatsappCommunity')).toBeUndefined()
     expect(itemState(tree, 'events')).toBe('group')
   })
 
@@ -54,7 +54,7 @@ describe('buildNavTree', () => {
 
   it('itens de menu por seção (regressão do espaço de chaves)', () => {
     expect(keysByGroup(buildNavTree({ user_type: 'super_admin' }))).toEqual({
-      main: ['home', 'news', 'articles', 'materials', 'events', 'unoUpdates', 'dashboardUno', 'settings', 'whatsappCommunity'],
+      main: ['home', 'news', 'articles', 'materials', 'events', 'unoUpdates', 'dashboardUno', 'settings'],
       staff: ['hub', 'eventsMgmt', 'moderation'],
       admin: ['admin']
     })

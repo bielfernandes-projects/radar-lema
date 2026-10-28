@@ -40,13 +40,9 @@ const SECTIONS = [
         icon: 'LineChart',
         unoClientOnly: true
       },
-      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings' },
-      {
-        key: 'whatsappCommunity',
-        label: 'Comunidade Lema',
-        icon: 'MessageCircle',
-        comingSoon: true
-      }
+      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings' }
+      // Botão da comunidade oculto por enquanto; restaurar quando voltar:
+      // { key: 'whatsappCommunity', label: 'Comunidade Lema', icon: 'MessageCircle', comingSoon: true }
     ]
   },
   {

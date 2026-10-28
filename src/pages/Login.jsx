@@ -119,7 +119,10 @@ export default function Login() {
               alt="RPPapp"
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography variant="h5" component="h1" sx={{ mt: 1.5, fontWeight: 700 }}>
+              RPPApp
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
               Inteligência e conteúdo exclusivo para RPPS
             </Typography>
           </Box>
