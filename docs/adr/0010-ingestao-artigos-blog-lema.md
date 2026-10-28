@@ -180,3 +180,9 @@ ignorados) e o **Panorama RPPS** (sem RSS: sitemap.xml + meta tags).
 (`revista:/slug/`) para não colidir com os IDs do WordPress da Lema, e o
 tombstone vale para qualquer origem importada. Capas são usadas direto da
 fonte (sem espelho no bucket). A fonte aparece no chip do card (`author`).
+
+## Atualização (28/10/2026): Revista RPPS do Brasil removida
+
+A Revista RPPS do Brasil saiu da ingestão de artigos; `articles-ingest` agora
+importa só o **Panorama RPPS**. Os artigos `origin = 'revista'` foram
+apagados. A constraint de `origin` ainda aceita `revista` (inofensivo).

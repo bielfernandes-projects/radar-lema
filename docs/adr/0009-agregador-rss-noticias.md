@@ -101,3 +101,19 @@ Brasil (categoria Notícias), ABIPEM e Banco Central. O feed do Gov.br
 (404) saiu. Além do dedupe por URL, a mesma matéria republicada por outra
 fonte é descartada por **título normalizado** (rodada atual + últimos 30
 dias do banco). Notícias antigas dos Alerts foram mantidas.
+
+## Atualização (28/10/2026): lista final de fontes e filtro por palavras-chave
+
+- **Revista RPPS do Brasil removida** das notícias (e dos artigos; ver ADR 0010).
+- **Ministério da Previdência Social** entrou lendo a listagem HTML de
+  `gov.br/previdencia/pt-br/noticias` (não há RSS; `govbrList: true`). Depende
+  do layout da página: se mudar, a fonte volta com 0 itens no relatório da
+  função.
+- **Filtro `keywords`** em Banco Central e Ministério: só ficam itens cujo
+  título/descrição citam `RPPS`, `DAIR`, `DPIN`, `Cadprev`, `Pró-Gestão`,
+  `COPOM`, `ABIPEM`, `Regime(s) Próprio(s) de Previdência` (sem acento ou
+  caixa, palavra inteira). Itens sem descrição são avaliados só pelo título.
+- **Histórico dos Alerts apagado**: o app mostra apenas as fontes atuais
+  (Investimentos RPPS, Investidor Institucional, ABIPEM, Banco Central e
+  Ministério da Previdência). Isso substitui a decisão anterior de manter as
+  notícias antigas.
