@@ -26,6 +26,8 @@ interface FeedSource {
   limit?: number;
   // Itens de qualquer uma destas categorias (case-insensitive) sao descartados.
   excludeCategories?: string[];
+  // Fonte sem RSS: le a listagem HTML do portal gov.br (urls[0]).
+  govbrList?: boolean;
 }
 
 const FEEDS: FeedSource[] = [
@@ -54,6 +56,13 @@ const FEEDS: FeedSource[] = [
     ]
   }
 ];
+
+// Gov.br: Ministerio da Previdencia Social (sem RSS; so a listagem HTML).
+FEEDS.push({
+  name: "Ministério da Previdência Social",
+  urls: ["https://www.gov.br/previdencia/pt-br/noticias"],
+  govbrList: true
+});
 
 const TOPIC_KEYWORDS: Record<string, string[]> = {
   rpps: [
@@ -302,6 +311,33 @@ function parseFeed(feed: FeedSource, xml: string): ParsedItem[] {
   return items;
 }
 
+// ponytail: depende do layout atual da listagem do gov.br (ul.noticias > li);
+// se mudar, o parser devolve 0 itens e o relatorio da funcao mostra fetched 0.
+function parseGovbrList(feed: FeedSource, html: string): ParsedItem[] {
+  const items: ParsedItem[] = [];
+  for (const block of html.split(/<li>/i).slice(1)) {
+    const link = block.match(/<h2 class="titulo">\s*<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    if (!link) continue;
+    const title = stripHtml(link[2]);
+    const date = block.match(/class="data">\s*(\d{2})\/(\d{2})\/(\d{4})/);
+    if (!title || !date) continue;
+
+    const desc = block.match(/<span class="descricao">[\s\S]*?<\/span>\s*<span> - <\/span>([\s\S]*?)<\/span>/i);
+    const description = desc ? stripHtml(desc[1]) : "";
+    const img = block.match(/class="newsImage"\s+src="([^"]+)"/i)?.[1]?.replace(/\/image\/mini$/, "/image/preview") ?? null;
+    items.push({
+      title,
+      url: link[1],
+      description: description,
+      image_url: img,
+      published_at: new Date(`${date[3]}-${date[2]}-${date[1]}T12:00:00-03:00`).toISOString(),
+      source: feed.name,
+      topic: classifyTopic(`${title} ${description}`)
+    });
+  }
+  return items.slice(0, feed.limit ?? 50);
+}
+
 async function fetchXml(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: { "User-Agent": "RadarLema-RSS/1.0" },
@@ -317,6 +353,25 @@ async function fetchXml(url: string): Promise<string> {
 }
 
 async function fetchFeed(feed: FeedSource): Promise<{ rows: NewsRow[]; fetched: number; valid: number }> {
+  if (feed.govbrList) {
+    const res = await fetch(feed.urls[0], {
+      headers: { "User-Agent": "RadarLema-RSS/1.0" },
+      signal: AbortSignal.timeout(30000)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} em ${feed.urls[0]}`);
+    const items = parseGovbrList(feed, await res.text());
+    const rows: NewsRow[] = items.map((item) => ({
+      title: item.title,
+      description: item.description,
+      url: item.url,
+      image_url: item.image_url,
+      source: item.source,
+      published_at: item.published_at,
+      topic: item.topic
+    }));
+    return { rows, fetched: items.length, valid: rows.length };
+  }
+
   let xml = "";
   let lastError: unknown = null;
   for (const url of feed.urls) {
