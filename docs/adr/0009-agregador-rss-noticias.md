@@ -90,3 +90,14 @@ Sem tabela de histórico de rodadas nesta fase.
   tem `fetch` com timeout de 30s e lista de fallback quando houver.
 - Novas fontes entram apenas adicionando o par `{ name, url }` em `FEEDS` e
   redeployando a função.
+
+## Atualização (out/2026): fontes curadas, sem Google Alerts
+
+Os Google Alerts foram removidos: traziam portais genéricos, prefeituras e
+veículos de Portugal (cerca de 150 das 900 notícias caíam em "outros").
+Fontes atuais: Investimentos RPPS (descarta a categoria Pessoa Física),
+Investidor Institucional (**só o feed da categoria RPPS**), Revista RPPS do
+Brasil (categoria Notícias), ABIPEM e Banco Central. O feed do Gov.br
+(404) saiu. Além do dedupe por URL, a mesma matéria republicada por outra
+fonte é descartada por **título normalizado** (rodada atual + últimos 30
+dias do banco). Notícias antigas dos Alerts foram mantidas.

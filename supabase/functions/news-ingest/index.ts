@@ -1,8 +1,8 @@
 // Edge Function news-ingest: agrega noticias institucionais (nicho RPPS) a
-// partir de feeds RSS proprios (Investidor Institucional, ABIPEM,
-// Gov.br/Previdencia, Banco Central do Brasil) e de Google Alerts (RPPS,
-// "Regime Proprio de Previdencia", "CMN 5.272", "CMN 4.963"), normaliza os
-// itens e grava na tabela `news` (dedupe por URL original da materia).
+// partir de feeds RSS de fontes selecionadas (Investimentos RPPS, Investidor
+// Institucional - so a categoria RPPS, Revista RPPS do Brasil, ABIPEM e Banco
+// Central), normaliza os itens e grava na tabela `news` (dedupe por URL
+// original e por titulo normalizado). Sem Google Alerts: traziam ruido.
 //
 // Agendada via pg_cron + pg_net (job `radar-news-ingest`, ver runbook de
 // deploy). Chamada server-to-server com service_role (verify_jwt = false).
@@ -23,57 +23,35 @@ const callSendPush = makeCallSendPush(supabaseUrl, serviceRole);
 interface FeedSource {
   name: string;
   urls: string[];
-  kind: "rss" | "google-alert";
   limit?: number;
+  // Itens de qualquer uma destas categorias (case-insensitive) sao descartados.
+  excludeCategories?: string[];
 }
 
 const FEEDS: FeedSource[] = [
   {
+    name: "Investimentos RPPS",
+    urls: ["https://www.investimentosrpps.com.br/feed"],
+    excludeCategories: ["pessoa física", "pessoa fisica"]
+  },
+  {
     name: "Investidor Institucional",
-    urls: ["https://investidorinstitucional.com.br/feed/"],
-    kind: "rss"
+    urls: ["https://investidorinstitucional.com.br/investidores/rpps/feed/"]
+  },
+  {
+    name: "Revista RPPS do Brasil",
+    urls: ["https://www.revistarppsdobrasil.com.br/category/noticias/feed/"]
   },
   {
     name: "ABIPEM",
-    urls: ["https://www.abipem.org.br/feed/"],
-    kind: "rss"
-  },
-  {
-    name: "Gov.br Previdência",
-    urls: ["https://www.gov.br/previdencia/pt-br/assuntos/noticias/RSS"],
-    kind: "rss"
+    urls: ["https://www.abipem.org.br/feed/"]
   },
   {
     name: "Banco Central do Brasil",
     urls: [
       "https://www.bcb.gov.br/api/feed/pt-br/OBCB/Noticias",
       "https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/noticias"
-    ],
-    kind: "rss"
-  },
-  {
-    name: "Google Alert RPPS",
-    urls: ["https://www.google.com.br/alerts/feeds/14249312833923923806/17996588319945680871"],
-    kind: "google-alert",
-    limit: 25
-  },
-  {
-    name: "Google Alert Regime Próprio de Previdência",
-    urls: ["https://www.google.com.br/alerts/feeds/14249312833923923806/17989988202434490029"],
-    kind: "google-alert",
-    limit: 25
-  },
-  {
-    name: "Google Alert CMN 5.272",
-    urls: ["https://www.google.com.br/alerts/feeds/14249312833923923806/1482783789780678458"],
-    kind: "google-alert",
-    limit: 25
-  },
-  {
-    name: "Google Alert CMN 4.963",
-    urls: ["https://www.google.com.br/alerts/feeds/14249312833923923806/18408053799665776990"],
-    kind: "google-alert",
-    limit: 25
+    ]
   }
 ];
 
@@ -216,24 +194,18 @@ function classifyTopic(text: string): string {
   return "outros";
 }
 
-function googleAlertUrl(link: string): string {
-  try {
-    const parsed = new URL(link);
-    const q = parsed.searchParams.get("q") || parsed.searchParams.get("url");
-    if (q) return q;
-  } catch {
-    // link invalido: usa como esta
-  }
-  return link;
+// Chave de dedupe entre fontes: a mesma materia republicada com URL diferente.
+function titleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
-function googleAlertSource(title: string, feedName: string): string {
-  const idx = title.lastIndexOf(" - ");
-  if (idx > 0) {
-    const source = title.slice(idx + 3).trim();
-    if (source && !source.toLowerCase().includes("google")) return source;
-  }
-  return feedName.replace(/^Google Alert\s+/, "").trim();
+function categoriesOf(item: Record<string, unknown>): string[] {
+  return toArray(item.category as unknown).map((c) => textOf(c).toLowerCase());
 }
 
 function extractImage(item: Record<string, unknown>, rawDescription: string): string | null {
@@ -299,14 +271,11 @@ function parseFeed(feed: FeedSource, xml: string): ParsedItem[] {
     const link = (textOf(item.link).trim() || atomLink(item.link)).trim();
     if (!link) continue;
 
-    let url = link;
-    if (feed.kind === "google-alert") {
-      url = googleAlertUrl(link).split("&sa=")[0];
-      if (!title.includes(" - ")) continue;
+    const url = link;
+    if (feed.excludeCategories) {
+      const cats = categoriesOf(item);
+      if (feed.excludeCategories.some((ex) => cats.includes(ex))) continue;
     }
-    url = url.trim();
-    if (!url) continue;
-    if (feed.kind === "google-alert" && /google\.(com|com\.br|pt)\//.test(url)) continue;
 
     const pubRaw = textOf(item.pubDate) || textOf(item.published) || textOf(item.updated);
     let publishedAt = nowIso;
@@ -319,18 +288,13 @@ function parseFeed(feed: FeedSource, xml: string): ParsedItem[] {
       textOf(item.description) || textOf(item.content) || textOf(item.summary)
     );
 
-    const source =
-      feed.kind === "google-alert"
-        ? googleAlertSource(title, feed.name)
-        : feed.name;
-
     items.push({
       title,
       url,
       description: stripHtml(rawDescription) || null,
       image_url: extractImage(item, rawDescription),
       published_at: publishedAt,
-      source,
+      source: feed.name,
       topic: classifyTopic(`${title} ${stripHtml(rawDescription)}`)
     });
   }
@@ -388,6 +352,7 @@ Deno.serve(async (req) => {
 
   const allRows: NewsRow[] = [];
   const seen = new Set<string>();
+  const seenTitles = new Set<string>();
   const feedReport: Array<{ name: string; fetched: number; valid: number; error?: string }> = [];
 
   for (const [index, result] of results.entries()) {
@@ -406,17 +371,26 @@ Deno.serve(async (req) => {
     feedReport.push({ name: feed.name, fetched, valid });
 
     for (const row of rows) {
-      if (seen.has(row.url)) continue;
+      const key = titleKey(row.title);
+      if (seen.has(row.url) || seenTitles.has(key)) continue;
       seen.add(row.url);
+      seenTitles.add(key);
       allRows.push(row);
     }
   }
 
+  const { data: recent } = await supabase
+    .from("news")
+    .select("title")
+    .gte("published_at", new Date(Date.now() - 30 * 864e5).toISOString());
+  const known = new Set((recent ?? []).map((r: { title: string }) => titleKey(r.title)));
+  const fresh = allRows.filter((row) => !known.has(titleKey(row.title)));
+
   let inserted = 0;
-  if (allRows.length > 0) {
+  if (fresh.length > 0) {
     const { data, error } = await supabase
       .from("news")
-      .upsert(allRows, { onConflict: "url", ignoreDuplicates: true })
+      .upsert(fresh, { onConflict: "url", ignoreDuplicates: true })
       .select("id");
 
     if (error) {
