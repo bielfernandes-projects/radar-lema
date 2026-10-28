@@ -67,7 +67,7 @@ export default function TopBar({ onMenuClick }) {
             <img src="/favicon-32x32.png" alt="" style={{ width: 28, height: 28, display: 'block' }} />
           </Box>
           <Typography variant="h6" component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
-            Radar Lema
+            RPPapp
           </Typography>
         </Box>
 

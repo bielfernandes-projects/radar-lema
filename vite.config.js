@@ -25,10 +25,10 @@ export default defineConfig({
         'icons.svg'
       ],
       manifest: {
-        name: 'Radar Lema',
-        short_name: 'Radar Lema',
+        name: 'RPPapp',
+        short_name: 'RPPapp',
         description:
-          'Hub da Lema para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais e dashboard de investimentos.',
+          'Hub para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais e dashboard de investimentos.',
         id: '/',
         lang: 'pt-BR',
         theme_color: '#3B82F6',

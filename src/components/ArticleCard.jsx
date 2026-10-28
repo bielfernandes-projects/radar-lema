@@ -25,7 +25,7 @@ import ExclusiveBadge from './ExclusiveBadge'
  * falhou ao carregar) cai nesta arte da Lema, no mesmo padrao de
  * `placeholder-event.png` usado pelo card de evento.
  */
-const FALLBACK_COVER = '/placeholder-article.png?v=1'
+const FALLBACK_COVER = '/placeholder-article.png?v=2'
 
 export default function ArticleCard({ article }) {
   const navigate = useNavigate()

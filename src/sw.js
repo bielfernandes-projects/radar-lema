@@ -44,11 +44,11 @@ registerRoute(
 // Push notifications
 // ---------------------------------------------------------------------------
 self.addEventListener('push', (event) => {
-  let data = { title: 'Radar Lema' }
+  let data = { title: 'RPPapp' }
   try {
     data = { ...data, ...(event.data ? event.data.json() : {}) }
   } catch {
-    data = { title: 'Radar Lema', body: event.data ? event.data.text() : '' }
+    data = { title: 'RPPapp', body: event.data ? event.data.text() : '' }
   }
 
   const options = {

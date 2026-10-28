@@ -1,4 +1,4 @@
-# Radar Lema
+# RPPapp
 
 PWA standalone que reúne o ecossistema da Lema para RPPS — eventos, artigos,
 notícias de mercado, novidades do sistema UNO, materiais de apoio e o

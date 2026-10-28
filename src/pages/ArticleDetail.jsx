@@ -22,7 +22,7 @@ import ExclusiveBadge from '../components/ExclusiveBadge'
 import Interactions from '../components/Interactions'
 
 /** Mesma arte de reserva usada pelo ArticleCard. */
-const FALLBACK_COVER = '/placeholder-article.png?v=1'
+const FALLBACK_COVER = '/placeholder-article.png?v=2'
 
 export default function ArticleDetail() {
   const { id } = useParams()

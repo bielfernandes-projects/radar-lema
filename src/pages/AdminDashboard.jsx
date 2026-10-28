@@ -87,7 +87,7 @@ function ObservabilityPanel() {
             />
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            O Radar Lema envia eventos de uso (cliques, áreas de mais interação,
+            O RPPapp envia eventos de uso (cliques, áreas de mais interação,
             tempo de permanência, navegação entre páginas) para o PostHog via
             integração nativa da Vercel. O dashboard abaixo é o mesmo do PostHog,
             embutido aqui.

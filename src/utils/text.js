@@ -1,5 +1,5 @@
 /**
- * Helpers de texto da UI do Radar Lema.
+ * Helpers de texto da UI do RPPapp.
  *
  * O corte de texto dos cards e feito aqui, em JS, e nao pelo `-webkit-line-clamp`
  * do CSS: o clamp corta por caractere e parte palavra ao meio. O clamp continua

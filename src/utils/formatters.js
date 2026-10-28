@@ -1,5 +1,5 @@
 /**
- * Formatadores de apresentacao usados na UI do Radar Lema.
+ * Formatadores de apresentacao usados na UI do RPPapp.
  */
 
 import { REMINDER_UNITS, REMINDER_CHANNELS } from './constants'

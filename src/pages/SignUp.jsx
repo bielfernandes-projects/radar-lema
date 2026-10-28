@@ -85,7 +85,7 @@ export default function SignUp() {
           <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
             <img
               src="/logo.png"
-              alt="Radar Lema"
+              alt="RPPapp"
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="h6" sx={{ mt: 3 }}>
@@ -119,7 +119,7 @@ export default function SignUp() {
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <img
               src="/logo.png"
-              alt="Radar Lema"
+              alt="RPPapp"
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>

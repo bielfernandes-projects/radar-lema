@@ -114,7 +114,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           <img src="/favicon-32x32.png" alt="" style={{ width: 32, height: 32, flexShrink: 0 }} />
           <Typography variant="h6" component="div" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Radar Lema
+            RPPapp
           </Typography>
         </Box>
       </Box>
