@@ -68,11 +68,12 @@ const toChartData = (rows) =>
     count
   }))
 
-const POSTHOG_SHARED_DASHBOARD_URL = 'https://eu.posthog.com/shared/_tGp6JNlPMDGsDIiT6FrKd5QyvANxg'
+const POSTHOG_SHARED_DASHBOARD_URL = 'https://eu.posthog.com/shared/V6mKdV-_bWk-ZFsMHk12EtJkyjZ6pQ'
+const POSTHOG_EMBED_URL = 'https://eu.posthog.com/embedded/V6mKdV-_bWk-ZFsMHk12EtJkyjZ6pQ'
 
 function ObservabilityPanel() {
   const trackingAtivo = Boolean(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN)
-  const embedUrl = import.meta.env.VITE_POSTHOG_SHARED_DASHBOARD_URL
+  const embedUrl = POSTHOG_EMBED_URL
 
   return (
     <Card variant="outlined">
