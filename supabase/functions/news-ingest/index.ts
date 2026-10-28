@@ -28,7 +28,22 @@ interface FeedSource {
   excludeCategories?: string[];
   // Fonte sem RSS: le a listagem HTML do portal gov.br (urls[0]).
   govbrList?: boolean;
+  // Se presente, so ficam os itens cujo titulo/descricao citam alguma destas
+  // palavras (sem acento, maiusculas ou pontuacao; palavra inteira).
+  keywords?: string[];
 }
+
+const RPPS_KEYWORDS = [
+  "RPPS",
+  "DAIR",
+  "DPIN",
+  "Cadprev",
+  "Pró-Gestão",
+  "COPOM",
+  "ABIPEM",
+  "Regime Próprio de Previdência",
+  "Regimes Próprios de Previdência"
+];
 
 const FEEDS: FeedSource[] = [
   {
@@ -41,10 +56,6 @@ const FEEDS: FeedSource[] = [
     urls: ["https://investidorinstitucional.com.br/category/investidores/rpps/feed/"]
   },
   {
-    name: "Revista RPPS do Brasil",
-    urls: ["https://www.revistarppsdobrasil.com.br/category/noticias/feed/"]
-  },
-  {
     name: "ABIPEM",
     urls: ["https://www.abipem.org.br/feed/"]
   },
@@ -53,7 +64,8 @@ const FEEDS: FeedSource[] = [
     urls: [
       "https://www.bcb.gov.br/api/feed/pt-br/OBCB/Noticias",
       "https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/noticias"
-    ]
+    ],
+    keywords: RPPS_KEYWORDS
   }
 ];
 
@@ -61,7 +73,8 @@ const FEEDS: FeedSource[] = [
 FEEDS.push({
   name: "Ministério da Previdência Social",
   urls: ["https://www.gov.br/previdencia/pt-br/noticias"],
-  govbrList: true
+  govbrList: true,
+  keywords: RPPS_KEYWORDS
 });
 
 const TOPIC_KEYWORDS: Record<string, string[]> = {
@@ -213,6 +226,12 @@ function titleKey(title: string): string {
     .trim();
 }
 
+function matchesKeywords(feed: FeedSource, item: ParsedItem): boolean {
+  if (!feed.keywords) return true;
+  const text = ` ${titleKey(`${item.title} ${item.description ?? ""}`)} `;
+  return feed.keywords.some((kw) => text.includes(` ${titleKey(kw)} `));
+}
+
 function categoriesOf(item: Record<string, unknown>): string[] {
   return toArray(item.category as unknown).map((c) => textOf(c).toLowerCase());
 }
@@ -359,7 +378,7 @@ async function fetchFeed(feed: FeedSource): Promise<{ rows: NewsRow[]; fetched: 
       signal: AbortSignal.timeout(30000)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} em ${feed.urls[0]}`);
-    const items = parseGovbrList(feed, await res.text());
+    const items = parseGovbrList(feed, await res.text()).filter((item) => matchesKeywords(feed, item));
     const rows: NewsRow[] = items.map((item) => ({
       title: item.title,
       description: item.description,
@@ -384,7 +403,7 @@ async function fetchFeed(feed: FeedSource): Promise<{ rows: NewsRow[]; fetched: 
   }
   if (!xml) throw lastError instanceof Error ? lastError : new Error("Nenhuma URL do feed respondeu");
 
-  const parsed = parseFeed(feed, xml);
+  const parsed = parseFeed(feed, xml).filter((item) => matchesKeywords(feed, item));
   const rows: NewsRow[] = parsed.map((item) => ({
     title: item.title,
     description: item.description,
