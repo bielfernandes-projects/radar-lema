@@ -12,7 +12,7 @@ import {
 import { Lock, Mail } from 'lucide-react'
 import { useEffect } from 'react'
 import { track } from '../lib/posthog'
-import { logEvent } from '../lib/analytics'
+import { useLogEvent } from '../hooks/useLogEvent'
 
 const CONTACT_EMAIL = 'comercial@lemaef.com.br'
 
@@ -24,12 +24,14 @@ const mailtoHref = () =>
   )}`
 
 export default function LockedClientModal({ open, onClose }) {
+  const logEvent = useLogEvent()
+
   useEffect(() => {
     if (open) {
       track('cadeado_aberto')
       logEvent('lock_opened')
     }
-  }, [open])
+  }, [open, logEvent])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

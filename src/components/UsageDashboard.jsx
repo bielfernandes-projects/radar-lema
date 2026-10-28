@@ -9,10 +9,11 @@ import {
   Stack,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
-import { CalendarDays, Heart, Lock, MousePointerClick, UserPlus, Users } from 'lucide-react'
+import { CalendarDays, Heart, Info, Lock, MousePointerClick, UserPlus, Users } from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -58,7 +59,7 @@ const toMonthSeries = (rows) =>
 
 const toSeries = (rows) => (rows || []).map((r) => ({ day: dayLabel(r.day), count: r.count }))
 
-export function Kpi({ icon, label, value, hint, accent }) {
+export function Kpi({ icon, label, value, hint, accent, help }) {
   const theme = useTheme()
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
@@ -81,6 +82,13 @@ export function Kpi({ icon, label, value, hint, accent }) {
           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
             {label}
           </Typography>
+          {help && (
+            <MuiTooltip title={help} arrow enterTouchDelay={0} leaveTouchDelay={6000}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', cursor: 'help' }}>
+                <Info size={15} />
+              </Box>
+            </MuiTooltip>
+          )}
         </Stack>
         <Typography variant="h4" sx={{ lineHeight: 1.1 }}>
           {value}
@@ -180,7 +188,7 @@ export default function UsageDashboard({ stats }) {
             }}
           />
           <Typography variant="body2" color="text.secondary">
-            {data.active_now} {data.active_now === 1 ? 'usuário' : 'usuários'} no app agora
+            {data.active_now} {data.active_now === 1 ? 'cliente' : 'clientes'} no app agora · só clientes entram nas métricas
           </Typography>
         </Stack>
         <ToggleButtonGroup
@@ -202,6 +210,7 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<Users size={18} />}
             label="Usuários ativos"
+            help="Clientes diferentes que usaram o app pelo menos uma vez no período. Contas staff e admin não entram na conta."
             value={data.active_users}
             hint={`${data.screen_views} ${data.screen_views === 1 ? 'tela vista' : 'telas vistas'}`}
             accent={primary}
@@ -211,6 +220,7 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<UserPlus size={18} />}
             label="Contas criadas"
+            help="Novas contas de cliente criadas no período (pelo cadastro ou por um admin)."
             value={data.new_users}
             hint={`${data.total_users} no total`}
             accent={theme.palette.success.main}
@@ -220,8 +230,9 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<Lock size={18} />}
             label="Cadeado aberto"
+            help="O cadeado aparece em funções exclusivas para Clientes Lema, como o Dashboard UNO. Este número é quantas vezes um cliente tocou nele e viu a janela “Função exclusiva para Clientes Lema”. Mostra o interesse em recursos que ele ainda não tem."
             value={data.lock_opened}
-            hint="vezes no período"
+            hint="vezes que a janela abriu"
             accent={theme.palette.warning.main}
           />
         </Grid>
@@ -229,6 +240,7 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<MousePointerClick size={18} />}
             label="Leads ao comercial"
+            help="Quantas vezes o cliente clicou em “Falar com um consultor” na janela do cadeado, o que abre um e-mail pronto para comercial@lemaef.com.br. Conta o clique, não o e-mail enviado: a pessoa ainda pode desistir ao ver o e-mail."
             value={data.lock_clicked}
             hint={`${conversion}% de quem abriu o cadeado`}
             accent={theme.palette.favorite?.main || primary}
@@ -238,6 +250,7 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<CalendarDays size={18} />}
             label="Eventos"
+            help="Eventos cadastrados na plataforma, de qualquer categoria."
             value={stats?.total_events ?? 0}
             hint="cadastrados na plataforma"
             accent={theme.palette.info.main}
@@ -247,6 +260,7 @@ export default function UsageDashboard({ stats }) {
           <Kpi
             icon={<Heart size={18} />}
             label="Favoritos"
+            help="Eventos que os clientes marcaram como favoritos."
             value={stats?.total_favorites ?? 0}
             hint="eventos favoritados"
             accent={theme.palette.favorite?.main || primary}
