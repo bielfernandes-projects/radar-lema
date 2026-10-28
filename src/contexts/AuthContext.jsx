@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { supabase } from '../lib/supabase'
 import { unsubscribePushForDevice } from '../services/pushData'
+import { identifyUser, resetIdentity, track } from '../lib/posthog'
 
 const AuthContext = createContext(null)
 
@@ -28,6 +29,11 @@ export function AuthProvider({ children }) {
       setProfile(null)
     } else {
       setProfile(data)
+      identifyUser(data.id, {
+        user_type: data.user_type,
+        role: data.role,
+        is_uno_client: Boolean(data.is_uno_client)
+      })
     }
   }, [])
 
@@ -93,6 +99,7 @@ export function AuthProvider({ children }) {
     const { data } = await supabase.auth.getSession()
     await unsubscribePushForDevice(data.session?.user?.id).catch(() => {})
     await supabase.auth.signOut()
+    resetIdentity()
     setUser(null)
     setProfile(null)
   }, [])
@@ -110,6 +117,8 @@ export function AuthProvider({ children }) {
       if (error) {
         return { error }
       }
+
+      track('cadastro_concluido')
 
       if (data.session) {
         setUser(data.session.user)

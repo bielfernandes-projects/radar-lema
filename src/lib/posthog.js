@@ -14,4 +14,18 @@ export function initPosthog() {
   })
 }
 
+// Sem token (dev/preview) o PostHog não é inicializado: não capturar nada.
+export function track(event, props) {
+  if (posthog.__loaded) posthog.capture(event, props)
+}
+
+// Só o id e atributos de perfil; sem e-mail ou nome (LGPD).
+export function identifyUser(userId, props) {
+  if (posthog.__loaded) posthog.identify(userId, props)
+}
+
+export function resetIdentity() {
+  if (posthog.__loaded) posthog.reset()
+}
+
 export { posthog }

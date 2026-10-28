@@ -10,6 +10,8 @@ import {
   Typography
 } from '@mui/material'
 import { Lock, Mail } from 'lucide-react'
+import { useEffect } from 'react'
+import { track } from '../lib/posthog'
 
 const CONTACT_EMAIL = 'comercial@lemaef.com.br'
 
@@ -21,6 +23,10 @@ const mailtoHref = () =>
   )}`
 
 export default function LockedClientModal({ open, onClose }) {
+  useEffect(() => {
+    if (open) track('cadeado_aberto')
+  }, [open])
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -57,6 +63,7 @@ export default function LockedClientModal({ open, onClose }) {
         <Button
           component="a"
           href={mailtoHref()}
+          onClick={() => track('cadeado_lead_clicado')}
           variant="contained"
           startIcon={<Mail size={18} />}
         >
