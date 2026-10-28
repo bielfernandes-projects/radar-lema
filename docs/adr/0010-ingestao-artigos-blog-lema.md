@@ -169,3 +169,14 @@ SELECT cron.schedule(
   ) as request_id;'
 );
 ```
+
+## Atualização (out/2026): outras fontes de RPPS
+
+Além do blog da Lema (`blog-ingest`), a Edge Function `articles-ingest`
+(cron 3× ao dia, `radar-articles-ingest`) importa a **Revista RPPS do
+Brasil** (RSS da categoria Artigos; posts também marcados como Notícias são
+ignorados) e o **Panorama RPPS** (sem RSS: sitemap.xml + meta tags).
+`origin` aceita `revista` e `panorama`; `source_id` é prefixado pela fonte
+(`revista:/slug/`) para não colidir com os IDs do WordPress da Lema, e o
+tombstone vale para qualquer origem importada. Capas são usadas direto da
+fonte (sem espelho no bucket). A fonte aparece no chip do card (`author`).

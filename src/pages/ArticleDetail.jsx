@@ -109,7 +109,7 @@ export default function ArticleDetail() {
 
       {article.source_url && (
         <Stack sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderTopColor: 'divider' }}>
-          {article.origin === 'blog' ? (
+          {article.origin !== 'staff' ? (
             <Button
               variant="contained"
               endIcon={<ExternalLink size={16} />}
@@ -118,7 +118,7 @@ export default function ArticleDetail() {
               rel="noopener noreferrer"
               sx={{ alignSelf: 'flex-start' }}
             >
-              Ler no site da Lema
+              {article.origin === 'blog' ? 'Ler no site da Lema' : `Ler em ${article.author}`}
             </Button>
           ) : (
             <Typography variant="caption" color="text.secondary">

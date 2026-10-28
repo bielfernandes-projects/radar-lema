@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Card, CardActionArea, CardContent, CardMedia, Chip, Stack, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { formatHubDate } from '../utils/hub'
+import { articleSourceLabel, formatHubDate } from '../utils/hub'
 import { truncateAtWord } from '../utils/text'
 import {
   ARTICLE_MEDIA_HEIGHT,
@@ -52,7 +52,7 @@ export default function ArticleCard({ article }) {
 
         <CardContent sx={cardContentSx}>
           <Stack direction="row" spacing={1} sx={cardMetaSlotSx}>
-            {article.origin === 'blog' && <Chip label="Blog Lema" size="small" variant="outlined" />}
+            {articleSourceLabel(article) && <Chip label={articleSourceLabel(article)} size="small" variant="outlined" />}
             {article.visibility === 'lema_client' && <ExclusiveBadge compact />}
             <Chip label={formatHubDate(article.created_at)} size="small" variant="outlined" />
           </Stack>

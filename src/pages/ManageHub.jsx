@@ -24,7 +24,7 @@ import {
 } from '@mui/material'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { HUB_KINDS, hubKind, removeHubContent } from '../services/hubContent'
-import { visibilityLabel, unoUpdateTypeLabel, formatHubDate } from '../utils/hub'
+import { articleSourceLabel, visibilityLabel, unoUpdateTypeLabel, formatHubDate } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'
 
 function itemMeta(item) {
@@ -184,8 +184,8 @@ export default function ManageHub() {
                   <Box>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                       <Typography variant="h6">{item.title}</Typography>
-                      {tab === 'articles' && item.origin === 'blog' && (
-                        <Chip label="Blog Lema" size="small" variant="outlined" />
+                      {tab === 'articles' && articleSourceLabel(item) && (
+                        <Chip label={articleSourceLabel(item)} size="small" variant="outlined" />
                       )}
                       {tab === 'uno_updates' && (
                         <Chip label={unoUpdateTypeLabel(item.type)} size="small" color="primary" />

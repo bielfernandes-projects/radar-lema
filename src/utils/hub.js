@@ -60,3 +60,9 @@ export function formatFileSize(bytes) {
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
+
+/** Fonte de um artigo importado ("Blog Lema", "Revista RPPS do Brasil"...); null se for do staff. */
+export function articleSourceLabel(article) {
+  if (article.origin === 'blog') return 'Blog Lema'
+  return article.origin === 'staff' ? null : article.author
+}
