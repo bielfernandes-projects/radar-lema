@@ -36,7 +36,7 @@ const FEEDS: FeedSource[] = [
   },
   {
     name: "Investidor Institucional",
-    urls: ["https://investidorinstitucional.com.br/investidores/rpps/feed/"]
+    urls: ["https://investidorinstitucional.com.br/category/investidores/rpps/feed/"]
   },
   {
     name: "Revista RPPS do Brasil",
