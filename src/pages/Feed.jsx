@@ -10,6 +10,7 @@ import {
   Typography,
   useMediaQuery
 } from '@mui/material'
+import { DISPLAY_FONT } from '../theme/theme'
 import { useTheme } from '@mui/material/styles'
 import { visuallyHidden } from '@mui/utils'
 import { ChevronRight, Newspaper, Megaphone, CalendarDays, BookOpen } from 'lucide-react'
@@ -55,7 +56,7 @@ function SectionHeader({ icon: Icon, title, to, onMore }) {
     >
       <Stack direction="row" alignItems="center" spacing={1}>
         <Icon size={22} />
-        <Typography variant="h5" component="h2">
+        <Typography variant="h5" component="h2" sx={{ fontFamily: DISPLAY_FONT }}>
           {title}
         </Typography>
       </Stack>
