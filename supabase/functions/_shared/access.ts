@@ -28,12 +28,14 @@ export function canAccessLemaExclusive(profile: AccessProfile | null | undefined
 
 export function resolveUnoClientId(opts: {
   isSuperAdmin: boolean
+  isClient: boolean
   requestedClientId: string | null
   ownClientId: string | null | undefined
   fallback: string
 }): string {
-  const { isSuperAdmin, requestedClientId, ownClientId, fallback } = opts
+  const { isSuperAdmin, isClient, requestedClientId, ownClientId, fallback } = opts
   if (isSuperAdmin) return requestedClientId || ownClientId || fallback
-  // Cliente comum: NUNCA honra o client_id da requisição.
-  return ownClientId || fallback
+  // Cliente comum: NUNCA honra o client_id da requisição. Quem não é Cliente
+  // Lema vê só a demonstração, mesmo com um `uno_client_id` antigo no perfil.
+  return (isClient && ownClientId) || fallback
 }

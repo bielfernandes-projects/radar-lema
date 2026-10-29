@@ -5,5 +5,7 @@ export const SITE_URL = 'https://rppapp.vercel.app'
 export const SUPPORT_EMAIL = 'contato@lemaef.com.br'
 export const DPO_EMAIL = ''
 export const COMMERCIAL_EMAIL = ''
+// Leads comerciais do UNO (virar Cliente Lema).
+export const UNO_SALES_EMAIL = 'comercial@lemaef.com.br'
 export const MAINTAINER = 'LEMA Consultoria'
 export const TERMS_VERSION = '2026-10-29'

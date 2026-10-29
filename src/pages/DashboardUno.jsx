@@ -37,7 +37,8 @@ import {
   fetchOwnUnoClientFimCarteira
 } from '../services/unoProxy'
 import { useAuth } from '../contexts/AuthContext'
-import { isSuperAdmin } from '../utils/auth'
+import { isSuperAdmin, canAccessLemaExclusive } from '../utils/auth'
+import UnoCta from '../components/UnoCta'
 import { rangeForPeriod } from '../utils/uno'
 import { buildUnoDashboardViewModel } from '../utils/unoDashboard'
 import { formatCurrency } from '../utils/formatters'
@@ -209,6 +210,9 @@ export default function DashboardUno() {
   const theme = useTheme()
   const { profile } = useAuth()
   const isSuperAdminUser = isSuperAdmin(profile)
+  const hasProfile = Boolean(profile)
+  // Quem nao e Cliente Lema ve so o cliente de demonstracao (o servidor garante).
+  const isDemo = hasProfile && !canAccessLemaExclusive(profile)
   // O mes corrente ainda nao fechou no UNO (mesmo motivo do fallback de
   // demonstrativoFundosCliente): o proprio UNO abre o Dashboard por padrao
   // no ultimo mes fechado, nao no mes calendario atual — replicamos isso
@@ -236,16 +240,17 @@ export default function DashboardUno() {
   })
 
   // Super Admin escolhe entre todos os clientes reais do UNO; cliente comum
-  // so precisa do nome do proprio vinculo (resolvido no servidor).
+  // so precisa do nome do proprio vinculo (resolvido no servidor). Quem nao e
+  // cliente cai na demonstracao: o id enviado e ignorado pelo servidor.
   useEffect(() => {
     if (isSuperAdminUser) {
       fetchUnoClients().then(setClients).catch(() => {})
-    } else if (profile?.uno_client_id) {
+    } else if (hasProfile) {
       fetchOwnUnoClientName().then(setOwnClientName).catch(() => {})
       fetchOwnUnoClientFimCarteira().then(setOwnClientFimCarteira).catch(() => {})
-      setSelectedClientId(profile.uno_client_id)
+      setSelectedClientId(isDemo ? 'demo' : profile.uno_client_id || 'demo')
     }
-  }, [isSuperAdminUser, profile?.uno_client_id])
+  }, [isSuperAdminUser, hasProfile, isDemo, profile?.uno_client_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isSuperAdminUser && !selectedClientId && clients.length > 0) {
@@ -394,6 +399,7 @@ export default function DashboardUno() {
   return (
     <Box id="uno-dashboard-report" className={isPrinting ? 'report-print-mode' : undefined} sx={{ bgcolor: 'background.default' }}>
       <Container className="report-container" maxWidth="xl" sx={{ py: 3 }}>
+        <UnoCta demo />
 
         <Box className="report-filters-row" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
           <FormControl size="small" sx={{ minWidth: { xs: 84, sm: 140 } }}>

@@ -27,16 +27,14 @@ describe('buildNavTree', () => {
     expect(tree.map((s) => s.group)).toEqual(['main', 'staff', 'admin'])
   })
 
-  it('Dashboard UNO fica travado para quem não é Cliente Lema', () => {
-    expect(itemState(buildNavTree({ user_type: 'client' }), 'dashboardUno')).toBe('locked')
-  })
-
-  it('Dashboard UNO abre para Cliente Lema', () => {
-    expect(itemState(buildNavTree({ is_uno_client: true }), 'dashboardUno')).toBe('normal')
-  })
-
-  it('Super Admin tem acesso total: Dashboard UNO nunca trava', () => {
-    expect(itemState(buildNavTree({ user_type: 'super_admin' }), 'dashboardUno')).toBe('normal')
+  it('módulo UNO (Novidades + Dashboard) aparece para todos, sem cadeado', () => {
+    for (const profile of [{ user_type: 'client' }, { is_uno_client: true }, { user_type: 'super_admin' }]) {
+      const uno = buildNavTree(profile)
+        .flatMap((s) => s.items)
+        .find((i) => i.key === 'uno')
+      expect(uno.state).toBe('group')
+      expect(uno.children.map((c) => c.key)).toEqual(['unoUpdates', 'dashboardUno'])
+    }
   })
 
   it('Comunidade Lema está oculta por enquanto; Eventos é um grupo', () => {
@@ -54,7 +52,7 @@ describe('buildNavTree', () => {
 
   it('itens de menu por seção (regressão do espaço de chaves)', () => {
     expect(keysByGroup(buildNavTree({ user_type: 'super_admin' }))).toEqual({
-      main: ['home', 'news', 'articles', 'materials', 'events', 'unoUpdates', 'dashboardUno', 'settings', 'help'],
+      main: ['home', 'news', 'articles', 'materials', 'events', 'uno', 'settings', 'help'],
       staff: ['hub', 'eventsMgmt', 'moderation'],
       admin: ['admin']
     })

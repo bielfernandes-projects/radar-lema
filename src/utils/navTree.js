@@ -32,13 +32,15 @@ const SECTIONS = [
           { key: 'past', label: 'Realizados', path: '/realizados' }
         ]
       },
-      { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno', icon: 'Megaphone' },
+      // Todos veem as duas telas; quem não é Cliente Lema vê o Dashboard em modo demonstração.
       {
-        key: 'dashboardUno',
-        label: 'Dashboard UNO',
-        path: '/dashboard-uno',
-        icon: 'LineChart',
-        unoClientOnly: true
+        key: 'uno',
+        label: 'UNO',
+        icon: 'Megaphone',
+        children: [
+          { key: 'unoUpdates', label: 'Novidades UNO', path: '/novidades-uno' },
+          { key: 'dashboardUno', label: 'Dashboard UNO', path: '/dashboard-uno' }
+        ]
       },
       { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings' },
       {

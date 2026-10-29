@@ -13,6 +13,7 @@ describe('_shared/access — resolveUnoClientId', () => {
     expect(
       resolveUnoClientId({
         isSuperAdmin: false,
+        isClient: true,
         requestedClientId: '999', // tentativa de spoof
         ownClientId: '455',
         fallback
@@ -22,22 +23,22 @@ describe('_shared/access — resolveUnoClientId', () => {
 
   it('cliente comum sem vínculo cai no fallback (nunca no client_id pedido)', () => {
     expect(
-      resolveUnoClientId({ isSuperAdmin: false, requestedClientId: '999', ownClientId: null, fallback })
+      resolveUnoClientId({ isSuperAdmin: false, isClient: true, requestedClientId: '999', ownClientId: null, fallback })
     ).toBe('192')
   })
 
   it('Super Admin pode escolher qualquer client_id', () => {
     expect(
-      resolveUnoClientId({ isSuperAdmin: true, requestedClientId: '999', ownClientId: '455', fallback })
+      resolveUnoClientId({ isSuperAdmin: true, isClient: false, requestedClientId: '999', ownClientId: '455', fallback })
     ).toBe('999')
   })
 
   it('Super Admin sem client_id na requisição usa o próprio vínculo, depois o fallback', () => {
     expect(
-      resolveUnoClientId({ isSuperAdmin: true, requestedClientId: null, ownClientId: '455', fallback })
+      resolveUnoClientId({ isSuperAdmin: true, isClient: false, requestedClientId: null, ownClientId: '455', fallback })
     ).toBe('455')
     expect(
-      resolveUnoClientId({ isSuperAdmin: true, requestedClientId: null, ownClientId: null, fallback })
+      resolveUnoClientId({ isSuperAdmin: true, isClient: false, requestedClientId: null, ownClientId: null, fallback })
     ).toBe('192')
   })
 })

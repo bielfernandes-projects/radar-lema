@@ -128,7 +128,7 @@ export const routes = [
       { path: 'categorias', element: <PageRoute Component={Categories} /> },
       {
         path: 'dashboard-uno',
-        element: <ProtectedRoute requireUnoClient />,
+        element: <ProtectedRoute />,
         children: [{ index: true, element: <PageRoute Component={DashboardUno} /> }]
       },
       {

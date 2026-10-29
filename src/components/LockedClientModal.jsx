@@ -13,8 +13,7 @@ import { Lock, Mail } from 'lucide-react'
 import { useEffect } from 'react'
 import { track } from '../lib/posthog'
 import { useLogEvent } from '../hooks/useLogEvent'
-
-const CONTACT_EMAIL = 'comercial@lemaef.com.br'
+import { UNO_SALES_EMAIL as CONTACT_EMAIL } from '../config/site'
 
 const mailtoHref = () =>
   `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(

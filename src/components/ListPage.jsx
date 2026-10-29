@@ -22,7 +22,8 @@ export default function ListPage({
   errorMessage,
   variant = 'grid',
   skeletonHeight = 260,
-  skeletonCount = 6
+  skeletonCount = 6,
+  banner
 }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -56,6 +57,8 @@ export default function ListPage({
           {subtitle}
         </Typography>
       )}
+
+      {banner}
 
       {loading ? (
         <Grid container spacing={3}>

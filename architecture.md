@@ -775,8 +775,9 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   **404** (o gov.br deixou de servir RSS nos caminhos `/RSS`). A entrada fica
   na lista e o erro aparece no report da rodada; precisa de uma URL funcional
   (ver ADR `0009`).
-- `uno-proxy` — valida o JWT do usuário do Radar (via `auth.getUser`), exige
-  `is_uno_client` e repassa requisições GET para a `outer_api` do UNO com o
+- `uno-proxy` — valida o JWT do usuário do Radar (via `auth.getUser`), aceita
+  qualquer usuário logado (quem não é `is_uno_client`/Super Admin só recebe o
+  cliente de demonstração, nunca o vínculo do perfil) e repassa requisições GET para a `outer_api` do UNO com o
   token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
   `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192), exceto
   `demonstrativoFundosCliente` que usa `cliente_id`. Whitelist de

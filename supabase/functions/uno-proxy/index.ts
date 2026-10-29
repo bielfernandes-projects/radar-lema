@@ -110,12 +110,15 @@ Deno.serve(async (req) => {
 
   const isSuperAdmin = isSuperAdminProfile(profile);
 
-  if (profileError || !canAccessLemaExclusive(profile)) {
+  if (profileError) {
     return new Response("Acesso restrito a Clientes Lema", {
       status: 403,
       headers: withCors(origin)
     });
   }
+  // Qualquer usuário logado consulta o Dashboard, mas só Cliente Lema e Super
+  // Admin veem dados reais; os demais caem no cliente de demonstração.
+  const isClient = canAccessLemaExclusive(profile);
 
   const url = new URL(req.url);
   const endpoint = url.searchParams.get("endpoint") || "";
@@ -146,6 +149,7 @@ Deno.serve(async (req) => {
     // existir).
     const resolvedClientId = resolveUnoClientId({
       isSuperAdmin,
+      isClient,
       requestedClientId: url.searchParams.get("client_id"),
       ownClientId: profile?.uno_client_id,
       fallback: unoDemoClientId
