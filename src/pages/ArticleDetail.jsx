@@ -95,7 +95,7 @@ export default function ArticleDetail() {
         {article.author && <Chip label={`Por ${article.author}`} size="small" variant="outlined" />}
       </Stack>
 
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: 'inherit' }}>
         {article.title}
       </Typography>
 

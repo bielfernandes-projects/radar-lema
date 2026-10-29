@@ -27,6 +27,8 @@ const neutral = {
   900: '#21252b'
 }
 
+export const DISPLAY_FONT = '"Syncopate", "Open Sans", sans-serif'
+
 const FAVORITE = {
   main: '#e0436f',
   light: '#f07497',
@@ -75,13 +77,14 @@ export default function createAppTheme(mode) {
     },
     typography: {
       fontFamily: '"Open Sans", "Helvetica Neue", "Arial", sans-serif',
-      // Syncopate so tem pesos 400/700 e e bem larga -> letterSpacing negativo nos titulos
-      h1: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
-      h2: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
-      h3: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.01em' },
-      h4: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
-      h5: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
-      h6: { fontFamily: '"Syncopate", "Open Sans", sans-serif', fontWeight: 700 },
+      // Syncopate (bem larga; so pesos 400/700) fica so nos titulos de pagina/modulo (h4).
+      // Titulos de item (cards, detalhes) e secoes ficam em Open Sans, mais legivel.
+      h1: { fontWeight: 700 },
+      h2: { fontWeight: 700 },
+      h3: { fontWeight: 700 },
+      h4: { fontFamily: DISPLAY_FONT, fontWeight: 700 },
+      h5: { fontWeight: 700 },
+      h6: { fontWeight: 700 },
       subtitle1: { fontWeight: 600 },
       button: { fontWeight: 700 }
     },
@@ -93,6 +96,8 @@ export default function createAppTheme(mode) {
         styleOverrides: {
           // color-scheme faz scrollbars e controles nativos seguirem o modo escuro
           html: { colorScheme: mode },
+          // titulos mais claros no escuro (contraste); nao afeta quem define color explicito
+          ...(mode === 'dark' && { 'h1, h2, h3, h4, h5, h6': { color: '#ffffff' } }),
           'html, body': {
             overflowX: 'hidden'
           }

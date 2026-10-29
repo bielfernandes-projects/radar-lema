@@ -293,7 +293,7 @@ export default function EventDetail() {
         ))}
       </Stack>
 
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: 'inherit' }}>
         {event.title}
       </Typography>
 

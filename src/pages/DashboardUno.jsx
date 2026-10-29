@@ -39,6 +39,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdmin, canAccessLemaExclusive } from '../utils/auth'
 import UnoCta from '../components/UnoCta'
+import { DISPLAY_FONT } from '../theme/theme'
 import { rangeForPeriod } from '../utils/uno'
 import { buildUnoDashboardViewModel } from '../utils/unoDashboard'
 import { formatCurrency } from '../utils/formatters'
@@ -466,7 +467,13 @@ export default function DashboardUno() {
             mb: 2
           }}
         >
-          <Typography className="report-title" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+          <Typography className="report-title" variant="h5"
+            sx={{
+              fontFamily: DISPLAY_FONT,
+              fontWeight: 700,
+              color: theme.palette.mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main
+            }}
+          >
             Dashboard
           </Typography>
 

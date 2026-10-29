@@ -68,7 +68,7 @@ export default function UnoUpdateDetail() {
         <Chip label={formatHubDateTime(update.created_at)} size="small" variant="outlined" />
       </Stack>
 
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: 'inherit' }}>
         {update.title}
       </Typography>
 

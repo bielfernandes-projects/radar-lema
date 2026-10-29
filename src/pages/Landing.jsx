@@ -22,6 +22,7 @@ import usePageMeta from '../hooks/usePageMeta'
 import { SITE_NAME, SITE_URL } from '../config/site'
 import FaqList from '../components/FaqList'
 import { FAQ } from '../config/faq'
+import { DISPLAY_FONT } from '../theme/theme'
 
 const TITLE = 'RPPapp: o guia de bolso para RPPS'
 const DESCRIPTION =
@@ -186,7 +187,10 @@ export default function Landing() {
     <Box
       ref={rootRef}
       className={armed ? 'lp-reveal-on' : undefined}
-      sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}
+      sx={{
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default',
+        '& .MuiTypography-h1, & .MuiTypography-h2, & .MuiTypography-h3': { fontFamily: DISPLAY_FONT }
+      }}
     >
       {landingStyles}
 

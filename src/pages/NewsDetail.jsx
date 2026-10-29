@@ -70,7 +70,7 @@ export default function NewsDetail() {
         <Chip label={formatHubDateTime(news.published_at)} size="small" variant="outlined" />
       </Stack>
 
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: 'inherit' }}>
         {news.title}
       </Typography>
 
