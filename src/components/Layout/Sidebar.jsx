@@ -36,6 +36,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { buildNavTree } from '../../utils/navTree'
 import LockedClientModal from '../LockedClientModal'
+import LegalFooter from '../LegalFooter'
 
 const ICONS = {
   Home,
@@ -373,6 +374,8 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
           </ListItemButton>
         </Box>
       )}
+
+      <LegalFooter sx={{ py: 1, borderTop: user ? 0 : 1, borderColor: 'divider', mt: user ? 0 : 'auto' }} />
 
       <LockedClientModal open={clientModalOpen} onClose={() => setClientModalOpen(false)} />
     </Box>

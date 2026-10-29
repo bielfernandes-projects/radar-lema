@@ -271,3 +271,7 @@ não há tela de auditoria no protótipo. Novos cadastros (`signUp`) nascem
 O **Cliente Lema** (`is_uno_client = true`) é ortogonal ao `user_type`: é
 uma capacidade de visibilidade (conteúdo `lema_client` + Dashboard UNO), não
 uma permissão de escrita. Super admin alterna a flag pelo Painel Admin.
+
+## Landing e páginas públicas
+
+**Landing**: página inicial para visitante anônimo em `/` (grátis, só para RPPS). **Páginas públicas**: `/privacidade`, `/termos`, `/sobre`, `/contato`, `/fontes`, acessíveis sem login e indexáveis. Todo o resto do app é `noindex`. Ver ADR 0013.

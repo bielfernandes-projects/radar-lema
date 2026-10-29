@@ -40,6 +40,15 @@
       ]
     },
     {
+      "source": "/((?!$|sobre$|contato$|privacidade$|termos$|fontes$|robots\\.txt$|sitemap\\.xml$).*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {

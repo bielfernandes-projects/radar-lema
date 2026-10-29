@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ColorModeProvider, useColorMode } from './contexts/ColorModeContext'
 import { routes } from './routes.jsx'
 import { initPosthog } from './lib/posthog'
+import ConsentBanner from './components/ConsentBanner'
 
 initPosthog()
 
@@ -21,6 +22,7 @@ function AppWithTheme() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <RouterProvider router={router} />
+      <ConsentBanner />
     </ThemeProvider>
   )
 }

@@ -8,7 +8,9 @@ import {
   TextField,
   Typography,
   Alert,
-  CircularProgress
+  Checkbox,
+  CircularProgress,
+  FormControlLabel
 } from '@mui/material'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -17,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useColorMode } from '../contexts/ColorModeContext'
 import { validatePassword } from '../utils/auth'
 import PasswordToggle from '../components/PasswordToggle'
+import LegalFooter from '../components/LegalFooter'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -30,6 +33,7 @@ export default function SignUp() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [pendingConfirmation, setPendingConfirmation] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const { mode } = useColorMode()
   const theme = useMemo(() => createAppTheme(mode), [mode])
@@ -59,9 +63,14 @@ export default function SignUp() {
       return
     }
 
+    if (!acceptedTerms) {
+      setError('Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.')
+      return
+    }
+
     setSubmitting(true)
 
-    const { error: signUpError } = await signUp({ email, password, name })
+    const { error: signUpError } = await signUp({ email, password, name, acceptedTerms })
 
     setSubmitting(false)
 
@@ -194,12 +203,34 @@ export default function SignUp() {
               }}
             />
 
+            <FormControlLabel
+              sx={{ mt: 1 }}
+              control={
+                <Checkbox
+                  checked={acceptedTerms}
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  Li e aceito os{' '}
+                  <Link to="/termos" target="_blank" rel="noopener">
+                    Termos de Uso
+                  </Link>{' '}
+                  e a{' '}
+                  <Link to="/privacidade" target="_blank" rel="noopener">
+                    Política de Privacidade
+                  </Link>
+                </Typography>
+              }
+            />
+
             <Button
               type="submit"
               variant="contained"
               fullWidth
               size="large"
-              sx={{ mt: 3 }}
+              sx={{ mt: 2 }}
               disabled={submitting}
             >
               {submitting ? <CircularProgress size={24} /> : 'Criar Conta'}
@@ -218,6 +249,7 @@ export default function SignUp() {
             </Typography>
           </Box>
         </Paper>
+        <LegalFooter />
       </Container>
     </ThemeProvider>
   )

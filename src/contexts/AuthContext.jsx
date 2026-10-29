@@ -9,6 +9,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { unsubscribePushForDevice } from '../services/pushData'
 import { identifyUser, resetIdentity, track } from '../lib/posthog'
+import { TERMS_VERSION } from '../config/site'
 
 const AuthContext = createContext(null)
 
@@ -105,12 +106,20 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signUp = useCallback(
-    async ({ email, password, name }) => {
+    async ({ email, password, name, acceptedTerms }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name, user_type: 'client', role: 'ROLE_VIEWER' }
+          data: {
+            name,
+            user_type: 'client',
+            role: 'ROLE_VIEWER',
+            ...(acceptedTerms && {
+              accepted_terms_at: new Date().toISOString(),
+              terms_version: TERMS_VERSION
+            })
+          }
         }
       })
 

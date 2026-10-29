@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useColorMode } from '../contexts/ColorModeContext'
 import InstallAppIcon from '../components/InstallAppIcon'
 import PasswordToggle from '../components/PasswordToggle'
+import LegalFooter from '../components/LegalFooter'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -237,6 +238,7 @@ export default function Login() {
               </DialogActions>
             </Box>
           </Dialog>
+          <LegalFooter sx={{ mt: 2, pb: 0 }} />
         </Paper>
       </Box>
     </ThemeProvider>

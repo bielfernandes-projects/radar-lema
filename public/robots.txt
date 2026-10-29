@@ -1,5 +1,7 @@
-# RPPapp é um hub privado (todo o conteúdo exige login).
-# Não bloqueamos o crawl para que a tag <meta name="robots" content="noindex">
-# do index.html seja lida e respeitada.
+# Só a landing e as páginas institucionais são indexáveis.
+# O app (conteúdo atrás de login) recebe "X-Robots-Tag: noindex" via vercel.json.
+# Não bloqueamos o crawl para o header ser lido.
 User-agent: *
 Allow: /
+
+Sitemap: https://rppapp.vercel.app/sitemap.xml

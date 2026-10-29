@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Box, CircularProgress } from '@mui/material'
+import { useAuth } from './contexts/AuthContext'
 
 const Login = lazy(() => import('./pages/Login'))
 const SignUp = lazy(() => import('./pages/SignUp'))
@@ -28,6 +29,12 @@ const MaterialFormPage = lazy(() => import('./pages/MaterialFormPage'))
 const UnoUpdateFormPage = lazy(() => import('./pages/UnoUpdateFormPage'))
 const Moderation = lazy(() => import('./pages/Moderation'))
 const DashboardUno = lazy(() => import('./pages/DashboardUno'))
+const Landing = lazy(() => import('./pages/Landing'))
+const Privacy = lazy(() => import('./pages/Privacy'))
+const Terms = lazy(() => import('./pages/Terms'))
+const About = lazy(() => import('./pages/About'))
+const Contact = lazy(() => import('./pages/Contact'))
+const Sources = lazy(() => import('./pages/Sources'))
 
 import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -49,6 +56,15 @@ function PageRoute({ Component }) {
 }
 
 function LayoutRoute() {
+  const { user, loading } = useAuth()
+  const { pathname } = useLocation()
+
+  // Anônimo em "/" vê a landing pública, sem Sidebar/TopBar (ADR 0013).
+  if (pathname === '/') {
+    if (loading) return <PageFallback />
+    if (!user) return <PageRoute Component={Landing} />
+  }
+
   return (
     <Layout>
       <Suspense fallback={<PageFallback />}>
@@ -71,6 +87,11 @@ export const routes = [
     path: '/recuperar-senha',
     element: <PageRoute Component={RecoverPassword} />
   },
+  { path: '/privacidade', element: <PageRoute Component={Privacy} /> },
+  { path: '/termos', element: <PageRoute Component={Terms} /> },
+  { path: '/sobre', element: <PageRoute Component={About} /> },
+  { path: '/contato', element: <PageRoute Component={Contact} /> },
+  { path: '/fontes', element: <PageRoute Component={Sources} /> },
   {
     path: '/',
     element: <LayoutRoute />,
