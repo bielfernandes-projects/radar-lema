@@ -2,7 +2,7 @@
 // PENDENTE (Go Live): confirmar domínio de produção e e-mails; vazio = não exibir.
 export const SITE_NAME = 'RPPapp'
 export const SITE_URL = 'https://rppapp.vercel.app'
-export const SUPPORT_EMAIL = ''
+export const SUPPORT_EMAIL = 'contato@lemaef.com.br'
 export const DPO_EMAIL = ''
 export const COMMERCIAL_EMAIL = ''
 export const MAINTAINER = 'LEMA Consultoria'

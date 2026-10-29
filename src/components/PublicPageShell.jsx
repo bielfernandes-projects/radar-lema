@@ -24,7 +24,7 @@ export default function PublicPageShell({ title, description, path, draft, child
         </Typography>
         {draft && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-            Texto em revisão jurídica. Última atualização: {draft}.
+            Última atualização: {draft}.
           </Typography>
         )}
         {children}

@@ -1,14 +1,7 @@
 import { Typography } from '@mui/material'
 import PublicPageShell, { Section } from '../components/PublicPageShell'
 import { COMMERCIAL_EMAIL, SUPPORT_EMAIL } from '../config/site'
-
-const FAQ = [
-  ['O RPPapp é gratuito?', 'Sim. Criar a conta e usar o app não tem custo.'],
-  ['Preciso de conta para ver o conteúdo?', 'Sim. A conta é grátis e o cadastro leva poucos minutos.'],
-  ['Esqueci minha senha. E agora?', 'Na tela de login, toque em "Esqueci minha senha" e enviaremos um link para o seu e-mail.'],
-  ['Como instalo no celular?', 'Abra o app no navegador e use "Instalar App" ou "Adicionar à Tela de Início".'],
-  ['O que são as áreas exclusivas?', 'Recursos como o dashboard de investimentos são liberados para clientes do sistema UNO.']
-]
+import { FAQ } from '../config/faq'
 
 export default function Contact() {
   return (
