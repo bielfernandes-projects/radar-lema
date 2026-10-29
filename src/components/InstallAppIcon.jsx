@@ -9,7 +9,7 @@ import {
   Tooltip,
   Button
 } from '@mui/material'
-import { Download } from 'lucide-react'
+import { DownloadSimple } from '@phosphor-icons/react'
 import { usePWAInstall } from '../hooks/usePWAInstall'
 
 const IOS_HELP =
@@ -50,7 +50,7 @@ export default function InstallAppIcon({ pulse = false }) {
             }
           }}
         >
-          <Download size={20} />
+          <DownloadSimple size={20} />
         </IconButton>
       </Tooltip>
 

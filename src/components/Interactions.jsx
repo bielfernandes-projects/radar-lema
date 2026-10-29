@@ -12,7 +12,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Heart, Loader2, MessageCircle, Send, Trash2 } from 'lucide-react'
+import { ChatCircle, CircleNotch, Heart, PaperPlaneTilt, Trash } from '@phosphor-icons/react'
 import { useAuth } from '../contexts/AuthContext'
 import { formatHubDateTime } from '../utils/hub'
 import {
@@ -98,13 +98,13 @@ export default function Interactions({ contentType, contentId }) {
           aria-label="Curtir"
           color={likeStatus.liked ? 'error' : 'default'}
         >
-          {liking ? <Loader2 size={22} /> : <Heart size={22} fill={likeStatus.liked ? 'currentColor' : 'none'} />}
+          {liking ? <CircleNotch size={22} /> : <Heart size={22} weight={likeStatus.liked ? 'fill' : 'regular'} />}
         </IconButton>
         <Typography variant="body1" color="text.secondary">
           {likeStatus.count} {likeStatus.count === 1 ? 'curtida' : 'curtidas'}
         </Typography>
         <Stack direction="row" spacing={0.5} alignItems="center">
-          <MessageCircle size={18} />
+          <ChatCircle size={18} />
           <Typography variant="body1" color="text.secondary">
             {comments.length} {comments.length === 1 ? 'comentário' : 'comentários'}
           </Typography>
@@ -135,7 +135,7 @@ export default function Interactions({ contentType, contentId }) {
             type="submit"
             variant="contained"
             disabled={!user || !body.trim() || submitting}
-            startIcon={submitting ? <Loader2 size={16} /> : <Send size={16} />}
+            startIcon={submitting ? <CircleNotch size={16} /> : <PaperPlaneTilt size={16} />}
             sx={{ mt: 1 }}
           >
             Enviar
@@ -176,7 +176,7 @@ export default function Interactions({ contentType, contentId }) {
                     onClick={() => handleDeleteComment(comment.id)}
                     aria-label="Excluir comentário"
                   >
-                    <Trash2 size={16} />
+                    <Trash size={16} />
                   </IconButton>
                 </Tooltip>
               )}

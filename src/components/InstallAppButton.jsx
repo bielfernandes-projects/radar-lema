@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Alert, Button, Stack } from '@mui/material'
-import { Download } from 'lucide-react'
+import { DownloadSimple } from '@phosphor-icons/react'
 import { usePWAInstall } from '../hooks/usePWAInstall'
 
 const IOS_HELP =
@@ -29,7 +29,7 @@ export default function InstallAppButton() {
         fullWidth
         size="large"
         color="inherit"
-        startIcon={<Download size={20} />}
+        startIcon={<DownloadSimple size={20} />}
         onClick={handleClick}
       >
         Instalar App

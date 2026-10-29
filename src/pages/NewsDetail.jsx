@@ -10,7 +10,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ArrowSquareOut } from '@phosphor-icons/react'
 import { fetchNewsById } from '../services/newsData'
 import { safeUrl } from '../utils/safeUrl'
 import { formatHubDateTime } from '../utils/hub'
@@ -85,7 +85,7 @@ export default function NewsDetail() {
         href={safeUrl(news.url) ?? undefined}
         target="_blank"
         rel="noopener noreferrer"
-        endIcon={<ExternalLink size={20} />}
+        endIcon={<ArrowSquareOut size={20} />}
         sx={{ mb: 3 }}
       >
         Ler matéria original

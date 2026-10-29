@@ -9,7 +9,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { CaretDown, CaretUp, Trash } from '@phosphor-icons/react'
 import { emptySession } from '../utils/eventForm'
 
 const VISIBLE_LIMIT = 6
@@ -104,7 +104,7 @@ export default function SessionEditor({ sessions = [], onChange }) {
                     color="error"
                     aria-label="Remover sessão"
                   >
-                    <Trash2 size={20} />
+                    <Trash size={20} />
                   </IconButton>
                 </Tooltip>
               </Grid>
@@ -118,7 +118,7 @@ export default function SessionEditor({ sessions = [], onChange }) {
           variant="text"
           size="small"
           onClick={() => setShowAll((prev) => !prev)}
-          endIcon={showAll ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          endIcon={showAll ? <CaretUp size={16} /> : <CaretDown size={16} />}
           sx={{ mb: 1 }}
         >
           {showAll

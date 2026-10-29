@@ -13,7 +13,15 @@ import {
   Typography
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
-import { CalendarDays, Heart, Info, Lock, MousePointerClick, UserPlus, Users } from 'lucide-react'
+import {
+  CalendarDots,
+  CursorClick,
+  Heart,
+  Info,
+  Lock,
+  UserPlus,
+  Users
+} from '@phosphor-icons/react'
 import {
   Area,
   AreaChart,
@@ -238,7 +246,7 @@ export default function UsageDashboard({ stats }) {
         </Grid>
         <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
-            icon={<MousePointerClick size={18} />}
+            icon={<CursorClick size={18} />}
             label="Leads ao comercial"
             help="Quantas vezes o cliente clicou em “Falar com um consultor” na janela do cadeado, o que abre um e-mail pronto para comercial@lemaef.com.br. Conta o clique, não o e-mail enviado: a pessoa ainda pode desistir ao ver o e-mail."
             value={data.lock_clicked}
@@ -248,7 +256,7 @@ export default function UsageDashboard({ stats }) {
         </Grid>
         <Grid size={{ xs: 6, md: 4 }}>
           <Kpi
-            icon={<CalendarDays size={18} />}
+            icon={<CalendarDots size={18} />}
             label="Eventos"
             help="Eventos cadastrados na plataforma, de qualquer categoria."
             value={stats?.total_events ?? 0}

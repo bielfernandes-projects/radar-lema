@@ -1,7 +1,7 @@
 import { fetchNews } from '../services/newsData'
 import NewsCard from '../components/NewsCard'
 import ListPage from '../components/ListPage'
-import { Newspaper } from 'lucide-react'
+import { Newspaper } from '@phosphor-icons/react'
 import { SKELETON_HEIGHT } from '../theme/cardLayout'
 
 export default function News() {

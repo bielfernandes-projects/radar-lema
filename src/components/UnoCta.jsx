@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@mui/material'
-import { Mail } from 'lucide-react'
+import { Envelope } from '@phosphor-icons/react'
 import { useAuth } from '../contexts/AuthContext'
 import { canAccessLemaExclusive } from '../utils/auth'
 import { track } from '../lib/posthog'
@@ -38,7 +38,7 @@ export default function UnoCta({ demo = false }) {
         component="a"
         href={MAILTO}
         variant="contained"
-        startIcon={<Mail size={18} />}
+        startIcon={<Envelope size={18} />}
         onClick={() => track('uno_cta_clicado', { origem: demo ? 'dashboard' : 'novidades' })}
       >
         Falar com um consultor

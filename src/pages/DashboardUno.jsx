@@ -17,7 +17,7 @@ import {
   Typography,
   useTheme
 } from '@mui/material'
-import { Printer, Info } from 'lucide-react'
+import { Info, Printer } from '@phosphor-icons/react'
 import {
   ResponsiveContainer,
   BarChart,

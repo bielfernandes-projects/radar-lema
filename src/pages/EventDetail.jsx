@@ -23,17 +23,17 @@ import {
   Typography
 } from '@mui/material'
 import {
-  ChevronLeft,
-  ChevronRight,
   ArrowLeft,
-  X,
+  ArrowSquareOut,
+  CalendarDots,
+  CaretLeft,
+  CaretRight,
   Heart,
-  Share2,
-  Pencil,
-  CalendarDays,
   MapPin,
-  ExternalLink
-} from 'lucide-react'
+  PencilSimple,
+  ShareNetwork,
+  X
+} from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { safeUrl } from '../utils/safeUrl'
 import MapEmbed from '../components/MapEmbed'
@@ -194,7 +194,7 @@ export default function EventDetail() {
                 aria-label="Editar evento"
                 color="primary"
               >
-                <Pencil size={22} />
+                <PencilSimple size={22} />
               </IconButton>
             </Tooltip>
           )}
@@ -219,7 +219,7 @@ export default function EventDetail() {
               sx={{ color: favoriteIds.has(id) ? 'favorite.main' : 'inherit' }}
             >
               {favoriteIds.has(id) ? (
-                <Heart size={22} fill="currentColor" />
+                <Heart size={22} weight="fill" />
               ) : (
                 <Heart size={22} />
               )}
@@ -227,7 +227,7 @@ export default function EventDetail() {
           </Tooltip>
           <Tooltip title="Compartilhar evento">
             <IconButton onClick={handleShare} aria-label="Compartilhar">
-              <Share2 size={22} />
+              <ShareNetwork size={22} />
             </IconButton>
           </Tooltip>
         </Stack>
@@ -267,7 +267,7 @@ export default function EventDetail() {
                 disabled={activePhoto === photos.length - 1}
               >
                 Próxima
-                <ChevronRight size={20} />
+                <CaretRight size={20} />
               </Button>
             }
             backButton={
@@ -276,7 +276,7 @@ export default function EventDetail() {
                 onClick={() => setActivePhoto((prev) => prev - 1)}
                 disabled={activePhoto === 0}
               >
-                <ChevronLeft size={20} />
+                <CaretLeft size={20} />
                 Anterior
               </Button>
             }
@@ -299,7 +299,7 @@ export default function EventDetail() {
 
       <Stack spacing={1} sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
-          <CalendarDays size={20} />
+          <CalendarDots size={20} />
           <Typography variant="body1" color="text.secondary">
             {formatDateRange(
               sessions[0]?.start_date,
@@ -331,7 +331,7 @@ export default function EventDetail() {
         href={safeUrl(event.url) ?? undefined}
         target="_blank"
         rel="noopener noreferrer"
-        endIcon={<ExternalLink size={20} />}
+        endIcon={<ArrowSquareOut size={20} />}
         sx={{ mb: 3 }}
       >
         Inscrever-se

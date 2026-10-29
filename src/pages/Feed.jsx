@@ -13,7 +13,7 @@ import {
 import { DISPLAY_FONT } from '../theme/theme'
 import { useTheme } from '@mui/material/styles'
 import { visuallyHidden } from '@mui/utils'
-import { ChevronRight, Newspaper, Megaphone, CalendarDays, BookOpen } from 'lucide-react'
+import { BookOpen, CalendarDots, CaretRight, Megaphone, Newspaper } from '@phosphor-icons/react'
 import { fetchAllEventsWithMeta } from '../services/eventData'
 import { fetchNews } from '../services/newsData'
 import { fetchUnoUpdates } from '../services/unoUpdatesData'
@@ -62,7 +62,7 @@ function SectionHeader({ icon: Icon, title, to, onMore }) {
       </Stack>
       <Button
         size="small"
-        endIcon={<ChevronRight size={18} />}
+        endIcon={<CaretRight size={18} />}
         onClick={() => (onMore ? onMore() : navigate(to))}
       >
         Ver todos
@@ -141,7 +141,7 @@ export default function Feed() {
 
       <Box sx={{ mb: 4 }}>
         <SectionHeader
-          icon={CalendarDays}
+          icon={CalendarDots}
           title="Próximos eventos"
           onMore={() => navigate('/eventos')}
         />

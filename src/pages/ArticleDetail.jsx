@@ -12,7 +12,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ArrowSquareOut } from '@phosphor-icons/react'
 import { fetchArticleById } from '../services/articlesData'
 import { safeUrl } from '../utils/safeUrl'
 import { formatHubDateTime } from '../utils/hub'
@@ -112,7 +112,7 @@ export default function ArticleDetail() {
           {article.origin !== 'staff' ? (
             <Button
               variant="contained"
-              endIcon={<ExternalLink size={16} />}
+              endIcon={<ArrowSquareOut size={16} />}
               href={safeUrl(article.source_url) ?? article.source_url}
               target="_blank"
               rel="noopener noreferrer"

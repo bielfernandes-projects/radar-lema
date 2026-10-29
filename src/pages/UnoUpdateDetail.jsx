@@ -9,7 +9,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { fetchUnoUpdateById } from '../services/unoUpdatesData'
 import { formatHubDateTime, unoUpdateTypeLabel } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'

@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Eye, EyeOff, RefreshCw, ShieldAlert, Trash2, X } from 'lucide-react'
+import { ArrowsClockwise, Eye, EyeSlash, ShieldWarning, Trash, X } from '@phosphor-icons/react'
 import {
   fetchModerationQueue,
   toggleCommentHidden,
@@ -87,12 +87,12 @@ export default function Moderation() {
     <Container maxWidth="md" sx={{ py: 2 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Stack direction="row" spacing={1} alignItems="center">
-          <ShieldAlert size={24} />
+          <ShieldWarning size={24} />
           <Typography variant="h4" component="h1">
             Moderação
           </Typography>
         </Stack>
-        <Button startIcon={<RefreshCw size={18} />} onClick={fetchData}>
+        <Button startIcon={<ArrowsClockwise size={18} />} onClick={fetchData}>
           Atualizar
         </Button>
       </Stack>
@@ -147,7 +147,7 @@ export default function Moderation() {
                   <Stack direction="row" spacing={1}>
                     <Tooltip title={comment.hidden ? 'Exibir comentário' : 'Ocultar comentário'}>
                       <IconButton onClick={() => handleToggleHidden(comment)} aria-label="Alternar visibilidade">
-                        {comment.hidden ? <Eye size={20} /> : <EyeOff size={20} />}
+                        {comment.hidden ? <Eye size={20} /> : <EyeSlash size={20} />}
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Excluir comentário">
@@ -156,7 +156,7 @@ export default function Moderation() {
                         color="error"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={20} />
+                        <Trash size={20} />
                       </IconButton>
                     </Tooltip>
                   </Stack>

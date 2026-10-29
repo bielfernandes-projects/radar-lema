@@ -7,7 +7,7 @@ import {
   Typography,
   useTheme
 } from '@mui/material'
-import { Menu, Sun, Moon, LogOut, LogIn } from 'lucide-react'
+import { List, Moon, SignIn, SignOut, Sun } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useColorMode } from '../../contexts/ColorModeContext'
@@ -43,7 +43,7 @@ export default function TopBar({ onMenuClick }) {
           sx={{ mr: 1, display: { xs: 'inline-flex', md: 'none' } }}
           onClick={onMenuClick}
         >
-          <Menu size={24} />
+          <List size={24} />
         </IconButton>
 
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -91,7 +91,7 @@ export default function TopBar({ onMenuClick }) {
                 onClick={handleLogout}
                 sx={{ p: 0.75 }}
               >
-                <LogOut size={22} />
+                <SignOut size={22} />
               </IconButton>
             </Tooltip>
           ) : (
@@ -102,7 +102,7 @@ export default function TopBar({ onMenuClick }) {
                 onClick={() => navigate('/login')}
                 sx={{ p: 0.75 }}
               >
-                <LogIn size={22} />
+                <SignIn size={22} />
               </IconButton>
             </Tooltip>
           )}

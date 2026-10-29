@@ -15,7 +15,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { fetchUnoUpdateById, saveUnoUpdate } from '../services/unoUpdatesData'
 import { UNO_UPDATE_TYPES } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'

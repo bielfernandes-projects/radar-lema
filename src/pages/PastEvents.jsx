@@ -12,7 +12,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { CalendarX2 } from 'lucide-react'
+import { CalendarX } from '@phosphor-icons/react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchPastEventsWithMeta } from '../services/eventData'
@@ -165,7 +165,7 @@ export default function PastEvents() {
 
           {filteredEvents.length === 0 && (
             <EmptyState
-              icon={CalendarX2}
+              icon={CalendarX}
               title="Nenhum evento realizado encontrado"
               message="Nenhum evento passado combina com esses filtros."
               actions={[{ label: 'Limpar filtros', onClick: clearFilters }]}

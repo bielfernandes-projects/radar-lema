@@ -15,7 +15,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Download, FileText, Loader2, Eye, X } from 'lucide-react'
+import { CircleNotch, DownloadSimple, Eye, FileText, X } from '@phosphor-icons/react'
 import { getMaterialUrl } from '../services/materialsData'
 import { formatFileSize, formatHubDate } from '../utils/hub'
 import { truncateAtWord } from '../utils/text'
@@ -128,7 +128,7 @@ export default function MaterialCard({ material }) {
                 <Button
                   size="small"
                   variant="outlined"
-                  startIcon={loadingPreview ? <Loader2 size={16} /> : <Eye size={16} />}
+                  startIcon={loadingPreview ? <CircleNotch size={16} /> : <Eye size={16} />}
                   onClick={locked ? () => setLockedModalOpen(true) : handleOpen}
                   disabled={loadingPreview}
                 >
@@ -138,7 +138,7 @@ export default function MaterialCard({ material }) {
                 <Button
                   size="small"
                   variant="outlined"
-                  startIcon={downloading ? <Loader2 size={16} /> : <Download size={16} />}
+                  startIcon={downloading ? <CircleNotch size={16} /> : <DownloadSimple size={16} />}
                   onClick={locked ? () => setLockedModalOpen(true) : handleDownload}
                   disabled={downloading}
                 >
@@ -171,7 +171,7 @@ export default function MaterialCard({ material }) {
           )}
         </DialogContent>
         <DialogActions>
-          <Button startIcon={<Download size={16} />} onClick={handleDownload} disabled={downloading}>
+          <Button startIcon={<DownloadSimple size={16} />} onClick={handleDownload} disabled={downloading}>
             Baixar
           </Button>
           <Button onClick={() => setPreviewUrl(null)}>Fechar</Button>

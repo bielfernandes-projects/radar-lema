@@ -9,13 +9,13 @@ import {
   useTheme
 } from '@mui/material'
 import {
-  BarChart3,
   BookOpen,
-  CalendarDays,
+  CalendarDots,
+  ChartBar,
   FileText,
-  Newspaper,
-  Sparkles
-} from 'lucide-react'
+  Megaphone,
+  Newspaper
+} from '@phosphor-icons/react'
 import LegalFooter from '../components/LegalFooter'
 import LandingShowcase from '../components/LandingShowcase'
 import usePageMeta from '../hooks/usePageMeta'
@@ -29,12 +29,12 @@ const DESCRIPTION =
   'App gratuito feito exclusivamente para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais de apoio e dashboard de investimentos.'
 
 const FEATURES = [
-  { icon: CalendarDays, title: 'Eventos', text: 'Agenda do ecossistema RPPS num só lugar.' },
+  { icon: CalendarDots, title: 'Eventos', text: 'Agenda do ecossistema RPPS num só lugar.' },
   { icon: Newspaper, title: 'Notícias', text: 'Notícias de mercado e de previdência selecionadas para RPPS.' },
   { icon: BookOpen, title: 'Artigos', text: 'Análises e comparativos sobre RPPS e investimentos.' },
   { icon: FileText, title: 'Materiais de apoio', text: 'Documentos e modelos para o dia a dia do regime próprio.' },
-  { icon: Sparkles, title: 'Novidades do UNO', text: 'Acompanhe as atualizações do sistema UNO.' },
-  { icon: BarChart3, title: 'Dashboard de investimentos', text: 'Visão dos investimentos para clientes UNO.' }
+  { icon: Megaphone, title: 'Novidades do UNO', text: 'Acompanhe as atualizações do sistema UNO.' },
+  { icon: ChartBar, title: 'Dashboard de investimentos', text: 'Visão dos investimentos para clientes UNO.' }
 ]
 
 // Chips decorativos do hero (overlay com parallax); só ícone + título, aria-hidden.
@@ -241,7 +241,7 @@ export default function Landing() {
         component="section"
         sx={{
           position: 'relative', overflow: 'hidden', bgcolor: NAVY, color: '#fff',
-          minHeight: { xs: '92dvh', md: '100dvh' }, display: 'flex', alignItems: 'center',
+          minHeight: '100dvh', display: 'flex', alignItems: 'center',
           pt: '72px',
           backgroundImage: [
             'radial-gradient(60% 55% at 85% 20%, rgba(37,99,235,0.45), transparent 70%)',

@@ -12,7 +12,7 @@ import {
   Typography,
   Skeleton
 } from '@mui/material'
-import { HeartCrack, SearchX } from 'lucide-react'
+import { HeartBreak, MagnifyingGlass } from '@phosphor-icons/react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchFavoriteEventsWithMeta } from '../services/eventData'
@@ -156,7 +156,7 @@ export default function Favorites() {
         </Alert>
       ) : events.length === 0 ? (
         <EmptyState
-          icon={HeartCrack}
+          icon={HeartBreak}
           title="Você ainda não favoritou nenhum evento"
           message="Toque no coração de um evento para salvá-lo e acompanhá-lo aqui depois."
           actions={[{ label: 'Ver eventos', onClick: () => navigate('/') }]}
@@ -188,7 +188,7 @@ export default function Favorites() {
 
           {filteredEvents.length === 0 && (
             <EmptyState
-              icon={SearchX}
+              icon={MagnifyingGlass}
               title="Nenhum favorito encontrado"
               message="Nenhum evento favoritado combina com esses filtros."
               actions={[{ label: 'Limpar filtros', onClick: clearFilters }]}

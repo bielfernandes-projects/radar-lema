@@ -25,7 +25,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import SessionEditor from '../components/SessionEditor'

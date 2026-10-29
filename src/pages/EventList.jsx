@@ -12,7 +12,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { CalendarX2 } from 'lucide-react'
+import { CalendarX } from '@phosphor-icons/react'
 import { useFavorites } from '../hooks/useFavorites'
 import { filterEvents } from '../utils/filterEvents'
 import { fetchAllEventsWithMeta } from '../services/eventData'
@@ -172,7 +172,7 @@ export default function EventList() {
 
           {filteredEvents.length === 0 && (
             <EmptyState
-              icon={CalendarX2}
+              icon={CalendarX}
               title="Nenhum evento encontrado"
               message="Não há eventos que combinem com esses filtros agora. Ajuste a busca ou explore os realizados."
               actions={[

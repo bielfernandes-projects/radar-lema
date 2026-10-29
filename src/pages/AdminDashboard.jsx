@@ -30,7 +30,7 @@ import {
   Tooltip as MuiTooltip,
   Typography
 } from '@mui/material'
-import { Trash2, Pencil, KeyRound, UserPlus, Users, Building2 } from 'lucide-react'
+import { Buildings, Key, PencilSimple, Trash, UserPlus, Users } from '@phosphor-icons/react'
 import { useTheme } from '@mui/material/styles'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
         </Grid>
         <Grid size={{ xs: 6 }}>
           <Kpi
-            icon={<Building2 size={18} />}
+            icon={<Buildings size={18} />}
             label="Usuários Lema"
             value={users.filter((u) => u.is_uno_client === true).length}
             hint="Clientes Lema (UNO)"
@@ -325,7 +325,7 @@ export default function AdminDashboard() {
                           aria-label="Editar usuário"
                           disabled={isSelf(user.id)}
                         >
-                          <Pencil size={20} />
+                          <PencilSimple size={20} />
                         </IconButton>
                       </MuiTooltip>
                       <MuiTooltip title="Redefinir senha do usuário">
@@ -333,7 +333,7 @@ export default function AdminDashboard() {
                           onClick={() => setResetUser(user)}
                           aria-label="Redefinir senha"
                         >
-                          <KeyRound size={20} />
+                          <Key size={20} />
                         </IconButton>
                       </MuiTooltip>
                       <MuiTooltip title="Excluir usuário">
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
                           aria-label="Excluir usuário"
                           disabled={isSelf(user.id)}
                         >
-                          <Trash2 size={20} />
+                          <Trash size={20} />
                         </IconButton>
                       </MuiTooltip>
                     </Stack>

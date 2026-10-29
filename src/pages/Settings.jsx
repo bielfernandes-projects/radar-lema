@@ -32,7 +32,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Pencil, Trash2 } from 'lucide-react'
+import { PencilSimple, Trash } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { useReminders } from '../hooks/useReminders'
 import {
@@ -652,7 +652,7 @@ export default function Settings() {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<Pencil size={18} />}
+                      startIcon={<PencilSimple size={18} />}
                       onClick={() =>
                         setEditReminder({
                           eventId,
@@ -670,7 +670,7 @@ export default function Settings() {
                       size="small"
                       variant="outlined"
                       color="error"
-                      startIcon={<Trash2 size={18} />}
+                      startIcon={<Trash size={18} />}
                       onClick={() => openRemoveDialog(eventId, event?.title || 'este evento')}
                     >
                       Remover todos

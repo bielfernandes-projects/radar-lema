@@ -1,5 +1,5 @@
 import { IconButton, InputAdornment, Tooltip } from '@mui/material'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeSlash } from '@phosphor-icons/react'
 
 export default function PasswordToggle({ show, onToggle }) {
   return (
@@ -11,7 +11,7 @@ export default function PasswordToggle({ show, onToggle }) {
           edge="end"
           aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
         >
-          {show ? <EyeOff size={20} /> : <Eye size={20} />}
+          {show ? <EyeSlash size={20} /> : <Eye size={20} />}
         </IconButton>
       </Tooltip>
     </InputAdornment>

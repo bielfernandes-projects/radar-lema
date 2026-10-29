@@ -8,7 +8,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Trash2 } from 'lucide-react'
+import { Trash } from '@phosphor-icons/react'
 
 const MAX_FILES = 5
 const MAX_SIZE_MB = 3
@@ -169,7 +169,7 @@ export default function PhotoUploader({ photos = [], onChange }) {
                 }}
                 aria-label="Remover foto"
               >
-                <Trash2 size={18} />
+                <Trash size={18} />
               </IconButton>
             </Tooltip>
           </Paper>

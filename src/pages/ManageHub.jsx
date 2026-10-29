@@ -22,7 +22,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { PencilSimple, Plus, Trash, X } from '@phosphor-icons/react'
 import { HUB_KINDS, hubKind, removeHubContent } from '../services/hubContent'
 import { articleSourceLabel, visibilityLabel, unoUpdateTypeLabel, formatHubDate } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'
@@ -211,7 +211,7 @@ export default function ManageHub() {
                           onClick={() => navigate(active.editPath(item.id))}
                           aria-label="Editar"
                         >
-                          <Pencil size={20} />
+                          <PencilSimple size={20} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -221,7 +221,7 @@ export default function ManageHub() {
                         color="error"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={20} />
+                        <Trash size={20} />
                       </IconButton>
                     </Tooltip>
                   </Stack>

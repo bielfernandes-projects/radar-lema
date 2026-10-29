@@ -16,7 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { X } from 'lucide-react'
+import { X } from '@phosphor-icons/react'
 import { useReminders } from '../hooks/useReminders'
 import { REMINDER_UNITS, REMINDER_CHANNELS } from '../utils/constants'
 import { formatReminder, formatReminderMinutes } from '../utils/formatters'

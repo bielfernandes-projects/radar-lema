@@ -13,48 +13,48 @@ import {
   useTheme
 } from '@mui/material'
 import {
-  Home,
-  Newspaper,
   BookOpen,
-  Megaphone,
-  FileStack,
-  CalendarDays,
+  CalendarDots,
+  CaretDown,
+  ChartLine,
+  ChatCircle,
+  ClockCounterClockwise,
+  Files,
+  Gear,
   Heart,
-  History,
-  Settings,
-  FolderTree,
-  UserCog,
-  ShieldAlert,
-  ShieldCheck,
-  ChevronDown,
-  LogOut,
-  LineChart,
+  House,
+  Lifebuoy,
   Lock,
-  LifeBuoy,
-  MessageCircle
-} from 'lucide-react'
+  Megaphone,
+  Newspaper,
+  ShieldCheck,
+  ShieldWarning,
+  SignOut,
+  TreeStructure,
+  UserGear
+} from '@phosphor-icons/react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { buildNavTree } from '../../utils/navTree'
 import LockedClientModal from '../LockedClientModal'
 
 const ICONS = {
-  Home,
-  Newspaper,
-  BookOpen,
-  Megaphone,
-  FileStack,
-  CalendarDays,
-  Heart,
-  History,
-  Settings,
-  FolderTree,
-  UserCog,
-  ShieldAlert,
-  ShieldCheck,
-  LineChart,
-  LifeBuoy,
-  MessageCircle
+  Home: House,
+  Newspaper: Newspaper,
+  BookOpen: BookOpen,
+  Megaphone: Megaphone,
+  FileStack: Files,
+  CalendarDays: CalendarDots,
+  Heart: Heart,
+  History: ClockCounterClockwise,
+  Settings: Gear,
+  FolderTree: TreeStructure,
+  UserCog: UserGear,
+  ShieldAlert: ShieldWarning,
+  ShieldCheck: ShieldCheck,
+  LineChart: ChartLine,
+  LifeBuoy: Lifebuoy,
+  MessageCircle: ChatCircle
 }
 
 const isActive = (pathname, itemPath) => {
@@ -267,7 +267,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
                           }}
                         />
                         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
-                          <ChevronDown
+                          <CaretDown
                             size={18}
                             style={{
                               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -366,7 +366,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
             }}
           >
             <ListItemIcon sx={{ minWidth: 40, display: 'flex', justifyContent: 'center' }}>
-              <LogOut size={20} />
+              <SignOut size={20} />
             </ListItemIcon>
             <ListItemText
               primary="Sair"

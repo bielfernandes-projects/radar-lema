@@ -1,7 +1,7 @@
 import { fetchUnoUpdates } from '../services/unoUpdatesData'
 import UnoUpdateCard from '../components/UnoUpdateCard'
 import ListPage from '../components/ListPage'
-import { Megaphone } from 'lucide-react'
+import { Megaphone } from '@phosphor-icons/react'
 import { SKELETON_HEIGHT } from '../theme/cardLayout'
 import UnoCta from '../components/UnoCta'
 

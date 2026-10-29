@@ -15,7 +15,7 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { fetchArticleById, saveArticle, uploadArticleCover } from '../services/articlesData'
 import { VISIBILITY_OPTIONS } from '../utils/hub'
 import { safeUrl } from '../utils/safeUrl'

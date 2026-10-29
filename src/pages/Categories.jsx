@@ -17,7 +17,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Pencil, Trash2 } from 'lucide-react'
+import { PencilSimple, Trash } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import PageSkeleton from '../components/PageSkeleton'
 
@@ -166,7 +166,7 @@ export default function Categories() {
                         onClick={() => handleEdit(category)}
                         aria-label="Editar"
                       >
-                        <Pencil size={20} />
+                        <PencilSimple size={20} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Excluir categoria">
@@ -177,7 +177,7 @@ export default function Categories() {
                         color="error"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={20} />
+                        <Trash size={20} />
                       </IconButton>
                     </Tooltip>
                   </Stack>

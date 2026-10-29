@@ -22,7 +22,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { Plus, Pencil, Copy, Trash2, X } from 'lucide-react'
+import { Copy, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { formatDateRange, formatPrice } from '../utils/formatters'
 import PageSkeleton from '../components/PageSkeleton'
@@ -295,7 +295,7 @@ export default function ManageEvents() {
                         onClick={() => navigate(`/gestao/${event.id}/editar`)}
                         aria-label="Editar"
                       >
-                        <Pencil size={20} />
+                        <PencilSimple size={20} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Duplicar evento">
@@ -316,7 +316,7 @@ export default function ManageEvents() {
                         color="error"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={20} />
+                        <Trash size={20} />
                       </IconButton>
                     </Tooltip>
                   </Stack>

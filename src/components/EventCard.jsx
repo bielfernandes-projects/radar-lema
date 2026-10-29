@@ -13,7 +13,7 @@ import {
   Typography,
   Box
 } from '@mui/material'
-import { CalendarDays, MapPin, Heart, X } from 'lucide-react'
+import { CalendarDots, Heart, MapPin, X } from '@phosphor-icons/react'
 import {
   formatDateRange,
   formatModality,
@@ -112,7 +112,7 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
 
           <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
             <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary', minWidth: 0 }}>
-              <CalendarDays size={18} style={{ flexShrink: 0 }} />
+              <CalendarDots size={18} style={{ flexShrink: 0 }} />
               <Typography variant="body2" color="text.secondary" sx={cardMetaLineSx}>
                 {truncateAtWord(dateLabel, TRUNCATE.metaLine)}
               </Typography>
@@ -149,7 +149,7 @@ export default function EventCard({ event, isFavorite, onToggleFavorite }) {
           }}
           aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
         >
-          {isFavorite ? <Heart size={22} fill="currentColor" /> : <Heart size={22} />}
+          <Heart size={22} weight={isFavorite ? 'fill' : 'regular'} />
         </IconButton>
       </Tooltip>
 

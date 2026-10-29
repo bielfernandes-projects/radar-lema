@@ -9,7 +9,7 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { Lock, Mail } from 'lucide-react'
+import { Envelope, Lock } from '@phosphor-icons/react'
 import { useEffect } from 'react'
 import { track } from '../lib/posthog'
 import { useLogEvent } from '../hooks/useLogEvent'
@@ -73,7 +73,7 @@ export default function LockedClientModal({ open, onClose }) {
             logEvent('lock_clicked')
           }}
           variant="contained"
-          startIcon={<Mail size={18} />}
+          startIcon={<Envelope size={18} />}
         >
           Falar com um consultor
         </Button>

@@ -5,7 +5,7 @@ export default function EmptyState({ icon: Icon, title, message, actions = [] })
     <Box sx={{ textAlign: 'center', mt: 6, px: 2 }}>
       {Icon && (
         <Box sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}>
-          <Icon size={48} strokeWidth={1.5} />
+          <Icon size={48} weight="light" />
         </Box>
       )}
       <Typography variant="h6" component="h2" gutterBottom>

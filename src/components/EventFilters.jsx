@@ -13,7 +13,7 @@ import {
   Stack,
   TextField
 } from '@mui/material'
-import { ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
+import { CaretDown, CaretUp, SlidersHorizontal } from '@phosphor-icons/react'
 import { MODALITY_OPTIONS, URL_PARAMS, UFs } from '../utils/constants'
 
 export default function EventFilters({ categories, showCustomDateFilter = false }) {
@@ -99,7 +99,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
       <Button
         onClick={() => setFiltersOpen((prev) => !prev)}
         startIcon={<SlidersHorizontal size={18} />}
-        endIcon={filtersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        endIcon={filtersOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
         aria-expanded={filtersOpen}
         color="inherit"
         sx={{ display: { md: 'none' }, mb: 1 }}
