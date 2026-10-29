@@ -2,8 +2,14 @@ import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
 import { registerRoute, NavigationRoute } from 'workbox-routing'
 import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
+import { clientsClaim } from 'workbox-core'
 
 /* global clients */
+
+// Versão nova assume na hora: sem isso, quem já abriu o app fica na versão antiga
+// até fechar todas as abas/o PWA (registerType 'autoUpdate' pressupõe isto).
+self.skipWaiting()
+clientsClaim()
 
 precacheAndRoute(self.__WB_MANIFEST)
 
