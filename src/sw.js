@@ -6,6 +6,7 @@ import { clientsClaim } from 'workbox-core'
 
 /* global clients */
 
+// sw-rev 2: muda os bytes do SW para reinstalar e assumir o CSP novo (connect-src com fonts.gstatic.com).
 // Versão nova assume na hora: sem isso, quem já abriu o app fica na versão antiga
 // até fechar todas as abas/o PWA (registerType 'autoUpdate' pressupõe isto).
 self.skipWaiting()
