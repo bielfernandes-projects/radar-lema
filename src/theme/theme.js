@@ -91,6 +91,8 @@ export default function createAppTheme(mode) {
     components: {
       MuiCssBaseline: {
         styleOverrides: {
+          // color-scheme faz scrollbars e controles nativos seguirem o modo escuro
+          html: { colorScheme: mode },
           'html, body': {
             overflowX: 'hidden'
           }

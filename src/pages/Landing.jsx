@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   Button,
   Container,
@@ -15,7 +12,6 @@ import {
   BarChart3,
   BookOpen,
   CalendarDays,
-  ChevronDown,
   FileText,
   Newspaper,
   Sparkles
@@ -24,6 +20,7 @@ import LegalFooter from '../components/LegalFooter'
 import LandingShowcase from '../components/LandingShowcase'
 import usePageMeta from '../hooks/usePageMeta'
 import { SITE_NAME, SITE_URL } from '../config/site'
+import FaqList from '../components/FaqList'
 import { FAQ } from '../config/faq'
 
 const TITLE = 'RPPapp: o guia de bolso para RPPS'
@@ -445,32 +442,7 @@ export default function Landing() {
             Perguntas frequentes
           </Typography>
           <Box className="lp-reveal">
-            {FAQ.map(([question, answer]) => (
-              <Accordion
-                key={question}
-                disableGutters
-                elevation={0}
-                square
-                sx={{
-                  bgcolor: 'transparent', borderBottom: 1, borderColor: 'divider', '&:before': { display: 'none' },
-                  '&.Mui-expanded': { bgcolor: 'background.paper' }
-                }}
-              >
-                <AccordionSummary
-                  expandIcon={<ChevronDown size={20} aria-hidden="true" />}
-                  sx={{ px: 2, py: 0.5, '& .MuiAccordionSummary-content': { my: 1.5 } }}
-                >
-                  <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 600 }}>
-                    {question}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: 2, pb: 2.5 }}>
-                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '60ch' }}>
-                    {answer}
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            ))}
+            <FaqList />
           </Box>
         </Container>
       </Box>

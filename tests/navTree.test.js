@@ -54,7 +54,7 @@ describe('buildNavTree', () => {
 
   it('itens de menu por seção (regressão do espaço de chaves)', () => {
     expect(keysByGroup(buildNavTree({ user_type: 'super_admin' }))).toEqual({
-      main: ['home', 'news', 'articles', 'materials', 'events', 'unoUpdates', 'dashboardUno', 'settings'],
+      main: ['home', 'news', 'articles', 'materials', 'events', 'unoUpdates', 'dashboardUno', 'settings', 'help'],
       staff: ['hub', 'eventsMgmt', 'moderation'],
       admin: ['admin']
     })

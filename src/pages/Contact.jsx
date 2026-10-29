@@ -1,34 +1,43 @@
 import { Typography } from '@mui/material'
 import PublicPageShell, { Section } from '../components/PublicPageShell'
+import MailLink from '../components/MailLink'
 import { COMMERCIAL_EMAIL, SUPPORT_EMAIL } from '../config/site'
-import { FAQ } from '../config/faq'
 
 export default function Contact() {
   return (
     <PublicPageShell
-      title="Contato e perguntas frequentes"
-      description="Fale com a equipe do RPPapp e veja as respostas para as dúvidas mais comuns."
+      title="Contato"
+      description="Fale com a equipe do RPPapp: suporte, feedback e divulgação de artigos."
       path="/contato"
     >
       <Section title="Fale com a gente">
         <Typography variant="body1">
-          {SUPPORT_EMAIL
-            ? `Suporte e feedback: ${SUPPORT_EMAIL}.`
-            : 'Suporte e feedback: fale com o seu contato na Lema.'}
-          {COMMERCIAL_EMAIL ? ` Comercial: ${COMMERCIAL_EMAIL}.` : ''}
+          {SUPPORT_EMAIL ? (
+            <>
+              Suporte e feedback: <MailLink email={SUPPORT_EMAIL} />.
+            </>
+          ) : (
+            'Suporte e feedback: fale com o seu contato na Lema.'
+          )}
+          {COMMERCIAL_EMAIL && (
+            <>
+              {' '}
+              Comercial: <MailLink email={COMMERCIAL_EMAIL} />.
+            </>
+          )}
         </Typography>
       </Section>
-      <Section title="Perguntas frequentes">
-        {FAQ.map(([question, answer]) => (
-          <div key={question}>
-            <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 600, mt: 2 }}>
-              {question}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {answer}
-            </Typography>
-          </div>
-        ))}
+      <Section title="Publique seus artigos">
+        <Typography variant="body1">
+          Quer ver seus artigos no RPPapp? Entre em contato conosco
+          {SUPPORT_EMAIL && (
+            <>
+              {' '}
+              pelo e-mail <MailLink email={SUPPORT_EMAIL} />
+            </>
+          )}
+          .
+        </Typography>
       </Section>
     </PublicPageShell>
   )

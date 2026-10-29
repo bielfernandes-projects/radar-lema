@@ -15,6 +15,7 @@ const ManageEvents = lazy(() => import('./pages/ManageEvents'))
 const EventFormPage = lazy(() => import('./pages/EventFormPage'))
 const Categories = lazy(() => import('./pages/Categories'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Help = lazy(() => import('./pages/Help'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
@@ -88,10 +89,10 @@ export const routes = [
     element: <PageRoute Component={RecoverPassword} />
   },
   { path: '/privacidade', element: <PageRoute Component={Privacy} /> },
-  { path: '/termos', element: <PageRoute Component={Terms} /> },
-  { path: '/sobre', element: <PageRoute Component={About} /> },
   { path: '/contato', element: <PageRoute Component={Contact} /> },
   { path: '/fontes', element: <PageRoute Component={Sources} /> },
+  { path: '/termos', element: <PageRoute Component={Terms} /> },
+  { path: '/sobre', element: <PageRoute Component={About} /> },
   {
     path: '/',
     element: <LayoutRoute />,
@@ -109,6 +110,10 @@ export const routes = [
       { path: 'artigo/:id', element: <PageRoute Component={ArticleDetail} /> },
       { path: 'materiais', element: <PageRoute Component={Materials} /> },
       { path: 'configuracoes', element: <PageRoute Component={Settings} /> },
+      // Ajuda in-app; /contato e /fontes públicos (landing) continuam fora do Layout.
+      { path: 'ajuda/duvidas', element: <PageRoute Component={Help} /> },
+      { path: 'ajuda/contato', element: <PageRoute Component={Contact} /> },
+      { path: 'ajuda/fontes', element: <PageRoute Component={Sources} /> },
       { path: 'gestao', element: <PageRoute Component={ManageEvents} /> },
       { path: 'gestao/novo', element: <PageRoute Component={EventFormPage} /> },
       { path: 'gestao/:id/editar', element: <PageRoute Component={EventFormPage} /> },

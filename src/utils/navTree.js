@@ -40,7 +40,17 @@ const SECTIONS = [
         icon: 'LineChart',
         unoClientOnly: true
       },
-      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings' }
+      { key: 'settings', label: 'Configurações', path: '/configuracoes', icon: 'Settings' },
+      {
+        key: 'help',
+        label: 'Ajuda',
+        icon: 'LifeBuoy',
+        children: [
+          { key: 'faq', label: 'Dúvidas frequentes', path: '/ajuda/duvidas' },
+          { key: 'contact', label: 'Contato', path: '/ajuda/contato' },
+          { key: 'sources', label: 'Fontes', path: '/ajuda/fontes' }
+        ]
+      }
       // Botão da comunidade oculto por enquanto; restaurar quando voltar:
       // { key: 'whatsappCommunity', label: 'Comunidade Lema', icon: 'MessageCircle', comingSoon: true }
     ]

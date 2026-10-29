@@ -1,11 +1,25 @@
 import { Box, Button, Container, Typography } from '@mui/material'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import LegalFooter from './LegalFooter'
 import usePageMeta from '../hooks/usePageMeta'
 
+
 // Casca das páginas públicas (sem login): header com logo, conteúdo e rodapé legal.
+// Em /ajuda/* a página é aberta dentro do app (Layout já fornece menu e topo): só o conteúdo.
 export default function PublicPageShell({ title, description, path, draft, children }) {
   usePageMeta({ title, description, path })
+  const { pathname } = useLocation()
+
+  if (pathname.startsWith('/ajuda/')) {
+    return (
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {title}
+        </Typography>
+        {children}
+      </Container>
+    )
+  }
 
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>

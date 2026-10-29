@@ -5,7 +5,7 @@ export const LEGAL_LINKS = [
   { to: '/privacidade', label: 'Privacidade' },
   { to: '/termos', label: 'Termos de Uso' },
   { to: '/sobre', label: 'Sobre' },
-  { to: '/contato', label: 'Contato e FAQ' },
+  { to: '/contato', label: 'Contato' },
   { to: '/fontes', label: 'Fontes' }
 ]
 
