@@ -6,7 +6,8 @@ import {
   fetchClientesList,
   fetchOwnUnoClient,
   fetchUnoClients,
-  fetchOwnUnoClientFimCarteira
+  fetchOwnUnoClientFimCarteira,
+  resetUnoRateLimit
 } from '../src/services/unoProxy'
 
 vi.mock('../src/lib/supabase', () => ({
@@ -33,6 +34,7 @@ function jsonResponse(body, status = 200) {
 describe('services/unoProxy', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
+    resetUnoRateLimit()
   })
 
   afterEach(() => {
@@ -44,6 +46,44 @@ describe('services/unoProxy', () => {
     await expect(callUnoProxy('fundosCliente', {})).rejects.toThrow(
       'Acesso restrito a Clientes Lema.'
     )
+  })
+
+  it('callUnoProxy: refaz a chamada quando a UNO responde 429', async () => {
+    vi.useFakeTimers()
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse('Too many requests', 429))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
+    const promise = callUnoProxy('x', {})
+    await vi.advanceTimersByTimeAsync(5000)
+    await expect(promise).resolves.toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
+
+  it('callUnoProxy: respeita o limite de 20/min (18 por janela de 60s)', async () => {
+    vi.useFakeTimers()
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({}))
+    const all = Promise.all(Array.from({ length: 20 }, (_, n) => callUnoProxy('x', { n })))
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(fetch.mock.calls.length).toBeLessThanOrEqual(18)
+    await vi.advanceTimersByTimeAsync(60_000)
+    await all
+    expect(fetch).toHaveBeenCalledTimes(20)
+    vi.useRealTimers()
+  })
+
+  it('callUnoProxy: nunca passa de 2 chamadas em paralelo', async () => {
+    let active = 0
+    let peak = 0
+    vi.mocked(fetch).mockImplementation(async () => {
+      active += 1
+      peak = Math.max(peak, active)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      active -= 1
+      return jsonResponse({})
+    })
+    await Promise.all([1, 2, 3, 4, 5].map((n) => callUnoProxy('x', { n })))
+    expect(peak).toBe(2)
   })
 
   it('callUnoProxy: anexa status e extrai message do corpo JSON', async () => {

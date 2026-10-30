@@ -3,6 +3,46 @@ import { yearsInRange, parseFimCarteira } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
+// A API do UNO tem rate limit de 20 chamadas por minuto (429 acima disso) e o Dashboard
+// dispara uma por ano do período + o demonstrativo (+ até 12 do fallback de mês). Janela
+// deslizante de 18/min (folga p/ outras abas), 2 em voo, e 429 residual refeito com espera.
+const WINDOW_MS = 60_000
+const MAX_PER_WINDOW = 18
+const MAX_IN_FLIGHT = 2
+const RETRY_429_DELAYS_MS = [5000, 15000]
+const sentAt = []
+let inFlight = 0
+const waiting = []
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Só para testes: zera a janela de rate limit, que é estado do módulo. */
+export function resetUnoRateLimit() {
+  sentAt.length = 0
+}
+
+async function throttle() {
+  for (;;) {
+    const now = Date.now()
+    while (sentAt.length && now - sentAt[0] >= WINDOW_MS) sentAt.shift()
+    if (sentAt.length < MAX_PER_WINDOW) {
+      sentAt.push(now)
+      return
+    }
+    await sleep(sentAt[0] + WINDOW_MS - now + 20)
+  }
+}
+
+async function withSlot(task) {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise((resolve) => waiting.push(resolve))
+  inFlight += 1
+  try {
+    return await task()
+  } finally {
+    inFlight -= 1
+    waiting.shift()?.()
+  }
+}
+
 // A Edge Function uno-proxy só aceita GET (endpoint + params na query string).
 async function fetchProxy(endpoint, params = {}) {
   const {
@@ -10,12 +50,25 @@ async function fetchProxy(endpoint, params = {}) {
   } = await supabase.auth.getSession()
 
   const query = new URLSearchParams({ endpoint, ...params })
-  const res = await fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session?.access_token || ''}`
+  const request = async () => {
+    await throttle()
+    return fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token || ''}`
+      }
+    })
+  }
+
+  const res = await withSlot(async () => {
+    let r = await request()
+    for (const delay of RETRY_429_DELAYS_MS) {
+      if (r.status !== 429) break
+      await sleep(delay)
+      r = await request()
     }
+    return r
   })
 
   if (!res.ok) {
