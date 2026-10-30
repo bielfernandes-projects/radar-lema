@@ -44,12 +44,14 @@ async function withSlot(task) {
 }
 
 // A Edge Function uno-proxy só aceita GET (endpoint + params na query string).
-async function fetchProxy(endpoint, params = {}) {
+// `refresh` pede ao servidor para refazer a consulta ao UNO (senão ele serve a cópia guardada).
+// Devolve também quando a cópia foi feita (header x-uno-fetched-at; ISO, ou null).
+async function fetchProxyMeta(endpoint, params = {}, { refresh = false } = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
 
-  const query = new URLSearchParams({ endpoint, ...params })
+  const query = new URLSearchParams({ endpoint, ...params, ...(refresh && { refresh: '1' }) })
   const request = async () => {
     await throttle()
     return fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
@@ -86,11 +88,11 @@ async function fetchProxy(endpoint, params = {}) {
     throw error
   }
 
-  return res.json()
+  return { data: await res.json(), fetchedAt: res.headers?.get?.('x-uno-fetched-at') || null }
 }
 
 export async function callUnoProxy(endpoint, params = {}) {
-  return fetchProxy(endpoint, params)
+  return (await fetchProxyMeta(endpoint, params)).data
 }
 
 function extractUnoErrorMessage(text) {
@@ -108,15 +110,16 @@ function extractUnoErrorMessage(text) {
 // pro cliente — ex. um cliente que so atualiza esporadicamente), a UNO
 // devolve 400. Anda pra tras ate achar o ultimo mes fechado (limite de 12
 // tentativas pra nao entrar em loop se o cliente nao tiver dado nenhum).
-async function fetchDemonstrativo(month, year, clientId, attemptsLeft = 12) {
+async function fetchDemonstrativo(month, year, clientId, attemptsLeft = 12, refresh = false) {
   const params = { consulting_id: '1', mes: String(month), ano: String(year), ...clientParam(clientId) }
   try {
-    const data = await callUnoProxy('demonstrativoFundosCliente', params)
-    return { data, month, year }
+    const { data, fetchedAt } = await fetchProxyMeta('demonstrativoFundosCliente', params, { refresh })
+    return { data, month, year, fetchedAt }
   } catch (err) {
     if (err?.status === 400 && attemptsLeft > 0) {
       const previous = new Date(year, month - 1, 1)
       previous.setMonth(previous.getMonth() - 1)
+      // o refresh vale só p/ o mes pedido: os anteriores saem da copia guardada (cada um custa pageview)
       return fetchDemonstrativo(previous.getMonth() + 1, previous.getFullYear(), clientId, attemptsLeft - 1)
     }
     throw err
@@ -130,8 +133,12 @@ function clientParam(clientId) {
 // evolucaoAnualCliente devolve, por ano, o Patrimonio/Rentabilidade/Meta
 // mes a mes exatamente como o UNO calcula (mesma fonte que o dashboard real
 // do UNO usa) — uma chamada por ano civil coberto pelo periodo selecionado.
+function fetchEvolucaoMeta(ano, clientId, opts) {
+  return fetchProxyMeta('evolucaoAnualCliente', { consulting_id: '1', ano: String(ano), ...clientParam(clientId) }, opts)
+}
+
 export async function fetchEvolucaoAnual(ano, clientId) {
-  return callUnoProxy('evolucaoAnualCliente', { consulting_id: '1', ano: String(ano), ...clientParam(clientId) })
+  return (await fetchEvolucaoMeta(ano, clientId)).data
 }
 
 export async function fetchClientesList() {
@@ -174,16 +181,20 @@ export async function fetchOwnUnoClientFimCarteira() {
   return parseFimCarteira(record?.fim_carteira)
 }
 
-export async function fetchUnoDashboard(period) {
+export async function fetchUnoDashboard(period, { refresh = false } = {}) {
   const years = yearsInRange(period.startDate, period.endDate)
 
-  const [demonstrativo, ...evolucoes] = await Promise.all([
-    fetchDemonstrativo(period.month, period.year, period.clientId),
-    ...years.map((ano) => fetchEvolucaoAnual(ano, period.clientId))
+  const [demonstrativo, ...evolucaoMetas] = await Promise.all([
+    fetchDemonstrativo(period.month, period.year, period.clientId, 12, refresh),
+    ...years.map((ano) => fetchEvolucaoMeta(ano, period.clientId, { refresh }))
   ])
+  const evolucoes = evolucaoMetas.map((m) => m.data)
+  // Idade do dado na tela = a da copia mais antiga entre as consultas (null se nao veio de cache).
+  const dates = [demonstrativo.fetchedAt, ...evolucaoMetas.map((m) => m.fetchedAt)].filter(Boolean)
+  const fetchedAt = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null
 
   // month/year devolvidos podem ser anteriores aos pedidos (fallback do
   // fetchDemonstrativo) — o chamador usa isso pra corrigir o mes selecionado
   // na tela quando o mes pedido nao tinha dado fechado.
-  return { demonstrativo: demonstrativo.data, demonstrativoMonth: demonstrativo.month, demonstrativoYear: demonstrativo.year, evolucoes }
+  return { demonstrativo: demonstrativo.data, demonstrativoMonth: demonstrativo.month, demonstrativoYear: demonstrativo.year, evolucoes, fetchedAt }
 }

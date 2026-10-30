@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Autocomplete,
@@ -17,7 +17,7 @@ import {
   Typography,
   useTheme
 } from '@mui/material'
-import { Info, Printer } from '@phosphor-icons/react'
+import { ArrowClockwise, Info, Printer } from '@phosphor-icons/react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -229,6 +229,11 @@ export default function DashboardUno() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  // "Atualizar" refaz a consulta ao UNO (gasta pageview do ComDinheiro); o resto sai do cache do servidor.
+  const refreshNext = useRef(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
+  const [fetchedAt, setFetchedAt] = useState(null)
   const [clients, setClients] = useState([])
   const [ownClientName, setOwnClientName] = useState('')
   const [ownClientFimCarteira, setOwnClientFimCarteira] = useState(null)
@@ -284,6 +289,13 @@ export default function DashboardUno() {
     }
   }, [isSuperAdminUser, selectedClientId])
 
+  // Demo e compartilhado: so o Super Admin atualiza. Cliente real atualiza o proprio dado.
+  const canRefresh = isSuperAdminUser || (hasProfile && !isDemo)
+  const handleRefresh = () => {
+    refreshNext.current = true
+    setReload((r) => r + 1)
+  }
+
   const clientName = isSuperAdminUser
     ? clients.find((c) => c.uno_client_id === selectedClientId)?.name || ''
     : ownClientName
@@ -291,16 +303,24 @@ export default function DashboardUno() {
   useEffect(() => {
     if (!selectedClientId) return
     const fetchData = async () => {
-      setLoading(true)
+      const refresh = refreshNext.current
+      refreshNext.current = false
+      // Atualizar mantem o dashboard na tela (sem esqueletos); o servidor decide se refaz mesmo.
+      setLoading(!refresh)
+      setRefreshing(refresh)
       setError('')
+      setRefreshError('')
       try {
         const range = rangeForPeriod(period, selectedMonth, selectedYear)
-        const result = await fetchUnoDashboard({
-          ...range,
-          month: selectedMonth,
-          year: selectedYear,
-          clientId: selectedClientId
-        })
+        const result = await fetchUnoDashboard(
+          {
+            ...range,
+            month: selectedMonth,
+            year: selectedYear,
+            clientId: selectedClientId
+          },
+          { refresh }
+        )
         // O mes pedido pode nao ter fechado (mes calendario corrente, ou um
         // cliente que nao atualiza cota todo mes): fetchUnoDashboard ja caiu
         // pro ultimo mes fechado do lado da API. Reflete isso no seletor em
@@ -311,10 +331,15 @@ export default function DashboardUno() {
           return
         }
         setData(result)
+        setFetchedAt(result.fetchedAt)
       } catch (err) {
-        setError(err.message || 'Erro ao carregar o dashboard do UNO.')
+        const message = err.message || 'Erro ao carregar o dashboard do UNO.'
+        // Falha ao atualizar nao derruba o que ja esta na tela.
+        if (refresh) setRefreshError(message)
+        else setError(message)
       } finally {
         setLoading(false)
+        setRefreshing(false)
       }
     }
     fetchData()
@@ -502,6 +527,35 @@ export default function DashboardUno() {
             </Box>
           </Button>
         </Box>
+
+        {(fetchedAt || canRefresh) && (
+          <Box
+            className="report-interactive-hide"
+            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 2 }}
+          >
+            {fetchedAt && (
+              <Typography variant="body2" color="text.secondary">
+                Dados de {new Date(fetchedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </Typography>
+            )}
+            {canRefresh && (
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={refreshing || loading}
+                onClick={handleRefresh}
+                startIcon={<ArrowClockwise size={16} />}
+              >
+                {refreshing ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            )}
+          </Box>
+        )}
+        {refreshError && (
+          <Alert severity="warning" className="report-interactive-hide" sx={{ mb: 2 }}>
+            Não foi possível atualizar agora ({refreshError}). Mostrando os dados guardados.
+          </Alert>
+        )}
 
         <Box
           className="report-interactive-hide"

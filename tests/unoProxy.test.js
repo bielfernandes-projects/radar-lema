@@ -132,6 +132,43 @@ describe('services/unoProxy', () => {
     expect(calls.some((u) => u.includes('endpoint=evolucaoAnualCliente') && u.includes('ano=2026'))).toBe(true)
   })
 
+  it('fetchUnoDashboard: refresh=1 só quando pedido, e só no mes pedido (os anteriores saem do cache)', async () => {
+    const period = { month: 6, year: 2026, startDate: '01/06/2026', endDate: '30/06/2026' }
+
+    vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
+    await fetchUnoDashboard(period)
+    expect(vi.mocked(fetch).mock.calls.some((c) => String(c[0]).includes('refresh=1'))).toBe(false)
+
+    vi.mocked(fetch).mockClear()
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({ message: 'x' }, 400)) // demonstrativo 6/2026
+      .mockResolvedValue(jsonResponse([]))
+    await fetchUnoDashboard(period, { refresh: true })
+    const urls = vi.mocked(fetch).mock.calls.map((c) => String(c[0]))
+    const demonstrativos = urls.filter((u) => u.includes('endpoint=demonstrativoFundosCliente'))
+    expect(demonstrativos[0]).toContain('refresh=1')
+    expect(demonstrativos[1]).toContain('mes=5')
+    expect(demonstrativos[1]).not.toContain('refresh=1')
+    expect(urls.filter((u) => u.includes('endpoint=evolucaoAnualCliente')).every((u) => u.includes('refresh=1'))).toBe(true)
+  })
+
+  it('fetchUnoDashboard: fetchedAt é a data da cópia mais antiga (null se nada veio de cache)', async () => {
+    const period = { month: 6, year: 2026, startDate: '01/06/2025', endDate: '30/06/2026' }
+    const withDate = (body, iso) => ({ ...jsonResponse(body), headers: { get: (h) => (h === 'x-uno-fetched-at' ? iso : null) } })
+
+    vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
+    expect((await fetchUnoDashboard(period)).fetchedAt).toBeNull()
+
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      String(url).includes('endpoint=demonstrativo')
+        ? withDate([], '2026-11-02T10:00:00.000Z')
+        : String(url).includes('ano=2025')
+          ? withDate([], '2026-11-01T08:00:00.000Z')
+          : withDate([], '2026-11-02T09:00:00.000Z')
+    )
+    expect((await fetchUnoDashboard(period)).fetchedAt).toBe('2026-11-01T08:00:00.000Z')
+  })
+
   it('fetchUnoDashboard: uma chamada a evolucaoAnualCliente por ano civil coberto pelo periodo', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
 
