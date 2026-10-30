@@ -349,7 +349,7 @@ export default function Landing() {
             </Typography>
           </Box>
         </Container>
-        <Box ref={sentinelRef} aria-hidden="true" sx={{ position: 'absolute', left: 0, bottom: 0, width: 1, height: 1 }} />
+        <Box ref={sentinelRef} aria-hidden="true" sx={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '1px', pointerEvents: 'none' }} />
       </Box>
 
       {/* FUNCIONALIDADES: cartas que empilham sob a rolagem (sticky, sem JS) */}
