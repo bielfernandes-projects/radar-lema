@@ -4,6 +4,7 @@ import {
   canAccessLemaExclusive,
   resolveUnoClientId
 } from "../_shared/access.ts";
+import { decideUnoCache, isCacheable } from "../_shared/unoCache.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -16,7 +17,9 @@ const unoDemoClientId = Deno.env.get("UNO_DEMO_CLIENT_ID") || "192";
 const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS"
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  // O front lê quando a cópia guardada foi feita (ver uno_cache).
+  "Access-Control-Expose-Headers": "x-uno-fetched-at, x-uno-cache"
 };
 
 // SEC-008: CORS restrito a origins do app. Configuravel via APP_ORIGINS
@@ -48,6 +51,18 @@ function withCors(origin: string | null) {
     headers["Access-Control-Allow-Origin"] = "*";
   }
   return headers;
+}
+
+function jsonResponse(payload: unknown, origin: string | null, fetchedAt: string, cache: string) {
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "x-uno-fetched-at": fetchedAt,
+      "x-uno-cache": cache,
+      ...withCors(origin)
+    }
+  });
 }
 
 // Endpoints permitidos e seus parametros aceitos (além do client id).
@@ -133,6 +148,9 @@ Deno.serve(async (req) => {
   }
 
   const query = new URLSearchParams();
+  // Chave do cache (só demonstrativo/evolução, que gastam pageview do ComDinheiro).
+  let cacheKey: string | null = null;
+  let isDemoClient = false;
 
   if (isListEndpoint) {
     // Lista todos os clientes do consulting_id — sem client_id nenhum.
@@ -165,6 +183,28 @@ Deno.serve(async (req) => {
     } else {
       query.set("client_id", resolvedClientId);
     }
+    isDemoClient = resolvedClientId === unoDemoClientId;
+    if (isCacheable(endpoint)) cacheKey = `${endpoint}?${query.toString()}`;
+  }
+
+  const refresh = url.searchParams.get("refresh") === "1";
+  if (cacheKey) {
+    const { data: cached, error: cacheError } = await adminClient
+      .from("uno_cache")
+      .select("payload, fetched_at")
+      .eq("cache_key", cacheKey)
+      .maybeSingle();
+    if (cacheError) console.error("uno-cache read", cacheError.message);
+    const decision = decideUnoCache({
+      hasRow: Boolean(cached),
+      fetchedAt: cached?.fetched_at,
+      refresh,
+      isSuperAdmin,
+      isDemo: isDemoClient
+    });
+    if (decision === "serve" && cached) {
+      return jsonResponse(cached.payload, origin, cached.fetched_at, "hit");
+    }
   }
 
   const targetUrl = `${unoApiBase}/${endpoint}?${query.toString()}`;
@@ -185,6 +225,33 @@ Deno.serve(async (req) => {
         .replace(/("?(?:x-access-token|authorization|cookie)"?\s*:\s*)"[^"]*"/gi, '$1"[redigido]"')
         .slice(0, 600);
       console.error("uno-proxy upstream", res.status, endpoint, query.toString(), body);
+      // O erro do UNO traz a config interna do axios (url, headers, corpo da chamada ao
+      // ComDinheiro): nada disso pode chegar ao navegador, só a mensagem.
+      let message = "Erro ao consultar a API do UNO";
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed?.message === "string") message = parsed.message.slice(0, 200);
+      } catch {
+        // corpo não-JSON (ex.: 429 em texto): mantém a mensagem genérica
+      }
+      return new Response(JSON.stringify({ message }), {
+        status: res.status,
+        headers: { "Content-Type": "application/json", ...withCors(origin) }
+      });
+    }
+    if (cacheKey) {
+      // Guarda só respostas 200 em JSON; falha ao gravar não derruba a consulta.
+      try {
+        const payload = JSON.parse(text);
+        const fetchedAt = new Date().toISOString();
+        const { error: writeError } = await adminClient
+          .from("uno_cache")
+          .upsert({ cache_key: cacheKey, payload, fetched_at: fetchedAt });
+        if (writeError) console.error("uno-cache write", writeError.message);
+        return jsonResponse(payload, origin, fetchedAt, refresh ? "refresh" : "miss");
+      } catch (err) {
+        console.error("uno-cache", err);
+      }
     }
     return new Response(text, {
       status: res.status,
