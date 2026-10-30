@@ -31,8 +31,8 @@ const DESCRIPTION =
 const FEATURES = [
   { icon: CalendarDots, title: 'Eventos', text: 'Agenda do ecossistema RPPS num só lugar.' },
   { icon: Newspaper, title: 'Notícias', text: 'Notícias de mercado e de previdência selecionadas para RPPS.' },
-  { icon: BookOpen, title: 'Artigos', text: 'Análises e comparativos sobre RPPS e investimentos.' },
-  { icon: FileText, title: 'Materiais de apoio', text: 'Documentos e modelos para o dia a dia do regime próprio.' },
+  { icon: BookOpen, title: 'Artigos', text: 'Análises sobre o universo de investimentos para RPPS' },
+  { icon: FileText, title: 'Materiais de apoio', text: 'Documentos e modelos para o dia a dia do seu RPPS' },
   { icon: Megaphone, title: 'Novidades do UNO', text: 'Acompanhe as atualizações do sistema UNO.' },
   { icon: ChartBar, title: 'Dashboard de investimentos', text: 'Visão dos investimentos para clientes UNO.' }
 ]
@@ -377,18 +377,12 @@ export default function Landing() {
                   top: { xs: 88 + i * 10, md: 112 + i * 14 }
                 }}
               >
-                <Box
-                  className="lp-reveal"
-                  sx={{
-                    p: 0.75, borderRadius: 4, bgcolor: 'divider',
-                    boxShadow: '0 30px 40px -28px rgba(15,23,42,0.35)'
-                  }}
-                >
+                <Box className="lp-reveal">
                   <Box
                     sx={{
                       display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3 }, p: { xs: 2.5, md: 3.5 },
-                      borderRadius: 'calc(16px - 6px)', bgcolor: 'background.paper',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+                      borderRadius: 4, bgcolor: 'background.paper', border: 1, borderColor: 'divider',
+                      boxShadow: '0 30px 40px -28px rgba(15,23,42,0.35)',
                       transition: `transform 500ms ${EASE}`,
                       '&:hover': { transform: 'translateY(-3px)' },
                       '&:hover .lp-icon': { transform: 'scale(1.08) rotate(-4deg)' }

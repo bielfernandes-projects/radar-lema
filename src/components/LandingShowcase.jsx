@@ -1,14 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Box, GlobalStyles, Typography, useMediaQuery, useTheme } from '@mui/material'
-import {
-  BookOpen,
-  CalendarDots,
-  ChartBar,
-  FileText,
-  House,
-  MapPin,
-  Newspaper
-} from '@phosphor-icons/react'
+import { CalendarDots, ChartBar, FileText, House, MapPin, Newspaper } from '@phosphor-icons/react'
 
 const BLUE = '#2563eb'
 const NAVY = '#0b1736'
@@ -16,44 +8,11 @@ const INK = '#1e293b'
 const MUTED = '#5c6675'
 const GAP = { xs: 5, md: 9 }
 
-// Conteúdo ilustrativo: nada aqui é dado real do app.
+// Prints reais do app em public/showcase (390x844 @2x). Só o Dashboard ainda é ilustrativo.
 const SCREENS = [
-  {
-    key: 'eventos',
-    title: 'Eventos',
-    icon: CalendarDots,
-    rows: [
-      { tag: 'Presencial', title: 'Encontro Nacional de Gestores de RPPS', meta: 'Brasília - DF', cover: true },
-      { tag: 'Online', title: 'Webinar: Política de Investimentos 2027', meta: 'Online' }
-    ]
-  },
-  {
-    key: 'noticias',
-    title: 'Notícias',
-    icon: Newspaper,
-    rows: [
-      { tag: 'Mercado', title: 'Copom mantém a Selic e o mercado reage', meta: 'Há 2 horas', cover: true },
-      { tag: 'Previdência', title: 'Novas regras para certificação de dirigentes', meta: 'Há 5 horas' }
-    ]
-  },
-  {
-    key: 'artigos',
-    title: 'Artigos',
-    icon: BookOpen,
-    rows: [
-      { tag: 'Análise', title: 'Como ler o boletim econômico do mês', meta: '6 min de leitura', cover: true },
-      { tag: 'Comparativo', title: 'Títulos públicos x fundos de renda fixa', meta: '9 min de leitura' }
-    ]
-  },
-  {
-    key: 'materiais',
-    title: 'Materiais de apoio',
-    icon: FileText,
-    rows: [
-      { tag: 'Modelo', title: 'Modelo de ata do comitê de investimentos', meta: 'DOCX', cover: true },
-      { tag: 'Guia', title: 'Checklist de prestação de contas', meta: 'PDF' }
-    ]
-  },
+  { key: 'eventos', title: 'Eventos', img: '/showcase/eventos.jpg' },
+  { key: 'noticias', title: 'Notícias', img: '/showcase/noticias.jpg' },
+  { key: 'artigos', title: 'Artigos', img: '/showcase/artigos.jpg' },
   { key: 'dashboard', title: 'Dashboard', icon: ChartBar, chart: true }
 ]
 
@@ -89,7 +48,7 @@ function Row({ tag, title, meta, place, cover, Icon }) {
 }
 
 function Phone({ screen }) {
-  const { title, icon: Icon, rows, chart } = screen
+  const { title, icon: Icon, rows, chart, img } = screen
   return (
     <Box
       sx={{
@@ -97,6 +56,17 @@ function Phone({ screen }) {
         bgcolor: NAVY, boxShadow: '0 50px 60px -34px rgba(11,23,54,0.6), inset 0 0 0 1px rgba(255,255,255,0.12)'
       }}
     >
+      {img ? (
+        <Box sx={{ height: '100%', borderRadius: '29px', overflow: 'hidden', bgcolor: '#ebeef2' }}>
+          <img
+            src={img}
+            alt={`Tela de ${title} do RPPapp`}
+            loading="lazy"
+            draggable={false}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
+          />
+        </Box>
+      ) : (
       <Box sx={{ height: '100%', borderRadius: '29px', overflow: 'hidden', bgcolor: '#ebeef2', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ bgcolor: '#fff', px: 2.25, pt: 1.5, pb: 1.5, borderBottom: '1px solid #dce0e7' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, color: INK, mb: 1.5 }}>
@@ -149,6 +119,7 @@ function Phone({ screen }) {
           ))}
         </Box>
       </Box>
+      )}
     </Box>
   )
 }
