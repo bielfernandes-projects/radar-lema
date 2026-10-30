@@ -179,6 +179,13 @@ Deno.serve(async (req) => {
     });
 
     const text = await res.text();
+    if (!res.ok) {
+      // Só no log da função (Supabase > Edge Functions > Logs); o corpo segue igual pro front.
+      const body = text
+        .replace(/("?(?:x-access-token|authorization|cookie)"?\s*:\s*)"[^"]*"/gi, '$1"[redigido]"')
+        .slice(0, 600);
+      console.error("uno-proxy upstream", res.status, endpoint, query.toString(), body);
+    }
     return new Response(text, {
       status: res.status,
       headers: {
