@@ -66,3 +66,12 @@ export function articleSourceLabel(article) {
   if (article.origin === 'blog') return 'Blog Lema'
   return article.origin === 'staff' ? null : article.author
 }
+
+/**
+ * Artigos ingeridos (blog/Panorama) guardam o mesmo teaser em `subtitle` e `body`:
+ * mostrar os dois repete o texto na pagina. So renderiza o corpo se ele trouxer algo a mais.
+ */
+export function hasDistinctBody(article) {
+  const body = (article?.body ?? '').trim()
+  return Boolean(body) && body !== (article?.subtitle ?? '').trim()
+}

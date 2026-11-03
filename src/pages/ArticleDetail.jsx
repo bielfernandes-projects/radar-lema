@@ -15,7 +15,7 @@ import {
 import { ArrowLeft, ArrowSquareOut } from '@phosphor-icons/react'
 import { fetchArticleById } from '../services/articlesData'
 import { safeUrl } from '../utils/safeUrl'
-import { formatHubDateTime } from '../utils/hub'
+import { formatHubDateTime, hasDistinctBody } from '../utils/hub'
 import Markdown from '../components/Markdown'
 import PageSkeleton from '../components/PageSkeleton'
 import ExclusiveBadge from '../components/ExclusiveBadge'
@@ -105,7 +105,7 @@ export default function ArticleDetail() {
         </Typography>
       )}
 
-      <Markdown content={article.body} />
+      {hasDistinctBody(article) && <Markdown content={article.body} />}
 
       {article.source_url && (
         <Stack sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderTopColor: 'divider' }}>

@@ -6,7 +6,8 @@ import {
   visibilityLabel,
   formatHubDate,
   formatHubDateTime,
-  formatFileSize
+  formatFileSize,
+  hasDistinctBody
 } from '../src/utils/hub'
 
 describe('utils/hub', () => {
@@ -62,5 +63,12 @@ describe('utils/hub', () => {
     expect(formatFileSize(null)).toBe('')
     expect(formatFileSize(undefined)).toBe('')
     expect(formatFileSize(-1)).toBe('')
+  })
+
+  it('hasDistinctBody: corpo igual ao subtitulo (artigo ingerido) ou vazio nao e exibido', () => {
+    expect(hasDistinctBody({ subtitle: 'Teaser', body: ' Teaser ' })).toBe(false)
+    expect(hasDistinctBody({ subtitle: 'Teaser', body: '' })).toBe(false)
+    expect(hasDistinctBody({ subtitle: 'Teaser', body: '# Texto completo' })).toBe(true)
+    expect(hasDistinctBody({ body: 'Sem subtitulo' })).toBe(true)
   })
 })
