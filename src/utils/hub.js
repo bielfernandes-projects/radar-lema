@@ -75,3 +75,11 @@ export function hasDistinctBody(article) {
   const body = (article?.body ?? '').trim()
   return Boolean(body) && body !== (article?.subtitle ?? '').trim()
 }
+
+const DETAIL_PATH = { article: '/artigo/', event: '/evento/', news: '/noticia/', uno_update: '/novidade/' }
+
+/** Rota da pagina de detalhe de um conteudo comentavel; cai em "/" se o tipo for desconhecido. */
+export function contentPath(contentType, contentId) {
+  return DETAIL_PATH[contentType] ? `${DETAIL_PATH[contentType]}${contentId}` : '/'
+}
+

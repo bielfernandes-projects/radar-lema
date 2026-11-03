@@ -1290,3 +1290,17 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   - Deploy: `uno-proxy` publicado e migrations 20261028000001…20261103000001
     aplicadas. Atenção: o service worker do PWA pode servir o bundle antigo por
     1–2 recarregamentos após um deploy.
+
+- **2026-11-03** — Curtidas e respostas nos comentários, com notificação ao autor.
+  - Banco (`20261103000007`): `comments.parent_id`/`reply_to_id` (respostas de 1 nível;
+    responder a uma resposta fica no mesmo nível — o trigger achata para a raiz e guarda
+    em `reply_to_id` quem recebe o aviso), `comment_likes`, `user_notifications` (fila de push
+    + sino) e triggers que avisam o autor (nunca a si mesmo; curtir/descurtir/curtir não repete,
+    `UNIQUE (kind, actor_id, comment_id)`). O app lê pela view `v_my_notifications` (filtra por
+    `auth.uid()`) e marca como lidas pelo RPC `mark_notifications_read`.
+  - Push: o `notification-scheduler` despacha `user_notifications` pendentes via `send-push`
+    (`userIds`), um push por usuário por rodada (várias interações viram um resumo), só para quem
+    ligou "Curtidas e respostas nos seus comentários" em Configurações (opt-in, como os demais
+    tópicos). Lógica pura em `_shared/interactionPush.ts`.
+  - App: `Interactions` ganhou curtir/responder por comentário; `NotificationBell` no topo
+    (atualiza ao montar, a cada 60 s e ao abrir; sem tempo real).

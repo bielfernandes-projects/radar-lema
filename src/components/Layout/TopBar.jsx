@@ -11,6 +11,7 @@ import { List, Moon, SignIn, SignOut, Sun } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useColorMode } from '../../contexts/ColorModeContext'
+import NotificationBell from '../NotificationBell'
 
 export default function TopBar({ onMenuClick }) {
   const navigate = useNavigate()
@@ -72,6 +73,7 @@ export default function TopBar({ onMenuClick }) {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <NotificationBell />
           <Tooltip title={mode === 'dark' ? 'Tema claro' : 'Tema escuro'}>
             <IconButton
               color="inherit"

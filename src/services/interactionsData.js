@@ -60,10 +60,16 @@ export async function fetchComments(contentType, contentId, { supabase } = { sup
   return comments.map((c) => ({ ...c, profiles: { name: nameById.get(c.user_id) ?? null } }))
 }
 
-export async function addComment(contentType, contentId, userId, body, { supabase } = { supabase: _supabase }) {
+export async function addComment(contentType, contentId, userId, body, { supabase = _supabase, parentId } = {}) {
   const { data, error } = await supabase
     .from('comments')
-    .insert({ content_type: contentType, content_id: contentId, user_id: userId, body })
+    .insert({
+      content_type: contentType,
+      content_id: contentId,
+      user_id: userId,
+      body,
+      ...(parentId && { parent_id: parentId })
+    })
     .select()
     .single()
   if (error) throw error
@@ -88,3 +94,27 @@ export async function fetchModerationQueue({ supabase } = { supabase: _supabase 
   if (error) throw error
   return data ?? []
 }
+
+/** Curtidas dos comentarios: Map(comment_id -> { count, liked }). Falha nao derruba a lista. */
+export async function fetchCommentLikes(commentIds, userId, { supabase } = { supabase: _supabase }) {
+  const result = new Map(commentIds.map((id) => [id, { count: 0, liked: false }]))
+  if (commentIds.length === 0) return result
+  const { data, error } = await supabase.from('comment_likes').select('comment_id, user_id').in('comment_id', commentIds)
+  if (error) return result
+  for (const row of data ?? []) {
+    const entry = result.get(row.comment_id)
+    if (!entry) continue
+    entry.count += 1
+    if (row.user_id === userId) entry.liked = true
+  }
+  return result
+}
+
+export async function toggleCommentLike(commentId, userId, liked, { supabase } = { supabase: _supabase }) {
+  const query = liked
+    ? supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId)
+    : supabase.from('comment_likes').insert({ comment_id: commentId, user_id: userId })
+  const { error } = await query
+  if (error) throw error
+}
+

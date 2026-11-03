@@ -55,7 +55,8 @@ const NOTIFICATION_ROWS = [
   { key: 'news', label: 'Notícias de Mercado' },
   { key: 'articles', label: 'Artigos' },
   { key: 'materials', label: 'Materiais de apoio' },
-  { key: 'uno_updates', label: 'Novidades UNO' }
+  { key: 'uno_updates', label: 'Novidades UNO' },
+  { key: 'interactions', label: 'Curtidas e respostas nos seus comentários' }
 ]
 
 export default function Settings() {

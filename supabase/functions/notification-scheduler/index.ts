@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 import { makeCallSendPush } from "../_shared/sendPush.ts";
+import { buildInteractionPush, groupByUser, type PendingInteraction } from "../_shared/interactionPush.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -159,8 +160,67 @@ Deno.serve(async (req) => {
     }
   }
 
+  // 4) Curtidas e respostas nos comentarios do usuario. Um push por usuario por rodada
+  //    (varias interacoes viram um resumo). So vai a quem ligou "Curtidas e respostas nos
+  //    seus comentarios" nas Configuracoes; o sino do app mostra para todos.
+  const { data: interactionRows, error: interactionError } = await supabase
+    .from("user_notifications")
+    .select(
+      "id, user_id, kind, actor:profiles!actor_id(name), comment:comments(content_type, content_id, body)"
+    )
+    .is("push_dispatched_at", null)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  if (interactionError) console.error("user_notifications error", interactionError.message);
+
+  const interactions: PendingInteraction[] = (interactionRows || [])
+    .filter((r) => r.comment)
+    .map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      kind: r.kind,
+      actor_name: (r.actor as { name: string | null } | null)?.name ?? null,
+      content_type: (r.comment as { content_type: string }).content_type,
+      content_id: (r.comment as { content_id: string }).content_id,
+      snippet: ((r.comment as { body: string }).body || "").slice(0, 120) || null
+    }));
+
+  if (interactions.length > 0) {
+    const byUser = groupByUser(interactions);
+    const { data: prefs } = await supabase
+      .from("notification_settings")
+      .select("user_id, push_enabled, topics")
+      .in("user_id", Array.from(byUser.keys()));
+    const wantsPush = new Set(
+      (prefs || [])
+        .filter(
+          (p) =>
+            p.push_enabled === true &&
+            (p.topics as Record<string, { push?: boolean }> | null)?.interactions?.push === true
+        )
+        .map((p) => p.user_id as string)
+    );
+
+    const handled: string[] = [];
+    for (const [userId, items] of byUser) {
+      if (wantsPush.has(userId)) {
+        const outcome = await callSendPush({ userIds: [userId], payload: buildInteractionPush(items) });
+        if (!outcome.ok) continue; // tenta de novo na proxima rodada
+      }
+      handled.push(...items.map((i) => i.id));
+    }
+    if (handled.length > 0) {
+      await supabase
+        .from("user_notifications")
+        .update({ push_dispatched_at: new Date().toISOString() })
+        .in("id", handled);
+    }
+  }
+
   return new Response(
     JSON.stringify({
+      interactions: interactions.length,
       newEvents: (pending || []).length,
       dueReminders: (due || []).length,
       hubOutbox: hubRows.length

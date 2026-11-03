@@ -11,7 +11,7 @@ const DEFAULTS = {
 
 // Tópicos não-evento da matriz de notificações. Eventos ficam em
 // `categories_enabled`. `topics` guarda { [topic]: { push, email } }.
-export const NOTIFICATION_TOPICS = ['news', 'articles', 'materials', 'uno_updates']
+export const NOTIFICATION_TOPICS = ['news', 'articles', 'materials', 'uno_updates', 'interactions']
 
 export function topicChannel(settings, topic, channel) {
   return settings?.topics?.[topic]?.[channel] === true
