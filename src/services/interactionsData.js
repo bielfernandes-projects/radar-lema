@@ -44,12 +44,20 @@ export async function toggleLike(contentType, contentId, userId, currentlyLiked,
 export async function fetchComments(contentType, contentId, { supabase } = { supabase: _supabase }) {
   const { data, error } = await supabase
     .from('comments')
-    .select('*, profiles(name)')
+    .select('*')
     .eq('content_type', contentType)
     .eq('content_id', contentId)
     .order('created_at', { ascending: true })
   if (error) throw error
-  return data ?? []
+  const comments = data ?? []
+  if (comments.length === 0) return comments
+
+  // O RLS de profiles esconde o nome dos outros; a view comment_authors expoe so id + nome.
+  // Falha aqui nao derruba os comentarios: eles so aparecem como "Usuário".
+  const ids = [...new Set(comments.map((c) => c.user_id))]
+  const { data: authors } = await supabase.from('comment_authors').select('id, name').in('id', ids)
+  const nameById = new Map((authors ?? []).map((a) => [a.id, a.name]))
+  return comments.map((c) => ({ ...c, profiles: { name: nameById.get(c.user_id) ?? null } }))
 }
 
 export async function addComment(contentType, contentId, userId, body, { supabase } = { supabase: _supabase }) {

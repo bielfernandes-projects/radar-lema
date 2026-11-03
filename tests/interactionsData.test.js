@@ -80,8 +80,9 @@ describe('services/interactionsData', () => {
     expect(del).toHaveBeenCalled()
   })
 
-  it('fetchComments ordena por created_at asc', async () => {
-    const order = vi.fn(() => ({ data: [{ id: 'c1' }], error: null }))
+  it('fetchComments ordena por created_at asc e traz o nome do autor da view comment_authors', async () => {
+    const order = vi.fn(() => ({ data: [{ id: 'c1', user_id: 'u1' }, { id: 'c2', user_id: 'u2' }], error: null }))
+    const inIds = vi.fn(() => ({ data: [{ id: 'u1', name: 'Ana' }], error: null }))
     const supabase = buildSupabase({
       comments: {
         select: vi.fn(() => ({
@@ -89,11 +90,15 @@ describe('services/interactionsData', () => {
             eq: vi.fn(() => ({ order }))
           }))
         }))
-      }
+      },
+      comment_authors: { select: vi.fn(() => ({ in: inIds })) }
     })
     const result = await fetchComments('event', 'e1', { supabase })
-    expect(result).toHaveLength(1)
+    expect(result).toHaveLength(2)
     expect(order).toHaveBeenCalledWith('created_at', { ascending: true })
+    expect(inIds).toHaveBeenCalledWith('id', ['u1', 'u2'])
+    expect(result[0].profiles.name).toBe('Ana')
+    expect(result[1].profiles.name).toBeNull()
   })
 
   it('addComment insere e retorna o comentario', async () => {
