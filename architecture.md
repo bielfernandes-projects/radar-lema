@@ -328,7 +328,7 @@ Todas as tabelas têm RLS habilitado:
 | `services/articlesData.js` | `fetchArticles`, `fetchArticleById`, `saveArticle`, `deleteArticle` | Artigos (`articles`): leitura respeita `visibility` (RLS), escrita staff. |
 | `services/materialsData.js` | `fetchMaterials`, `fetchMaterialById`, `saveMaterial`, `deleteMaterial`, `uploadMaterialFile`, `getMaterialUrl`, `deleteMaterialFile` | Materiais de Apoio (`materials` + bucket privado): listagem, CRUD e URL assinada (3600s) do arquivo. |
 | `services/interactionsData.js` | `fetchLikeStatus`, `toggleLike`, `fetchComments`, `addComment`, `deleteComment`, `toggleCommentHidden`, `fetchModerationQueue` | Curtidas e comentários polimórficos + fila de moderação (`v_comments_with_content`). |
-| `services/unoProxy.js` | `callUnoProxy`, `fetchUnoDashboard` | Proxy autenticado para a `outer_api` do UNO (Edge Function `uno-proxy`); busca demonstrativo, fundos, movimentações, títulos, enquadramentos, disponibilidades e metas. |
+| `services/unoProxy.js` | `callUnoProxy`, `fetchUnoDashboard`, `fetchUnoMelhorias`, `fetchUnoClients`, `fetchOwnUnoClientName` | Proxy autenticado para a `outer_api` do UNO (Edge Function `uno-proxy`): `dashboardCliente` (uma chamada, tudo calculado pelo UNO, sem Comdinheiro), `melhoriasUNO` (sininho do UNO) e a lista/nome de clientes. |
 
 ## Componentes
 
@@ -503,7 +503,7 @@ Deploy de demonstracao na **Vercel** (configurado via `vercel.json`):
 | `utils/recurrence.js` | `generateRecurringSessions` | Gera sessoes semanais, quinzenais ou mensais a partir de uma sessao base |
 | `utils/markdown.js` | `markdownToBlocks`, `parseInline` | Parser de Markdown próprio (títulos, listas, parágrafos, ênfase, links) que devolve blocos consumidos pelo `Markdown.jsx`; sem dependência externa |
 | `utils/hub.js` | `formatHubDate`, `formatHubDateTime`, `UNO_UPDATE_TYPES`, `VISIBILITY_OPTIONS`, `formatFileSize` | Formatação e constantes das seções do hub (artigos, notícias, novidades UNO, materiais) |
-| `utils/uno.js` | `asArray`, `pickField`, `normalizeFunds`, `summarizeFunds`, `normalizeEvolution`, `normalizeDashboardMetrics`, `dateFromRow`, `evolutionLabel`, `monthRange`, `monthsAgoRange`, `yearRange`, `rangeForPeriod` | Normaliza a resposta da API do UNO para o Dashboard (tolerante a variação de nomes de campo; datas sempre em hora local — evita o shift de fuso de `new Date('yyyy-mm-dd')` que roda como UTC) |
+| `utils/uno.js` | `MONTH_ABBR`, `parseFimCarteira`, `mergeNovidades` | Rótulos de mês, leitura de `"M/AAAA"` (competência do UNO) e junção das Novidades UNO (avisos do staff + melhorias do UNO, sem duplicar título). O view-model do Dashboard fica em `utils/unoDashboard.js`. |
 | `hooks/useUserData.js` | `refresh`, `loading` | Hook genérico: escuta `onAuthStateChange`, chama `fetchFn(userId)` sempre que o auth muda |
 | `hooks/useFavorites.js` | `favoriteIds`, `toggleFavorite`, `refresh` | Gerencia favoritos no Supabase respeitando RLS (usa `useUserData`) |
 | `hooks/useReminders.js` | `remindersByEvent`, `hasRemindersForEvent`, `saveReminders`, `removeReminders`, `removeOneReminder`, `refresh` | Gerencia lembretes no Supabase (usa `useUserData`) |
@@ -693,8 +693,8 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   Gap, VaR) + gráfico "Evolução do Patrimônio" (recharts) com pills de
   período (Ano, 12–60 meses) e botão **Gerar Relatório** (`window.print()`
   via `src/pages/dashboardPrint.css`, paleta do UNO forçada na impressão).
-  Normalização dos dados em `utils/uno.js` (tolerante a variação de campo,
-  datas em hora local).
+  (Desde 03/11/2026 os dados vêm prontos da rota `dashboardCliente` do UNO e o
+  view-model fica em `utils/unoDashboard.js` — ver Histórico.)
 
 ### Refinamentos de UI/UX e segurança (2026-08-14)
 
@@ -780,12 +780,14 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   cliente de demonstração, nunca o vínculo do perfil) e repassa requisições GET para a `outer_api` do UNO com o
   token `x-access-token` (secret `UNO_ACCESS_TOKEN`), sempre forçando o
   `client_id` do perfil demo (`UNO_DEMO_CLIENT_ID`, default 192), exceto
-  `demonstrativoFundosCliente` que usa `cliente_id`. Whitelist de
-  endpoints e parâmetros; `verify_jwt = true`. CORS no padrão SEC-008
-  (`corsHeaders` + `APP_ORIGINS` + preflight OPTIONS, sem expor `*`), como
-  `admin-users`. O `demonstrativoFundosCliente` da `outer_api` só responde
-  para meses fechados — o mês corrente devolve 400 e o app faz fallback para o
-  último mês fechado nesse card (ver Histórico).
+  `dashboardCliente`, que usa `cliente_id`. Whitelist de endpoints e
+  parâmetros (`dashboardCliente`, `fundosCliente`, `clienteUNO`,
+  `clientesUNO` só Super Admin, `melhoriasUNO` global p/ qualquer logado);
+  `verify_jwt = true`. CORS no padrão SEC-008 (`corsHeaders` + `APP_ORIGINS` +
+  preflight OPTIONS, sem expor `*`), como `admin-users`. Mês sem carteira
+  fechada responde 400 com mensagem do UNO; sem `mes`/`ano` o UNO usa a última
+  carteira fechada. Erros do UNO são sanitizados (só a `message` chega ao
+  navegador).
 - `send-push` / `notification-scheduler` — estendidos com `audience`
   (`all` | `uno_clients`) e processamento de `v_hub_notification_outbox`.
 
@@ -879,12 +881,10 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
     no padrão SEC-008 do `admin-users` (`corsHeaders`, `APP_ORIGINS`,
     `isAllowedOrigin`, `withCors`, preflight OPTIONS) e função redeployada
     (`supabase functions deploy uno-proxy`).
-  - **Dashboard UNO com erro 400**: a `outer_api` do UNO repassa o erro do
-    Comdinheiro — `demonstrativoFundosCliente` do **mês corrente (não
-    fechado)** devolve 400. `callUnoProxy` anexa `status` ao erro e
-    `fetchUnoDashboard` faz fallback do demonstrativo para o **último mês
-    fechado** (`src/services/unoProxy.js`); os demais cards seguem no range
-    atual. Testes em `tests/unoProxy.test.js`.
+  - **Dashboard UNO com erro 400** (histórico, superado em 03/11/2026): a
+    `outer_api` repassava o erro do Comdinheiro — `demonstrativoFundosCliente`
+    do mês corrente devolvia 400 e o front fazia fallback para o último mês
+    fechado. Removido com a rota `dashboardCliente` (ver abaixo).
   - **Qualidade**: 141 testes Vitest passando, lint limpo, build OK.
 
 - **2026-08-14** — Refinamentos do hub e publicação na `main`:
@@ -1268,3 +1268,25 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
   `theme-mode:{email}`. Tema MUI dinâmico via `createAppTheme(mode)` com
   fundo `#0f172a` em dark mode. Provider reorganizado: `AuthProvider` →
   `ColorModeProvider` → `ThemeProvider`.
+
+- **2026-11-03** — Dashboard UNO sem Comdinheiro + Novidades UNO ao vivo.
+  - O UNO criou `GET outer_api/dashboardCliente` (`cliente_id`, `mes`+`ano`
+    opcionais, `periodo` = `ano`/12/24/36/48/60): indicadores, evolução do
+    patrimônio e comparativo já calculados. O Dashboard faz **uma** chamada
+    (`fetchUnoDashboard`); `utils/unoDashboard.js` só mapeia a resposta. Mês em
+    automático: sem `mes`/`ano` o UNO usa a última carteira fechada e o seletor
+    mostra a `competencia` devolvida.
+  - Removidos: `demonstrativoFundosCliente` e `evolucaoAnualCliente` do proxy, o
+    throttle de 20/min, o fallback de mês, o cache `uno_cache` (migration
+    `20261103000001_drop_uno_cache.sql`, aplicada), o botão "Atualizar" e as
+    funções de normalização do fluxo antigo em `utils/uno.js`.
+  - `melhoriasUNO` (sininho do UNO) é lida ao vivo e mostrada em Novidades UNO
+    (`UnoMelhoriaCard`) junto dos avisos do staff (`uno_updates`); aviso manual
+    com o mesmo título de uma melhoria do UNO é escondido (`mergeNovidades`).
+    Novas melhorias no UNO aparecem sem passo manual (sem curtida/comentário/push,
+    que continuam só nos avisos do staff).
+  - Landing: carrossel só com prints reais (Eventos, Notícias, Artigos,
+    Dashboard — `public/showcase/`).
+  - Deploy: `uno-proxy` publicado e migrations 20261028000001…20261103000001
+    aplicadas. Atenção: o service worker do PWA pode servir o bundle antigo por
+    1–2 recarregamentos após um deploy.

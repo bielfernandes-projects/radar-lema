@@ -4,7 +4,6 @@ import {
   fetchUnoDashboard,
   fetchClientesList,
   fetchOwnUnoClient,
-  fetchUnoClients,
   fetchUnoMelhorias
 } from '../src/services/unoProxy'
 
@@ -68,18 +67,6 @@ describe('services/unoProxy', () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
     await fetchOwnUnoClient()
     expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain('endpoint=clienteUNO')
-  })
-
-  it('fetchUnoClients: expoe fimCarteira parseado de fim_carteira', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      jsonResponse([
-        { id: 192, municipio: 'DEMONSTRAÇÃO - LEMA', fim_carteira: '7/2026' },
-        { id: 5, nome_rpps: 'RPPS SEM CARTEIRA', fim_carteira: null }
-      ])
-    )
-    const clients = await fetchUnoClients()
-    expect(clients.find((c) => c.uno_client_id === '192').fimCarteira).toEqual({ month: 7, year: 2026 })
-    expect(clients.find((c) => c.uno_client_id === '5').fimCarteira).toBeNull()
   })
 
   it('fetchUnoDashboard: UMA chamada a dashboardCliente com periodo e client_id', async () => {

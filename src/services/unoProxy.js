@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase'
-import { parseFimCarteira } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
@@ -85,8 +84,7 @@ export async function fetchUnoClients() {
   return (Array.isArray(rows) ? rows : [])
     .map((row) => ({
       uno_client_id: String(row.id),
-      name: formatClientName(row),
-      fimCarteira: parseFimCarteira(row.fim_carteira)
+      name: formatClientName(row)
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
