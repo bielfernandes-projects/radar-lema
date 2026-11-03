@@ -1,26 +1,36 @@
 // Edge Function blog-ingest: traz os artigos publicados no blog da Lema
-// (https://www.lemaef.com.br/blog/) para a tabela `articles`, via REST API do
-// WordPress, e espelha as capas no bucket `article-covers`.
+// (https://www.lemaef.com.br/blog/) para a tabela `articles`, pelo feed RSS
+// (https://www.lemaef.com.br/blog/rss.xml), e espelha as capas no bucket `article-covers`.
+//
+// Historico: ate 11/2026 a fonte era a REST API do WordPress do site antigo. O site foi
+// reconstruido (sem WordPress, links /blog/<slug>/), a API passou a responder 404 e a
+// ingestao parou. O feed novo nao traz imagem: a capa vem da propria pagina do post.
+//
+// Identidade do artigo: o slug do link. Os artigos ja importados guardam o id numerico do
+// WordPress em `source_id`; eles sao reconhecidos pelo slug do `source_url` e mantem o
+// `source_id` antigo (capa e exclusoes continuam valendo). Artigo novo ganha `lema:<slug>`.
 //
 // A ingestao roda em duas fases independentes, e isso e proposital:
 //
-//   Fase 1 (metadados) — upsert de titulo, teaser, datas e link. NAO toca em
-//   `cover_url`, entao uma falha de rede na parte de imagens nunca impede o
-//   artigo de entrar, e uma capa ja espelhada nunca e apagada por engano.
+//   Fase 1 (metadados) — insere os artigos novos (titulo, teaser, data, link). NAO toca em
+//   `cover_url`, entao uma falha de rede na parte de imagens nunca impede o artigo de
+//   entrar. Artigo ja conhecido nao e reescrito (so o link e atualizado para /blog/<slug>/).
 //
-//   Fase 2 (capas) — baixa a imagem destacada, sobe no bucket e faz um UPDATE
-//   explicito de `cover_url`, conferindo o resultado. E idempotente e
-//   reparadora: uma capa que faltou numa rodada e refeita na seguinte, sem
-//   depender de o post ter mudado no blog.
+//   Fase 2 (capas) — baixa a imagem do post, sobe no bucket e faz um UPDATE explicito de
+//   `cover_url`, conferindo o resultado. E idempotente e reparadora: uma capa que faltou
+//   numa rodada e refeita na seguinte.
 //
-// O relatorio de retorno conta as capas separadamente (`covers_ok`,
-// `covers_failed`, `cover_errors`). Sem isso, uma rodada com 100% das capas
-// faltando responderia "sucesso" — foi exatamente o que aconteceu antes.
+// O relatorio de retorno conta as capas separadamente (`covers_ok`, `covers_failed`,
+// `cover_errors`): sem isso, uma rodada com 100% das capas faltando responderia "sucesso".
 //
-// Agendada via pg_cron + pg_net (job `radar-blog-ingest`). Chamada
-// server-to-server com service_role (verify_jwt = false).
+// `?quiet=1` (carga inicial/reparo): os artigos inseridos na rodada nao geram push — evita
+// avisar "N novos artigos" por um backlog.
+//
+// Agendada via pg_cron + pg_net (job `radar-blog-ingest`). Chamada server-to-server com
+// service_role (verify_jwt = false).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
+import { extractCoverUrl, parseFeed, slugOf, type FeedItem } from "../_shared/blogFeed.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -29,44 +39,18 @@ const supabase = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false }
 });
 
-const BLOG_API = "https://www.lemaef.com.br/wp-json/wp/v2/posts";
+const BLOG_RSS = "https://www.lemaef.com.br/blog/rss.xml";
 const COVER_BUCKET = "article-covers";
-const USER_AGENT = "RadarLema-BlogIngest/1.0";
+const USER_AGENT = "RPPApp-BlogIngest/1.0";
 
-/** Capas baixadas de 6 em 6: 49 imagens uma a uma nao cabem no tempo da funcao. */
-const COVER_CONCURRENCY = 6;
+/** Paginas e capas buscadas de 6 em 6: dezenas de requisicoes uma a uma nao cabem no tempo da funcao. */
+const CONCURRENCY = 6;
 
-/** Ordem de preferencia de tamanho da capa. 300px cobre o slot do card. */
-const COVER_SIZES = ["medium", "medium_large", "full"];
-
-interface WPMediaSize {
-  source_url: string;
-  width: number;
-  height: number;
-}
-
-interface WPMedia {
-  id?: number;
-  media_details?: { sizes?: Record<string, WPMediaSize> };
-  embeddable?: boolean;
-  href?: string;
-}
-
-interface WPPost {
-  id: number;
-  title: { rendered: string };
-  excerpt: { rendered: string };
-  link: string;
-  date_gmt: string;
-  modified_gmt: string;
-  _embedded?: { "wp:featuredmedia"?: WPMedia[] };
-}
-
-/** O que ja existe no banco, para decidir entre pular, atualizar e reparar. */
+/** O que ja existe no banco, para decidir entre pular, corrigir o link e reparar a capa. */
 interface ExistingArticle {
-  sourceModifiedAt: string | null;
+  sourceId: string;
+  sourceUrl: string | null;
   coverUrl: string | null;
-  sourceCoverUrl: string | null;
 }
 
 interface ArticleRow {
@@ -87,89 +71,31 @@ interface CoverJob {
   sourceCoverUrl: string;
 }
 
-function unescapeHtml(s: string): string {
-  return s
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) =>
-      String.fromCodePoint(parseInt(h, 16))
-    )
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, "\"")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
-}
-
-function stripHtml(s: string): string {
-  return unescapeHtml(s)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** Teaser do WordPress, sem o marcador de corte que ele acrescenta no fim. */
-function extractExcerpt(rendered: string): string {
-  return stripHtml(rendered)
-    .replace(/\s*\[…\]\s*$/, "")
-    .replace(/\s*\[&hellip;\]\s*$/, "")
-    .trim();
-}
-
-/**
- * URL da capa no tamanho preferido. O `_embed` normalmente ja traz
- * `media_details`; quando vem so o link do recurso, busca o media avulso.
- * Post sem imagem destacada (ou com media protegido) devolve null — o card
- * cai na capa padrao da Lema.
- */
-async function getCoverUrl(post: WPPost): Promise<string | null> {
-  let media = post._embedded?.["wp:featuredmedia"]?.[0];
-  if (!media) return null;
-
-  if (!media.media_details && media.href && media.embeddable) {
-    try {
-      const res = await fetch(media.href, {
-        headers: { "User-Agent": USER_AGENT },
-        signal: AbortSignal.timeout(10000)
-      });
-      if (res.ok) media = (await res.json()) as WPMedia;
-    } catch {
-      // media inacessivel: segue sem capa
-    }
-  }
-
-  const sizes = media.media_details?.sizes;
-  for (const size of COVER_SIZES) {
-    const url = sizes?.[size]?.source_url;
-    if (url) return url;
-  }
-  return null;
-}
-
-async function fetchBlogPosts(
-  page = 1
-): Promise<{ posts: WPPost[]; found: number }> {
-  const url = new URL(BLOG_API);
-  url.searchParams.set("per_page", "50");
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("_embed", "true");
-
-  const res = await fetch(url.toString(), {
+async function getCoverUrl(link: string): Promise<string | null> {
+  const res = await fetch(link, {
     headers: { "User-Agent": USER_AGENT },
     signal: AbortSignal.timeout(30000)
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} buscando posts do blog`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} abrindo ${link}`);
+  return extractCoverUrl(await res.text());
+}
 
-  return {
-    posts: (await res.json()) as WPPost[],
-    found: parseInt(res.headers.get("X-WP-Total") || "0", 10)
-  };
+async function fetchFeed(): Promise<FeedItem[]> {
+  const res = await fetch(BLOG_RSS, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(30000)
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} buscando o feed do blog`);
+  const items = parseFeed(await res.text());
+  // Feed vazio/quebrado nunca deve ser tratado como "nada a fazer" com sucesso.
+  if (items.length === 0) throw new Error("feed do blog sem nenhum item valido");
+  return items;
 }
 
 async function getExistingArticles(): Promise<Map<string, ExistingArticle>> {
   const { data, error } = await supabase
     .from("articles")
-    .select("source_id, source_modified_at, cover_url, source_cover_url")
+    .select("source_id, source_url, cover_url")
     .eq("origin", "blog")
     .not("source_id", "is", null);
 
@@ -177,15 +103,15 @@ async function getExistingArticles(): Promise<Map<string, ExistingArticle>> {
     throw new Error(`Erro buscando artigos existentes: ${error.message}`);
   }
 
-  const map = new Map<string, ExistingArticle>();
+  const bySlug = new Map<string, ExistingArticle>();
   for (const row of data || []) {
-    map.set(row.source_id, {
-      sourceModifiedAt: row.source_modified_at,
-      coverUrl: row.cover_url,
-      sourceCoverUrl: row.source_cover_url
+    bySlug.set(slugOf(row.source_url ?? ""), {
+      sourceId: row.source_id,
+      sourceUrl: row.source_url,
+      coverUrl: row.cover_url
     });
   }
-  return map;
+  return bySlug;
 }
 
 async function getTombstones(): Promise<Set<string>> {
@@ -200,8 +126,7 @@ async function getTombstones(): Promise<Set<string>> {
 /**
  * Baixa a capa, sobe no bucket e grava a URL publica na linha do artigo.
  * `source_cover_url` so e atualizado junto com um espelhamento bem-sucedido:
- * assim, se algo falhar, a proxima rodada reconhece que a capa ainda esta
- * pendente e tenta de novo.
+ * assim, se algo falhar, a proxima rodada reconhece que a capa ainda esta pendente.
  */
 async function mirrorCover(job: CoverJob): Promise<void> {
   const res = await fetch(job.sourceCoverUrl, {
@@ -216,7 +141,8 @@ async function mirrorCover(job: CoverJob): Promise<void> {
   const ext = (job.sourceCoverUrl.split(".").pop() || "jpg")
     .split("?")[0]
     .toLowerCase();
-  const fileName = `${job.sourceId}.${ext}`;
+  // `lema:<slug>` tem caractere que nao serve de nome de arquivo.
+  const fileName = `${job.sourceId.replace(/[^a-zA-Z0-9_-]/g, "-")}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from(COVER_BUCKET)
@@ -282,94 +208,50 @@ Deno.serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  const quiet = new URL(req.url).searchParams.get("quiet") === "1";
+
   try {
-    const { posts, found } = await fetchBlogPosts(1);
+    const feed = await fetchFeed();
     const existing = await getExistingArticles();
     const tombstones = await getTombstones();
 
     const rows: ArticleRow[] = [];
-    const coverJobs: CoverJob[] = [];
+    const linkFixes: Array<{ sourceId: string; link: string }> = [];
+    const coverCandidates: Array<{ sourceId: string; link: string }> = [];
     let skipped = 0;
-    let inserted = 0;
-    let updated = 0;
 
-    const decisions = await mapLimit(posts, COVER_CONCURRENCY, async (post) => {
-      const sourceId = String(post.id);
+    for (const item of feed) {
+      const known = existing.get(item.slug);
+      const sourceId = known?.sourceId ?? `lema:${item.slug}`;
 
       // Excluido pelo staff: nao volta.
-      if (tombstones.has(sourceId)) return null;
-
-      const known = existing.get(sourceId);
-      const metadataStale =
-        !known ||
-        new Date(known.sourceModifiedAt ?? 0).getTime() !==
-          new Date(post.modified_gmt).getTime();
-
-      // Nada mudou e a capa ja esta espelhada: nem consulta a imagem.
-      if (!metadataStale && known?.coverUrl) return null;
-
-      const sourceCoverUrl = await getCoverUrl(post);
-      const coverPending =
-        Boolean(sourceCoverUrl) &&
-        (!known?.coverUrl || known.sourceCoverUrl !== sourceCoverUrl);
-
-      // Metadados iguais e nenhuma capa a espelhar: nada a fazer.
-      if (!metadataStale && !coverPending) return null;
-
-      return {
-        post,
-        sourceId,
-        sourceCoverUrl,
-        metadataStale,
-        coverPending,
-        isNew: !known
-      };
-    });
-
-    for (const decision of decisions) {
-      if (decision.status === "rejected") {
-        skipped++;
-        console.error(
-          "blog-ingest decisao falhou",
-          errorMessage(decision.reason)
-        );
-        continue;
-      }
-
-      const item = decision.value;
-      if (!item) {
+      if (tombstones.has(sourceId)) {
         skipped++;
         continue;
       }
 
-      if (item.metadataStale) {
-        if (item.isNew) inserted++;
-        else updated++;
-
+      if (!known) {
         rows.push({
-          title: stripHtml(item.post.title.rendered),
-          subtitle: extractExcerpt(item.post.excerpt.rendered),
-          body: extractExcerpt(item.post.excerpt.rendered),
+          title: item.title,
+          subtitle: item.teaser,
+          body: item.teaser,
           author: "Lema",
-          source_url: item.post.link,
+          source_url: item.link,
           visibility: "public",
           origin: "blog",
-          source_id: item.sourceId,
-          source_modified_at: item.post.modified_gmt,
-          created_at: item.post.date_gmt
+          source_id: sourceId,
+          source_modified_at: item.publishedAt,
+          created_at: item.publishedAt
         });
+      } else if (known.sourceUrl !== item.link) {
+        linkFixes.push({ sourceId, link: item.link });
       }
 
-      if (item.coverPending && item.sourceCoverUrl) {
-        coverJobs.push({
-          sourceId: item.sourceId,
-          sourceCoverUrl: item.sourceCoverUrl
-        });
-      }
+      // Capa pendente: artigo novo ou conhecido que ficou sem capa.
+      if (!known?.coverUrl) coverCandidates.push({ sourceId, link: item.link });
     }
 
-    // Fase 1 — metadados. `cover_url` fica de fora de proposito: assim o
-    // upsert nunca sobrescreve uma capa ja espelhada.
+    // Fase 1 — metadados dos artigos novos. `cover_url` fica de fora de proposito.
     if (rows.length > 0) {
       const { error: upsertError } = await supabase
         .from("articles")
@@ -383,16 +265,60 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fase 2 — capas. Roda depois do upsert para que o UPDATE por `source_id`
-    // encontre tambem as linhas recem-inseridas.
-    const coverResults = await mapLimit(
-      coverJobs,
-      COVER_CONCURRENCY,
-      mirrorCover
-    );
+    // Os links antigos (/<slug>/) passam a apontar para /blog/<slug>/.
+    await mapLimit(linkFixes, CONCURRENCY, async (fix) => {
+      const { error } = await supabase
+        .from("articles")
+        .update({ source_url: fix.link })
+        .eq("source_id", fix.sourceId);
+      if (error) throw new Error(error.message);
+    });
 
-    let coversOk = 0;
+    // Carga inicial: sem push para o backlog. O trigger ja enfileirou no outbox; marca como
+    // despachado so os artigos inseridos nesta rodada.
+    if (quiet && rows.length > 0) {
+      const { data: inserted } = await supabase
+        .from("articles")
+        .select("id")
+        .in("source_id", rows.map((r) => r.source_id));
+      const ids = (inserted || []).map((a) => a.id);
+      if (ids.length > 0) {
+        await supabase
+          .from("hub_notification_outbox")
+          .update({ dispatched_at: new Date().toISOString() })
+          .eq("content_type", "article")
+          .in("content_id", ids)
+          .is("dispatched_at", null);
+      }
+    }
+
+    // Fase 2 — capas. Descobre a imagem de cada post sem capa e espelha no bucket.
+    const resolved = await mapLimit(coverCandidates, CONCURRENCY, async (c) => ({
+      sourceId: c.sourceId,
+      sourceCoverUrl: await getCoverUrl(c.link)
+    }));
+
     const coverErrors: Array<{ source_id: string; error: string }> = [];
+    const coverJobs: CoverJob[] = [];
+    let withoutImage = 0; // post sem imagem: o card usa a arte padrao da Lema
+    resolved.forEach((result, index) => {
+      if (result.status === "rejected") {
+        coverErrors.push({
+          source_id: coverCandidates[index].sourceId,
+          error: errorMessage(result.reason)
+        });
+      } else if (result.value.sourceCoverUrl) {
+        coverJobs.push({
+          sourceId: result.value.sourceId,
+          sourceCoverUrl: result.value.sourceCoverUrl
+        });
+      } else {
+        withoutImage++;
+      }
+    });
+
+    const coverResults = await mapLimit(coverJobs, CONCURRENCY, mirrorCover);
+    let coversOk = 0;
     coverResults.forEach((result, index) => {
       if (result.status === "fulfilled") {
         coversOk++;
@@ -407,14 +333,15 @@ Deno.serve(async (req) => {
     });
 
     return Response.json({
-      inserted,
-      updated,
+      inserted: rows.length,
+      links_fixed: linkFixes.length,
       skipped,
       covers_ok: coversOk,
+      covers_without_image: withoutImage,
       covers_failed: coverErrors.length,
       cover_errors: coverErrors.slice(0, 10),
-      total_in_blog: found,
-      processed: posts.length
+      total_in_feed: feed.length,
+      quiet
     });
   } catch (err) {
     console.error("blog-ingest error", err);

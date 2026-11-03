@@ -1304,3 +1304,15 @@ Comentário, Moderação, Feed). ADRs 0006–0009 em `docs/adr/`.
     tópicos). Lógica pura em `_shared/interactionPush.ts`.
   - App: `Interactions` ganhou curtir/responder por comentário; `NotificationBell` no topo
     (atualiza ao montar, a cada 60 s e ao abrir; sem tempo real).
+
+- **2026-11-03** — Blog da Lema: ingestão passa a ler o RSS (`blog/rss.xml`).
+  - O site foi reconstruído (sem WordPress, links `/blog/<slug>/`) e a API `wp-json` passou a
+    responder 404: o `blog-ingest` falhava em toda rodada e o último artigo no app era de 20/10.
+  - `blog-ingest` lê o feed e usa o **slug do link** como identidade: os 69 artigos já importados
+    (`source_id` numérico do WordPress) são reconhecidos pelo slug do `source_url` e mantêm
+    `source_id`/capa; artigo novo ganha `lema:<slug>`. O feed não traz imagem: a capa é a primeira
+    `<img src="/_astro/…">` da página do post (o `og:image` do site é sempre o padrão), espelhada em
+    `article-covers`. Funções puras em `_shared/blogFeed.ts` (testadas em `tests/blogFeed.test.js`).
+  - `?quiet=1` marca como despachado no outbox os artigos inseridos na rodada (carga inicial sem
+    push de backlog). Carga feita em 03/11: +74 artigos (6 de 23–30/10 e 68 de 10/2025–10/2026).
+  - Cron: `blog-ingest` 10h/16h/22h UTC; `notification-scheduler` a cada minuto.
