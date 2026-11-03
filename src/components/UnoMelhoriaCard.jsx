@@ -13,7 +13,6 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { formatHubDate } from '../utils/hub'
 import { truncateAtWord } from '../utils/text'
 import {
   CARD_HEIGHT_UNO_UPDATE,
@@ -26,6 +25,10 @@ import {
   cardSpacerSx,
   cardTitleSx
 } from '../theme/cardLayout'
+
+// improvement_date vem como meia-noite UTC: no fuso do Brasil o dia recuaria um.
+const formatDate = (iso) =>
+  new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 // Melhoria/funcionalidade publicada no sininho do UNO (rota melhoriasUNO).
 // Nao tem pagina de detalhe: o clique abre um dialogo com o texto completo.
@@ -48,7 +51,7 @@ export default function UnoMelhoriaCard({ melhoria }) {
           <CardContent sx={cardContentSx}>
             <Stack direction="column" spacing={0.5} sx={cardMetaStackSx}>
               {typeChip}
-              <Chip label={formatHubDate(melhoria.improvement_date)} size="small" variant="outlined" />
+              <Chip label={formatDate(melhoria.improvement_date)} size="small" variant="outlined" />
             </Stack>
             <Typography variant="h6" component="h2" sx={cardTitleSx()}>
               {truncateAtWord(melhoria.improvement_title, TRUNCATE.title)}
@@ -66,7 +69,7 @@ export default function UnoMelhoriaCard({ melhoria }) {
         <DialogContent>
           <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
             {typeChip}
-            <Chip label={formatHubDate(melhoria.improvement_date)} size="small" variant="outlined" />
+            <Chip label={formatDate(melhoria.improvement_date)} size="small" variant="outlined" />
           </Stack>
           <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
             {melhoria.improvement_description}
