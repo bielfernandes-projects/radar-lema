@@ -46,7 +46,9 @@ export default function ArticleCard({ article }) {
             alt={article.title}
             loading="lazy"
             onError={() => setImgFailed(true)}
-            sx={{ objectFit: 'cover' }}
+            // Capas do Panorama sao um "print" largo com o titulo colado na esquerda:
+            // centralizadas, o cover cortava o comeco de todos os titulos.
+            sx={{ objectFit: 'cover', objectPosition: article.origin === 'panorama' ? 'left center' : 'center' }}
           />
         </Box>
 

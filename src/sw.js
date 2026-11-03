@@ -8,7 +8,7 @@ import { clientsClaim } from 'workbox-core'
 
 // Revisão do SW: muda os bytes (comentário some no build) para reinstalar e assumir o CSP
 // novo (connect-src com fonts.gstatic.com). Incrementar se precisar forçar nova instalação.
-self.__SW_REV = 2
+self.__SW_REV = 3
 
 // Versão nova assume na hora: sem isso, quem já abriu o app fica na versão antiga
 // até fechar todas as abas/o PWA (registerType 'autoUpdate' pressupõe isto).
@@ -42,8 +42,12 @@ registerRoute(
   })
 )
 
+// Só imagens do app e do Supabase: o SW busca com fetch(), sujeito ao connect-src do CSP.
+// Capas de outros hosts (ex.: Panorama) seguem direto pela rede, sob o img-src.
 registerRoute(
-  /^(?!.*placeholder-(?:event|article)).*\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+  ({ url }) =>
+    (url.origin === self.location.origin || url.hostname === 'vrvyfgneawtceebyagak.supabase.co') &&
+    /^(?!.*placeholder-(?:event|article)).*\.(?:png|jpg|jpeg|svg|gif|webp)$/i.test(url.href),
   new StaleWhileRevalidate({
     cacheName: 'app-images',
     plugins: [new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 })]
