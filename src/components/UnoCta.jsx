@@ -8,7 +8,7 @@ import { UNO_SALES_EMAIL } from '../config/site'
 const MAILTO = `mailto:${UNO_SALES_EMAIL}?subject=${encodeURIComponent(
   'Quero contratar o UNO'
 )}&body=${encodeURIComponent(
-  'Olá, equipe Lema!\n\nConheci o UNO pelo RPPapp e gostaria de contratar o sistema para o meu RPPS.\n\nAguardo o contato. Obrigado!'
+  'Olá, equipe Lema!\n\nConheci o UNO pelo RPPApp e gostaria de contratar o sistema para o meu RPPS.\n\nAguardo o contato. Obrigado!'
 )}`
 
 // Convite de venda do UNO, exibido só para quem ainda não é Cliente Lema.

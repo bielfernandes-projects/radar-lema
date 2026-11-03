@@ -27,7 +27,7 @@ export default function LegalFooter({ sx }) {
         ))}
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-        © {new Date().getFullYear()} RPPapp
+        © {new Date().getFullYear()} RPPApp
       </Typography>
     </Box>
   )

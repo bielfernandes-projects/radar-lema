@@ -1,5 +1,5 @@
 /**
- * Formatadores de apresentacao usados na UI do RPPapp.
+ * Formatadores de apresentacao usados na UI do RPPApp.
  */
 
 import { REMINDER_UNITS, REMINDER_CHANNELS } from './constants'

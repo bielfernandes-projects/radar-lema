@@ -8,7 +8,7 @@ export default function Sources() {
   return (
     <PublicPageShell
       title="Fontes e créditos"
-      description="De onde vêm as notícias e os artigos do RPPapp e como os direitos de cada fonte são respeitados."
+      description="De onde vêm as notícias e os artigos do RPPApp e como os direitos de cada fonte são respeitados."
       path="/fontes"
     >
       <Section title="Notícias">
@@ -22,7 +22,7 @@ export default function Sources() {
         <Typography variant="body1">
           Artigos e análises publicados pelo {MAINTAINER} são de autoria da equipe. Conteúdos de
           outras origens trazem o crédito e o link para a publicação original. Quer ver seus
-          artigos no RPPapp? Entre em contato conosco
+          artigos no RPPApp? Entre em contato conosco
           {SUPPORT_EMAIL && (
             <>
               {' '}

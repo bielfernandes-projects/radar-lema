@@ -24,7 +24,7 @@ import FaqList from '../components/FaqList'
 import { FAQ } from '../config/faq'
 import { DISPLAY_FONT } from '../theme/theme'
 
-const TITLE = 'RPPapp: o guia de bolso para RPPS'
+const TITLE = 'RPPApp: o guia de bolso para RPPS'
 const DESCRIPTION =
   'App gratuito feito exclusivamente para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais de apoio e dashboard de investimentos.'
 
@@ -214,8 +214,8 @@ export default function Landing() {
         }}
       >
         <Container maxWidth="lg" sx={{ height: 72, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Link to="/" aria-label="RPPapp, página inicial" style={{ display: 'flex' }}>
-            <img src={logo} alt="RPPapp" style={{ height: 40, width: 'auto', display: 'block' }} />
+          <Link to="/" aria-label="RPPApp, página inicial" style={{ display: 'flex' }}>
+            <img src={logo} alt="RPPApp" style={{ height: 40, width: 'auto', display: 'block' }} />
           </Link>
           <Box sx={{ flexGrow: 1 }} />
           <Button
@@ -363,7 +363,7 @@ export default function Landing() {
               variant="h2"
               sx={{ fontSize: { xs: '1.5rem', md: '2.1rem' }, lineHeight: 1.2, textWrap: 'balance' }}
             >
-              O que você encontra no RPPapp
+              O que você encontra no RPPApp
             </Typography>
             <Box sx={{ width: 56, height: 4, borderRadius: 2, bgcolor: BLUE, mt: 3 }} />
           </Box>
@@ -419,7 +419,7 @@ export default function Landing() {
         <Container maxWidth="lg">
           <Box className="lp-reveal" sx={{ textAlign: 'center', mb: { xs: 3, md: 5 } }}>
             <Typography variant="h2" sx={{ fontSize: { xs: '1.5rem', md: '2.1rem' }, lineHeight: 1.2, textWrap: 'balance' }}>
-              Veja o RPPapp por dentro
+              Veja o RPPApp por dentro
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
               Telas ilustrativas.
@@ -461,7 +461,7 @@ export default function Landing() {
               Crie sua conta e comece agora
             </Typography>
             <Typography variant="body1" sx={{ mt: 2, mb: 4, color: 'rgba(255,255,255,0.82)', textWrap: 'pretty' }}>
-              O RPPapp é gratuito e funciona como aplicativo: depois de entrar, adicione à tela
+              O RPPApp é gratuito e funciona como aplicativo: depois de entrar, adicione à tela
               inicial do celular, sem loja de apps.
             </Typography>
             <Button

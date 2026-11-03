@@ -117,7 +117,7 @@ export default function Login() {
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <img
               src="/logo.png"
-              alt="RPPapp"
+              alt="RPPApp"
               style={{ width: 160, height: 'auto', display: 'block', margin: '0 auto' }}
             />
             <Typography variant="h5" component="h1" sx={{ mt: 1.5, fontWeight: 700 }}>

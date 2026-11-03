@@ -58,11 +58,11 @@ registerRoute(
 // Push notifications
 // ---------------------------------------------------------------------------
 self.addEventListener('push', (event) => {
-  let data = { title: 'RPPapp' }
+  let data = { title: 'RPPApp' }
   try {
     data = { ...data, ...(event.data ? event.data.json() : {}) }
   } catch {
-    data = { title: 'RPPapp', body: event.data ? event.data.text() : '' }
+    data = { title: 'RPPApp', body: event.data ? event.data.text() : '' }
   }
 
   const options = {

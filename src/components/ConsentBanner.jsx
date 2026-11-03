@@ -30,7 +30,7 @@ export default function ConsentBanner() {
       }}
     >
       <Typography variant="body2">
-        Usamos dados de navegação anônimos para melhorar o RPPapp. Saiba mais na{' '}
+        Usamos dados de navegação anônimos para melhorar o RPPApp. Saiba mais na{' '}
         <MuiLink href="/privacidade">Política de Privacidade</MuiLink>.
       </Typography>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>

@@ -6,7 +6,7 @@ export default function Terms() {
   return (
     <PublicPageShell
       title="Termos de Uso"
-      description="Condições de uso do RPPapp, o app gratuito para RPPS."
+      description="Condições de uso do RPPApp, o app gratuito para RPPS."
       path="/termos"
       draft={TERMS_VERSION}
     >

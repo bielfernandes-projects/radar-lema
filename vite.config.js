@@ -25,8 +25,8 @@ export default defineConfig({
         'icons.svg'
       ],
       manifest: {
-        name: 'RPPapp',
-        short_name: 'RPPapp',
+        name: 'RPPApp',
+        short_name: 'RPPApp',
         description:
           'Hub para RPPS: eventos, notícias de mercado, artigos, novidades do UNO, materiais e dashboard de investimentos.',
         id: '/',

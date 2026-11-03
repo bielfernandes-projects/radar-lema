@@ -21,7 +21,7 @@ afterEach(() => {
 describe('usePageMeta', () => {
   it('define título, description e canonical', () => {
     render(<Meta title="Sobre" description="desc" path="/sobre" />)
-    expect(document.title).toBe('Sobre | RPPapp')
+    expect(document.title).toBe('Sobre | RPPApp')
     expect(document.head.querySelector('meta[name="description"]').content).toBe('desc')
     expect(document.head.querySelector('link[rel="canonical"]').href).toMatch(/\/sobre$/)
   })

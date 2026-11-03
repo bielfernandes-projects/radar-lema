@@ -24,8 +24,8 @@ export default function PublicPageShell({ title, description, path, draft, child
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <Container maxWidth="md" component="header" sx={{ py: 2, display: 'flex', alignItems: 'center' }}>
-        <Link to="/" aria-label="RPPapp, página inicial">
-          <img src="/logo.png" alt="RPPapp" style={{ width: 120, height: 'auto', display: 'block' }} />
+        <Link to="/" aria-label="RPPApp, página inicial">
+          <img src="/logo.png" alt="RPPApp" style={{ width: 120, height: 'auto', display: 'block' }} />
         </Link>
         <Box sx={{ flexGrow: 1 }} />
         <Button component={Link} to="/login" size="small">

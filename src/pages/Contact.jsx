@@ -7,7 +7,7 @@ export default function Contact() {
   return (
     <PublicPageShell
       title="Contato"
-      description="Fale com a equipe do RPPapp: suporte, feedback e divulgação de artigos."
+      description="Fale com a equipe do RPPApp: suporte, feedback e divulgação de artigos."
       path="/contato"
     >
       <Section title="Fale com a gente">
@@ -29,7 +29,7 @@ export default function Contact() {
       </Section>
       <Section title="Publique seus artigos">
         <Typography variant="body1">
-          Quer ver seus artigos no RPPapp? Entre em contato conosco
+          Quer ver seus artigos no RPPApp? Entre em contato conosco
           {SUPPORT_EMAIL && (
             <>
               {' '}

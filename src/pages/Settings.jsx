@@ -226,7 +226,7 @@ export default function Settings() {
 
     const permission = await Notification.requestPermission()
     if (permission === 'granted') {
-      new Notification('RPPapp', {
+      new Notification('RPPApp', {
         body: 'Assim apareceriam seus lembretes antes dos eventos.',
         icon: '/icons/icon-192x192.png'
       })
@@ -693,7 +693,7 @@ export default function Settings() {
             Instalar App
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Instale o RPPapp na tela inicial para acessar como um
+            Instale o RPPApp na tela inicial para acessar como um
             aplicativo.
           </Typography>
           <InstallAppButton />

@@ -8,7 +8,7 @@ export default function Privacy() {
   return (
     <PublicPageShell
       title="Política de Privacidade"
-      description="Como o RPPapp coleta, usa e protege seus dados pessoais, conforme a LGPD."
+      description="Como o RPPApp coleta, usa e protege seus dados pessoais, conforme a LGPD."
       path="/privacidade"
       draft={TERMS_VERSION}
     >

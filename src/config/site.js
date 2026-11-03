@@ -1,6 +1,6 @@
 // Dados do site usados em canonical, sitemap, páginas legais e SEO.
 // PENDENTE (Go Live): confirmar domínio de produção e e-mails; vazio = não exibir.
-export const SITE_NAME = 'RPPapp'
+export const SITE_NAME = 'RPPApp'
 export const SITE_URL = 'https://rppapp.vercel.app'
 export const SUPPORT_EMAIL = 'contato@lemaef.com.br'
 export const DPO_EMAIL = ''

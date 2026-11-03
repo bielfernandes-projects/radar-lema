@@ -130,7 +130,7 @@ export default function Feed() {
       {/* A home nao tem mais cabecalho visivel, mas a pagina ainda precisa de
           um h1: sem ele as secoes (h2) ficariam orfas para leitor de tela. */}
       <Typography variant="h1" sx={visuallyHidden}>
-        RPPapp
+        RPPApp
       </Typography>
 
       {error && (

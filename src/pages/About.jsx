@@ -5,8 +5,8 @@ import { MAINTAINER, SITE_NAME } from '../config/site'
 export default function About() {
   return (
     <PublicPageShell
-      title="Sobre o RPPapp"
-      description="O RPPapp é um app gratuito feito exclusivamente para RPPS: o guia de bolso de quem trabalha com regime próprio."
+      title="Sobre o RPPApp"
+      description="O RPPApp é um app gratuito feito exclusivamente para RPPS: o guia de bolso de quem trabalha com regime próprio."
       path="/sobre"
     >
       <Section title="O que é">

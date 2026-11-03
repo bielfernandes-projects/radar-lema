@@ -23,7 +23,7 @@ function Phone({ screen: { title, img } }) {
       <Box sx={{ height: '100%', borderRadius: '29px', overflow: 'hidden', bgcolor: '#ebeef2' }}>
         <img
           src={img}
-          alt={`Tela de ${title} do RPPapp`}
+          alt={`Tela de ${title} do RPPApp`}
           loading="lazy"
           draggable={false}
           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
@@ -113,7 +113,7 @@ export default function LandingShowcase() {
     <Box
       ref={ref}
       className="lp-show"
-      aria-label="Telas do RPPapp"
+      aria-label="Telas do RPPApp"
       sx={{
         overflowX: { xs: 'auto', md: 'hidden' }, overflowY: 'hidden', py: 3,
         scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },

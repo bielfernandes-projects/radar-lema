@@ -23,7 +23,7 @@ const supabase = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false }
 });
 
-const USER_AGENT = "RPPapp-ArticlesIngest/1.0";
+const USER_AGENT = "RPPApp-ArticlesIngest/1.0";
 const PANORAMA_SITE = "https://panoramarpps.com.br";
 // ponytail: so os 30 posts mais recentes do sitemap; subir se o blog crescer.
 const PANORAMA_MAX_POSTS = 30;
