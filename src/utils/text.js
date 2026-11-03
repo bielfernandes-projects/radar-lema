@@ -37,3 +37,10 @@ export function truncateAtWord(text, maxChars) {
 
   return `${clean || cut}${ELLIPSIS}`
 }
+
+export const PROFILE_NAME_MAX = 100
+
+/** Nome de perfil: sem `<` e `>` (nao ha razao para HTML num nome), aparado e limitado a 100. */
+export function cleanProfileName(value) {
+  return String(value ?? '').replace(/[<>]/g, '').trim().slice(0, PROFILE_NAME_MAX)
+}

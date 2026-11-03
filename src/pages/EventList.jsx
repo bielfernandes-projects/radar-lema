@@ -23,6 +23,7 @@ import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
 import FilterSummary from '../components/FilterSummary'
 import EmptyState from '../components/EmptyState'
+import { MAX_SEARCH_LENGTH, validIsoDate } from '../utils/dateFilters'
 
 const PAGE_SIZE = 12
 
@@ -57,14 +58,14 @@ export default function EventList() {
   }, [reload])
 
   const filters = useMemo(() => ({
-    q: searchParams.get(URL_PARAMS.SEARCH) || '',
+    q: (searchParams.get(URL_PARAMS.SEARCH) || '').slice(0, MAX_SEARCH_LENGTH),
     categories: searchParams.getAll(URL_PARAMS.CATEGORIES),
     modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
     datePresets: searchParams.getAll(URL_PARAMS.DATE),
-    dateFrom: searchParams.get(URL_PARAMS.DATE_FROM) || '',
-    dateTo: searchParams.get(URL_PARAMS.DATE_TO) || '',
+    dateFrom: validIsoDate(searchParams.get(URL_PARAMS.DATE_FROM)),
+    dateTo: validIsoDate(searchParams.get(URL_PARAMS.DATE_TO)),
     lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 

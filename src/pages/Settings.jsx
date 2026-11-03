@@ -46,6 +46,7 @@ import PageSkeleton from '../components/PageSkeleton'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useAuth } from '../contexts/AuthContext'
 import { validatePassword } from '../utils/auth'
+import { PROFILE_NAME_MAX, cleanProfileName } from '../utils/text'
 import { formatReminderMinutes, minutesToReminder } from '../utils/formatters'
 
 // Linhas fixas da matriz de notificações (tópicos não-evento). Eventos é uma
@@ -297,7 +298,7 @@ export default function Settings() {
   const handleSaveName = async () => {
     setNameError('')
     setNameMessage('')
-    const name = displayName.trim()
+    const name = cleanProfileName(displayName)
     if (!name) {
       setNameError('Informe seu nome.')
       return
@@ -365,6 +366,7 @@ export default function Settings() {
               label="Nome"
               fullWidth
               value={displayName}
+              slotProps={{ htmlInput: { maxLength: PROFILE_NAME_MAX } }}
               onChange={(e) => {
                 setDisplayName(e.target.value)
                 setNameMessage('')

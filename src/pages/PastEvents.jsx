@@ -23,6 +23,7 @@ import EventFilters from '../components/EventFilters'
 import ClearFiltersButton from '../components/ClearFiltersButton'
 import FilterSummary from '../components/FilterSummary'
 import EmptyState from '../components/EmptyState'
+import { MAX_SEARCH_LENGTH } from '../utils/dateFilters'
 
 const PAGE_SIZE = 12
 
@@ -56,12 +57,13 @@ export default function PastEvents() {
   }, [reload])
 
   const filters = useMemo(() => ({
-    q: searchParams.get(URL_PARAMS.SEARCH) || '',
+    q: (searchParams.get(URL_PARAMS.SEARCH) || '').slice(0, MAX_SEARCH_LENGTH),
     categories: searchParams.getAll(URL_PARAMS.CATEGORIES),
     modalities: searchParams.getAll(URL_PARAMS.MODALITIES),
     price: searchParams.get(URL_PARAMS.PRICE) || 'all',
     state: searchParams.get(URL_PARAMS.STATE) || '',
-    datePresets: searchParams.getAll(URL_PARAMS.DATE)
+    datePresets: searchParams.getAll(URL_PARAMS.DATE),
+    lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
   const hasFilters =
@@ -70,7 +72,8 @@ export default function PastEvents() {
     filters.modalities.length > 0 ||
     (filters.price && filters.price !== 'all') ||
     filters.state ||
-    filters.datePresets.length > 0
+    filters.datePresets.length > 0 ||
+    filters.lemaEdu
 
   const clearFilters = () => {
     setSearchParams({})
@@ -118,7 +121,7 @@ export default function PastEvents() {
         />
       </Stack>
 
-      <EventFilters categories={categories} />
+      <EventFilters categories={categories} showDatePresets={false} />
 
       <FilterSummary />
 

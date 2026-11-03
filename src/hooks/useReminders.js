@@ -2,6 +2,19 @@ import { useCallback, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useUserData } from './useUserData'
 
+// Cada card de evento usa este hook: sem isto, a Home dispara a mesma consulta uma vez por card.
+// Chamadas simultaneas do mesmo usuario compartilham a requisicao em andamento.
+const inFlight = new Map()
+function fetchRemindersOnce(userId) {
+  if (!inFlight.has(userId)) {
+    const request = Promise.resolve(
+      supabase.from('event_reminders').select('event_id, offset_minutes, channel').eq('user_id', userId)
+    ).finally(() => inFlight.delete(userId))
+    inFlight.set(userId, request)
+  }
+  return inFlight.get(userId)
+}
+
 export function useReminders() {
   const [remindersByEvent, setRemindersByEvent] = useState(new Map())
 
@@ -11,10 +24,7 @@ export function useReminders() {
       return
     }
 
-    const { data: reminders, error } = await supabase
-      .from('event_reminders')
-      .select('event_id, offset_minutes, channel')
-      .eq('user_id', userId)
+    const { data: reminders, error } = await fetchRemindersOnce(userId)
 
     if (error) {
       console.error('Erro ao carregar lembretes:', error.message)

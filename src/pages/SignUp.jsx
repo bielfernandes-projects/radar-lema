@@ -20,6 +20,7 @@ import { useColorMode } from '../contexts/ColorModeContext'
 import { validatePassword } from '../utils/auth'
 import PasswordToggle from '../components/PasswordToggle'
 import LegalFooter from '../components/LegalFooter'
+import { PROFILE_NAME_MAX, cleanProfileName } from '../utils/text'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -70,7 +71,7 @@ export default function SignUp() {
 
     setSubmitting(true)
 
-    const { error: signUpError } = await signUp({ email, password, name, acceptedTerms })
+    const { error: signUpError } = await signUp({ email, password, name: cleanProfileName(name), acceptedTerms })
 
     setSubmitting(false)
 
@@ -149,6 +150,7 @@ export default function SignUp() {
               margin="normal"
               value={name}
               onChange={(event) => setName(event.target.value)}
+              slotProps={{ htmlInput: { maxLength: PROFILE_NAME_MAX } }}
               required
               autoComplete="name"
             />

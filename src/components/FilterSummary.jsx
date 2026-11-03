@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Box, Chip, Stack, Typography } from '@mui/material'
 import { URL_PARAMS } from '../utils/constants'
+import { validIsoDate } from '../utils/dateFilters'
 const DATE_PRESET_LABELS = {
   'this-month': 'Este mês',
   'next-month': 'Próximo mês'
@@ -47,7 +48,7 @@ export default function FilterSummary() {
     })
 
     const hasCustomRange =
-      searchParams.get(URL_PARAMS.DATE_FROM) || searchParams.get(URL_PARAMS.DATE_TO)
+      validIsoDate(searchParams.get(URL_PARAMS.DATE_FROM)) || validIsoDate(searchParams.get(URL_PARAMS.DATE_TO))
     if (hasCustomRange) {
       result.push({ key: 'range', value: 'range', label: 'Data personalizada' })
     }

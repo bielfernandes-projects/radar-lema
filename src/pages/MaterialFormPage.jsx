@@ -24,6 +24,7 @@ import {
 import { VISIBILITY_OPTIONS, formatFileSize } from '../utils/hub'
 import PageSkeleton from '../components/PageSkeleton'
 import { useAuth } from '../contexts/AuthContext'
+import { friendlyError } from '../utils/errors'
 
 const EMPTY_FORM = {
   title: '',
@@ -130,7 +131,7 @@ export default function MaterialFormPage() {
       await saveMaterial(payload)
       navigate('/gestao/hub', { state: { saved: true } })
     } catch (err) {
-      setError(err.message || 'Erro ao salvar o material.')
+      setError(friendlyError(err, 'Erro ao salvar o material.'))
     } finally {
       setSaving(false)
     }

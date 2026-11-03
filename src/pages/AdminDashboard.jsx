@@ -39,6 +39,7 @@ import { fetchUnoClients } from '../services/unoProxy'
 import PasswordToggle from '../components/PasswordToggle'
 import PageSkeleton from '../components/PageSkeleton'
 import UsageDashboard, { Kpi } from '../components/UsageDashboard'
+import { friendlyError } from '../utils/errors'
 
 const emptyStats = {
   total_users: 0,
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
       await loadAll()
       return true
     } catch (err) {
-      setError(err?.message || 'Erro ao executar a operação.')
+      setError(friendlyError(err, 'Erro ao executar a operação.'))
       return false
     }
   }

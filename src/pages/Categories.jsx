@@ -20,6 +20,7 @@ import {
 import { PencilSimple, Trash } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import PageSkeleton from '../components/PageSkeleton'
+import { friendlyError } from '../utils/errors'
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
@@ -74,7 +75,7 @@ export default function Categories() {
       setEditingId(null)
       await fetchCategories()
     } catch (err) {
-      setError(err.message || 'Erro ao salvar categoria.')
+      setError(friendlyError(err, 'Erro ao salvar categoria.'))
     }
   }
 

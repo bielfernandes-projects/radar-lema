@@ -114,18 +114,24 @@ export const routes = [
       { path: 'ajuda/duvidas', element: <PageRoute Component={Help} /> },
       { path: 'ajuda/contato', element: <PageRoute Component={Contact} /> },
       { path: 'ajuda/fontes', element: <PageRoute Component={Sources} /> },
-      { path: 'gestao', element: <PageRoute Component={ManageEvents} /> },
-      { path: 'gestao/novo', element: <PageRoute Component={EventFormPage} /> },
-      { path: 'gestao/:id/editar', element: <PageRoute Component={EventFormPage} /> },
-      { path: 'gestao/hub', element: <PageRoute Component={ManageHub} /> },
-      { path: 'gestao/artigos/novo', element: <PageRoute Component={ArticleFormPage} /> },
-      { path: 'gestao/artigos/:id/editar', element: <PageRoute Component={ArticleFormPage} /> },
-      { path: 'gestao/materiais/novo', element: <PageRoute Component={MaterialFormPage} /> },
-      { path: 'gestao/materiais/:id/editar', element: <PageRoute Component={MaterialFormPage} /> },
-      { path: 'gestao/novidades-uno/novo', element: <PageRoute Component={UnoUpdateFormPage} /> },
-      { path: 'gestao/novidades-uno/:id/editar', element: <PageRoute Component={UnoUpdateFormPage} /> },
-      { path: 'moderacao', element: <PageRoute Component={Moderation} /> },
-      { path: 'categorias', element: <PageRoute Component={Categories} /> },
+      // Telas de staff (RLS ja barra as escritas; aqui o viewer nem abre a tela).
+      {
+        element: <ProtectedRoute requireStaff />,
+        children: [
+          { path: 'gestao', element: <PageRoute Component={ManageEvents} /> },
+          { path: 'gestao/novo', element: <PageRoute Component={EventFormPage} /> },
+          { path: 'gestao/:id/editar', element: <PageRoute Component={EventFormPage} /> },
+          { path: 'gestao/hub', element: <PageRoute Component={ManageHub} /> },
+          { path: 'gestao/artigos/novo', element: <PageRoute Component={ArticleFormPage} /> },
+          { path: 'gestao/artigos/:id/editar', element: <PageRoute Component={ArticleFormPage} /> },
+          { path: 'gestao/materiais/novo', element: <PageRoute Component={MaterialFormPage} /> },
+          { path: 'gestao/materiais/:id/editar', element: <PageRoute Component={MaterialFormPage} /> },
+          { path: 'gestao/novidades-uno/novo', element: <PageRoute Component={UnoUpdateFormPage} /> },
+          { path: 'gestao/novidades-uno/:id/editar', element: <PageRoute Component={UnoUpdateFormPage} /> },
+          { path: 'moderacao', element: <PageRoute Component={Moderation} /> },
+          { path: 'categorias', element: <PageRoute Component={Categories} /> }
+        ]
+      },
       {
         path: 'dashboard-uno',
         element: <ProtectedRoute />,

@@ -36,6 +36,7 @@ import PageSkeleton from '../components/PageSkeleton'
 import { generateRecurringSessions } from '../utils/recurrence'
 import { parseDateTime, calculateDelta, applyDelta, emptySession, validate } from '../utils/eventForm'
 import { persistEvent } from '../services/eventPersistence'
+import { friendlyError } from '../utils/errors'
 
 const MODALITY_OPTIONS = [
   { value: 'presencial', label: 'Presencial' },
@@ -370,7 +371,7 @@ export default function EventFormPage() {
       setIsDirty(false)
       setTimeout(() => navigate('/gestao', { state: { saved: true } }), 0)
     } catch (err) {
-      setError(err.message || 'Erro ao salvar evento.')
+      setError(friendlyError(err, 'Erro ao salvar evento.'))
     } finally {
       setSaving(false)
     }

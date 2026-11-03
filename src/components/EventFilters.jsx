@@ -15,8 +15,9 @@ import {
 } from '@mui/material'
 import { CaretDown, CaretUp, SlidersHorizontal } from '@phosphor-icons/react'
 import { MODALITY_OPTIONS, URL_PARAMS, UFs } from '../utils/constants'
+import { validIsoDate } from '../utils/dateFilters'
 
-export default function EventFilters({ categories, showCustomDateFilter = false }) {
+export default function EventFilters({ categories, showCustomDateFilter = false, showDatePresets = true }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [rangeAnchor, setRangeAnchor] = useState(null)
@@ -29,8 +30,8 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
     price: searchParams.get(URL_PARAMS.PRICE) || '',
     state: searchParams.get(URL_PARAMS.STATE) || '',
     datePresets: searchParams.getAll(URL_PARAMS.DATE),
-    dateFrom: searchParams.get(URL_PARAMS.DATE_FROM) || '',
-    dateTo: searchParams.get(URL_PARAMS.DATE_TO) || '',
+    dateFrom: validIsoDate(searchParams.get(URL_PARAMS.DATE_FROM)),
+    dateTo: validIsoDate(searchParams.get(URL_PARAMS.DATE_TO)),
     lemaEdu: searchParams.get(URL_PARAMS.LEMA_EDU) === 'true'
   }), [searchParams])
 
@@ -50,7 +51,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
   const toggleChip = (key, value) => {
     const next = new URLSearchParams(searchParams)
     const current = next.get(key)
-    if (current === value) {
+    if (!value || current === value) {
       next.delete(key)
     } else {
       next.set(key, value)
@@ -93,6 +94,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
   }
 
   const rangeActive = Boolean(filters.dateFrom || filters.dateTo)
+  const rangeInverted = Boolean(draftFrom && draftTo && draftTo < draftFrom)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -205,20 +207,24 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
             variant={filters.price === 'paid' ? 'filled' : 'outlined'}
             onClick={() => toggleChip(URL_PARAMS.PRICE, 'paid')}
           />
-          <Chip
-            label="Este mês"
-            clickable
-            color={filters.datePresets.includes('this-month') ? 'primary' : 'default'}
-            variant={filters.datePresets.includes('this-month') ? 'filled' : 'outlined'}
-            onClick={() => toggleDatePreset('this-month')}
-          />
-          <Chip
-            label="Próximo mês"
-            clickable
-            color={filters.datePresets.includes('next-month') ? 'primary' : 'default'}
-            variant={filters.datePresets.includes('next-month') ? 'filled' : 'outlined'}
-            onClick={() => toggleDatePreset('next-month')}
-          />
+          {showDatePresets && (
+            <>
+              <Chip
+                label="Este mês"
+                clickable
+                color={filters.datePresets.includes('this-month') ? 'primary' : 'default'}
+                variant={filters.datePresets.includes('this-month') ? 'filled' : 'outlined'}
+                onClick={() => toggleDatePreset('this-month')}
+              />
+              <Chip
+                label="Próximo mês"
+                clickable
+                color={filters.datePresets.includes('next-month') ? 'primary' : 'default'}
+                variant={filters.datePresets.includes('next-month') ? 'filled' : 'outlined'}
+                onClick={() => toggleDatePreset('next-month')}
+              />
+            </>
+          )}
           {showCustomDateFilter && (
             <Chip
               label="Data Personalizada"
@@ -251,6 +257,8 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
               type="date"
               value={draftTo}
               onChange={(e) => setDraftTo(e.target.value)}
+              error={rangeInverted}
+              helperText={rangeInverted ? 'A data fim deve ser igual ou depois do início.' : undefined}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
             />
@@ -258,7 +266,7 @@ export default function EventFilters({ categories, showCustomDateFilter = false 
               <Button size="small" onClick={closeRangePopover}>
                 Cancelar
               </Button>
-              <Button size="small" variant="contained" onClick={confirmRange}>
+              <Button size="small" variant="contained" onClick={confirmRange} disabled={rangeInverted}>
                 Confirmar
               </Button>
             </Stack>

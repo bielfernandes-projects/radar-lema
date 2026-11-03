@@ -63,3 +63,17 @@ export function eventMatchesDateRange(eventMinDate, eventMaxDate, from, to) {
   }
   return true
 }
+
+/** Param de data da URL so vale se for AAAA-MM-DD de uma data real; senao e ignorado. */
+export function validIsoDate(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '')
+  if (!m) return ''
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  const date = new Date(Date.UTC(y, mo - 1, d))
+  // 2026-02-31 viraria 03/03: so vale se a data nao "rolou" para outro dia
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d ? value : ''
+}
+
+/** Busca textual vinda da URL: limita o tamanho para nao renderizar um texto gigante. */
+export const MAX_SEARCH_LENGTH = 100
+

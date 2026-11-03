@@ -22,6 +22,7 @@ import { safeUrl } from '../utils/safeUrl'
 import PageSkeleton from '../components/PageSkeleton'
 import Markdown from '../components/Markdown'
 import { useAuth } from '../contexts/AuthContext'
+import { friendlyError } from '../utils/errors'
 
 const EMPTY_FORM = {
   title: '',
@@ -136,7 +137,7 @@ export default function ArticleFormPage() {
       await saveArticle(payload)
       navigate('/gestao/hub', { state: { saved: true } })
     } catch (err) {
-      setError(err.message || 'Erro ao salvar o artigo.')
+      setError(friendlyError(err, 'Erro ao salvar o artigo.'))
     } finally {
       setSaving(false)
     }

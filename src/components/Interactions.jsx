@@ -96,6 +96,7 @@ export default function Interactions({ contentType, contentId }) {
           onClick={handleToggleLike}
           disabled={!user || liking}
           aria-label="Curtir"
+          aria-pressed={Boolean(likeStatus.liked)}
           color={likeStatus.liked ? 'error' : 'default'}
         >
           {liking ? <CircleNotch size={22} /> : <Heart size={22} weight={likeStatus.liked ? 'fill' : 'regular'} />}
