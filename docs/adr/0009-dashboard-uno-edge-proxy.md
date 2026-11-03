@@ -37,3 +37,19 @@ Supabase) e devolve os dados. Segue o padrão já usado por `send-push` e
 - ⚠️ O `api_uno.yml` que documenta a API contém secrets (JWT, `x-api-key`,
   credenciais comdinheiro) — está fora do git (`.gitignore`) e os tokens
   devem ser rotacionados.
+
+## Atualização (03/11/2026): rotas `dashboardCliente` e `melhoriasUNO`
+
+O UNO criou `GET outer_api/dashboardCliente` (`cliente_id`, `mes`+`ano` opcionais,
+`periodo` = `ano`/12/24/36/48/60), que devolve indicadores, evolução e comparativo já
+calculados, **sem passar pelo Comdinheiro**. Consequências:
+
+- O Dashboard faz **uma** chamada; saíram `demonstrativoFundosCliente` e
+  `evolucaoAnualCliente` do proxy, o throttle de 20/min, o fallback de mês e o cache
+  `uno_cache` (tabela removida pela migration `20261103000001_drop_uno_cache.sql`, e o
+  botão "Atualizar").
+- Sem `mes`/`ano` o UNO usa a última carteira fechada; o seletor de mês exibe a
+  `competencia` devolvida. Mês sem carteira fechada responde 400 com mensagem clara.
+- `melhoriasUNO` (conteúdo global do sininho do UNO) é lido ao vivo e mostrado na
+  página Novidades UNO junto dos avisos do staff (`uno_updates`); novas melhorias no UNO
+  aparecem sem passo manual.

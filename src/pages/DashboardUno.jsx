@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Autocomplete,
@@ -17,7 +17,7 @@ import {
   Typography,
   useTheme
 } from '@mui/material'
-import { ArrowClockwise, Info, Printer } from '@phosphor-icons/react'
+import { Info, Printer } from '@phosphor-icons/react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -30,17 +30,12 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import {
-  fetchUnoDashboard,
-  fetchUnoClients,
-  fetchOwnUnoClientName,
-  fetchOwnUnoClientFimCarteira
-} from '../services/unoProxy'
+import { fetchUnoDashboard, fetchUnoClients, fetchOwnUnoClientName } from '../services/unoProxy'
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdmin, canAccessLemaExclusive } from '../utils/auth'
 import UnoCta from '../components/UnoCta'
 import { DISPLAY_FONT } from '../theme/theme'
-import { rangeForPeriod } from '../utils/uno'
+import { parseFimCarteira } from '../utils/uno'
 import { buildUnoDashboardViewModel } from '../utils/unoDashboard'
 import { formatCurrency } from '../utils/formatters'
 import './dashboardPrint.css'
@@ -214,29 +209,17 @@ export default function DashboardUno() {
   const hasProfile = Boolean(profile)
   // Quem nao e Cliente Lema ve so o cliente de demonstracao (o servidor garante).
   const isDemo = hasProfile && !canAccessLemaExclusive(profile)
-  // O mes corrente ainda nao fechou no UNO (mesmo motivo do fallback de
-  // demonstrativoFundosCliente): o proprio UNO abre o Dashboard por padrao
-  // no ultimo mes fechado, nao no mes calendario atual — replicamos isso
-  // pra nao mostrar Patrimonio/Rentabilidade de um mes com dado obsoleto.
-  const lastClosedMonth = new Date()
-  lastClosedMonth.setDate(1)
-  lastClosedMonth.setMonth(lastClosedMonth.getMonth() - 1)
-  const [selectedMonth, setSelectedMonth] = useState(lastClosedMonth.getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(lastClosedMonth.getFullYear())
+  // Mes/ano escolhidos pelo usuario. null = automatico: o UNO usa a ultima carteira
+  // fechada do cliente e o seletor mostra a `competencia` que ele devolveu.
+  const [monthYear, setMonthYear] = useState(null)
   const [period, setPeriod] = useState('36')
   const [chartMode, setChartMode] = useState('mensal')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
-  // "Atualizar" refaz a consulta ao UNO (gasta pageview do ComDinheiro); o resto sai do cache do servidor.
-  const refreshNext = useRef(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshError, setRefreshError] = useState('')
-  const [fetchedAt, setFetchedAt] = useState(null)
   const [clients, setClients] = useState([])
   const [ownClientName, setOwnClientName] = useState('')
-  const [ownClientFimCarteira, setOwnClientFimCarteira] = useState(null)
   const [selectedClientId, setSelectedClientId] = useState(() => {
     try {
       return localStorage.getItem(CLIENT_STORAGE_KEY) || ''
@@ -253,7 +236,6 @@ export default function DashboardUno() {
       fetchUnoClients().then(setClients).catch(() => {})
     } else if (hasProfile) {
       fetchOwnUnoClientName().then(setOwnClientName).catch(() => {})
-      fetchOwnUnoClientFimCarteira().then(setOwnClientFimCarteira).catch(() => {})
       setSelectedClientId(isDemo ? 'demo' : profile.uno_client_id || 'demo')
     }
   }, [isSuperAdminUser, hasProfile, isDemo, profile?.uno_client_id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -264,22 +246,6 @@ export default function DashboardUno() {
     }
   }, [isSuperAdminUser, clients, selectedClientId])
 
-  // O mes calendario "fechado" nem sempre tem carteira calculada: um cliente
-  // sem atualizacao de cota recente (ex. "Demonstracao Lema", parado em
-  // julho) fica com Rentabilidade/Meta vazias no mes atual. `fim_carteira`
-  // (clientesUNO/clienteUNO) e o mesmo limite que o seletor de mes do
-  // unoapp.com.br aplica pra esse cliente — usa como mes padrao ao trocar
-  // de cliente.
-  useEffect(() => {
-    if (!selectedClientId) return
-    const fimCarteira = isSuperAdminUser
-      ? clients.find((c) => c.uno_client_id === selectedClientId)?.fimCarteira
-      : ownClientFimCarteira
-    if (!fimCarteira) return
-    setSelectedMonth(fimCarteira.month)
-    setSelectedYear(fimCarteira.year)
-  }, [selectedClientId, isSuperAdminUser, clients, ownClientFimCarteira])
-
   useEffect(() => {
     if (!isSuperAdminUser || !selectedClientId) return
     try {
@@ -289,67 +255,27 @@ export default function DashboardUno() {
     }
   }, [isSuperAdminUser, selectedClientId])
 
-  // Demo e compartilhado: so o Super Admin atualiza. Cliente real atualiza o proprio dado.
-  const canRefresh = isSuperAdminUser || (hasProfile && !isDemo)
-  const handleRefresh = () => {
-    refreshNext.current = true
-    setReload((r) => r + 1)
-  }
-
   const clientName = isSuperAdminUser
     ? clients.find((c) => c.uno_client_id === selectedClientId)?.name || ''
     : ownClientName
 
   useEffect(() => {
     if (!selectedClientId) return
-    const fetchData = async () => {
-      const refresh = refreshNext.current
-      refreshNext.current = false
-      // Atualizar mantem o dashboard na tela (sem esqueletos); o servidor decide se refaz mesmo.
-      setLoading(!refresh)
-      setRefreshing(refresh)
-      setError('')
-      setRefreshError('')
-      try {
-        const range = rangeForPeriod(period, selectedMonth, selectedYear)
-        const result = await fetchUnoDashboard(
-          {
-            ...range,
-            month: selectedMonth,
-            year: selectedYear,
-            clientId: selectedClientId
-          },
-          { refresh }
-        )
-        // O mes pedido pode nao ter fechado (mes calendario corrente, ou um
-        // cliente que nao atualiza cota todo mes): fetchUnoDashboard ja caiu
-        // pro ultimo mes fechado do lado da API. Reflete isso no seletor em
-        // vez de mostrar "Agosto" selecionado com dado de Julho.
-        if (result.demonstrativoMonth !== selectedMonth || result.demonstrativoYear !== selectedYear) {
-          setSelectedMonth(result.demonstrativoMonth)
-          setSelectedYear(result.demonstrativoYear)
-          return
-        }
-        setData(result)
-        setFetchedAt(result.fetchedAt)
-      } catch (err) {
-        const message = err.message || 'Erro ao carregar o dashboard do UNO.'
-        // Falha ao atualizar nao derruba o que ja esta na tela.
-        if (refresh) setRefreshError(message)
-        else setError(message)
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
-      }
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    fetchUnoDashboard({ clientId: selectedClientId, period, ...monthYear })
+      .then((result) => !cancelled && setData(result))
+      .catch((err) => !cancelled && setError(err.message || 'Erro ao carregar o dashboard do UNO.'))
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
     }
-    fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, selectedMonth, selectedYear, selectedClientId, reload])
+  }, [period, monthYear, selectedClientId, reload])
 
-  const vm = useMemo(
-    () => buildUnoDashboardViewModel(data, { period, month: selectedMonth, year: selectedYear }),
-    [data, period, selectedMonth, selectedYear]
-  )
+  const vm = useMemo(() => buildUnoDashboardViewModel(data), [data])
+  // Mes exibido nos seletores: o escolhido ou, no automatico, a competencia devolvida.
+  const shown = monthYear ?? parseFimCarteira(data?.competencia)
 
   const patrimonio = vm.patrimonio
   const computedMetrics = {
@@ -430,8 +356,8 @@ export default function DashboardUno() {
         <Box className="report-filters-row" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
           <FormControl size="small" sx={{ minWidth: { xs: 84, sm: 140 } }}>
             <Select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              value={shown?.month ?? ''}
+              onChange={(e) => setMonthYear({ month: e.target.value, year: shown?.year ?? CURRENT_YEAR })}
               sx={selectStyles(theme)}
             >
               {MONTHS.map((m) => (
@@ -442,8 +368,8 @@ export default function DashboardUno() {
 
           <FormControl size="small" sx={{ minWidth: { xs: 68, sm: 100 } }}>
             <Select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              value={shown?.year ?? ''}
+              onChange={(e) => setMonthYear({ month: shown?.month ?? 1, year: Number(e.target.value) })}
               sx={selectStyles(theme)}
             >
               {YEARS.map((y) => (
@@ -460,7 +386,11 @@ export default function DashboardUno() {
               getOptionLabel={(c) => c.name}
               isOptionEqualToValue={(a, b) => a.uno_client_id === b.uno_client_id}
               value={clients.find((c) => c.uno_client_id === selectedClientId) || null}
-              onChange={(_, value) => value && setSelectedClientId(value.uno_client_id)}
+              onChange={(_, value) => {
+                if (!value) return
+                setSelectedClientId(value.uno_client_id)
+                setMonthYear(null)
+              }}
               disableClearable
               // dois clientes reais do UNO podem ter o mesmo "municipio" (ex.:
               // "Espírito Santo - BR"); a key tem que ser o id, não o label.
@@ -527,35 +457,6 @@ export default function DashboardUno() {
             </Box>
           </Button>
         </Box>
-
-        {(fetchedAt || canRefresh) && (
-          <Box
-            className="report-interactive-hide"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 2 }}
-          >
-            {fetchedAt && (
-              <Typography variant="body2" color="text.secondary">
-                Dados de {new Date(fetchedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-              </Typography>
-            )}
-            {canRefresh && (
-              <Button
-                size="small"
-                variant="outlined"
-                disabled={refreshing || loading}
-                onClick={handleRefresh}
-                startIcon={<ArrowClockwise size={16} />}
-              >
-                {refreshing ? 'Atualizando...' : 'Atualizar'}
-              </Button>
-            )}
-          </Box>
-        )}
-        {refreshError && (
-          <Alert severity="warning" className="report-interactive-hide" sx={{ mb: 2 }}>
-            Não foi possível atualizar agora ({refreshError}). Mostrando os dados guardados.
-          </Alert>
-        )}
 
         <Box
           className="report-interactive-hide"

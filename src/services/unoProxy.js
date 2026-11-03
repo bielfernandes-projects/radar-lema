@@ -1,76 +1,21 @@
 import { supabase } from '../lib/supabase'
-import { yearsInRange, parseFimCarteira } from '../utils/uno'
+import { parseFimCarteira } from '../utils/uno'
 
 const UNO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uno-proxy`
 
-// A API do UNO tem rate limit de 20 chamadas por minuto (429 acima disso) e o Dashboard
-// dispara uma por ano do período + o demonstrativo (+ até 12 do fallback de mês). Janela
-// deslizante de 18/min (folga p/ outras abas), 2 em voo, e 429 residual refeito com espera.
-const WINDOW_MS = 60_000
-const MAX_PER_WINDOW = 18
-const MAX_IN_FLIGHT = 2
-const RETRY_429_DELAYS_MS = [5000, 15000]
-const sentAt = []
-let inFlight = 0
-const waiting = []
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-
-/** Só para testes: zera a janela de rate limit, que é estado do módulo. */
-export function resetUnoRateLimit() {
-  sentAt.length = 0
-}
-
-async function throttle() {
-  for (;;) {
-    const now = Date.now()
-    while (sentAt.length && now - sentAt[0] >= WINDOW_MS) sentAt.shift()
-    if (sentAt.length < MAX_PER_WINDOW) {
-      sentAt.push(now)
-      return
-    }
-    await sleep(sentAt[0] + WINDOW_MS - now + 20)
-  }
-}
-
-async function withSlot(task) {
-  if (inFlight >= MAX_IN_FLIGHT) await new Promise((resolve) => waiting.push(resolve))
-  inFlight += 1
-  try {
-    return await task()
-  } finally {
-    inFlight -= 1
-    waiting.shift()?.()
-  }
-}
-
-// A Edge Function uno-proxy só aceita GET (endpoint + params na query string).
-// `refresh` pede ao servidor para refazer a consulta ao UNO (senão ele serve a cópia guardada).
-// Devolve também quando a cópia foi feita (header x-uno-fetched-at; ISO, ou null).
-async function fetchProxyMeta(endpoint, params = {}, { refresh = false } = {}) {
+// A Edge Function uno-proxy so aceita GET (endpoint + params na query string).
+export async function callUnoProxy(endpoint, params = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
 
-  const query = new URLSearchParams({ endpoint, ...params, ...(refresh && { refresh: '1' }) })
-  const request = async () => {
-    await throttle()
-    return fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session?.access_token || ''}`
-      }
-    })
-  }
-
-  const res = await withSlot(async () => {
-    let r = await request()
-    for (const delay of RETRY_429_DELAYS_MS) {
-      if (r.status !== 429) break
-      await sleep(delay)
-      r = await request()
+  const query = new URLSearchParams({ endpoint, ...params })
+  const res = await fetch(`${UNO_PROXY_URL}?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token || ''}`
     }
-    return r
   })
 
   if (!res.ok) {
@@ -88,11 +33,7 @@ async function fetchProxyMeta(endpoint, params = {}, { refresh = false } = {}) {
     throw error
   }
 
-  return { data: await res.json(), fetchedAt: res.headers?.get?.('x-uno-fetched-at') || null }
-}
-
-export async function callUnoProxy(endpoint, params = {}) {
-  return (await fetchProxyMeta(endpoint, params)).data
+  return res.json()
 }
 
 function extractUnoErrorMessage(text) {
@@ -105,40 +46,23 @@ function extractUnoErrorMessage(text) {
   }
 }
 
-// O demonstrativo mensal so existe para meses fechados: enquanto um mes nao
-// fechou (o mes calendario corrente, ou qualquer mes sem atualizacao de cota
-// pro cliente — ex. um cliente que so atualiza esporadicamente), a UNO
-// devolve 400. Anda pra tras ate achar o ultimo mes fechado (limite de 12
-// tentativas pra nao entrar em loop se o cliente nao tiver dado nenhum).
-async function fetchDemonstrativo(month, year, clientId, attemptsLeft = 12, refresh = false) {
-  const params = { consulting_id: '1', mes: String(month), ano: String(year), ...clientParam(clientId) }
-  try {
-    const { data, fetchedAt } = await fetchProxyMeta('demonstrativoFundosCliente', params, { refresh })
-    return { data, month, year, fetchedAt }
-  } catch (err) {
-    if (err?.status === 400 && attemptsLeft > 0) {
-      const previous = new Date(year, month - 1, 1)
-      previous.setMonth(previous.getMonth() - 1)
-      // o refresh vale só p/ o mes pedido: os anteriores saem da copia guardada (cada um custa pageview)
-      return fetchDemonstrativo(previous.getMonth() + 1, previous.getFullYear(), clientId, attemptsLeft - 1)
-    }
-    throw err
-  }
+/**
+ * Dashboard do cliente numa unica chamada (a propria API do UNO calcula tudo).
+ * `month`/`year` juntos, ou nenhum dos dois: sem eles o UNO usa a ultima carteira fechada.
+ * `period`: 'ano', '12', '24', '36', '48' ou '60'.
+ */
+export function fetchUnoDashboard({ clientId, month, year, period }) {
+  return callUnoProxy('dashboardCliente', {
+    periodo: period,
+    ...(clientId && { client_id: String(clientId) }),
+    ...(month && year && { mes: String(month), ano: String(year) })
+  })
 }
 
-function clientParam(clientId) {
-  return clientId ? { client_id: String(clientId) } : {}
-}
-
-// evolucaoAnualCliente devolve, por ano, o Patrimonio/Rentabilidade/Meta
-// mes a mes exatamente como o UNO calcula (mesma fonte que o dashboard real
-// do UNO usa) — uma chamada por ano civil coberto pelo periodo selecionado.
-function fetchEvolucaoMeta(ano, clientId, opts) {
-  return fetchProxyMeta('evolucaoAnualCliente', { consulting_id: '1', ano: String(ano), ...clientParam(clientId) }, opts)
-}
-
-export async function fetchEvolucaoAnual(ano, clientId) {
-  return (await fetchEvolucaoMeta(ano, clientId)).data
+/** Melhorias e funcionalidades publicadas no sininho do UNO. */
+export async function fetchUnoMelhorias() {
+  const { rows } = await callUnoProxy('melhoriasUNO')
+  return rows ?? []
 }
 
 export async function fetchClientesList() {
@@ -172,29 +96,4 @@ export async function fetchOwnUnoClientName() {
   const row = await fetchOwnUnoClient()
   const record = Array.isArray(row) ? row[0] : row
   return record ? formatClientName(record) : ''
-}
-
-/** Ultimo mes com carteira calculada pro cliente vinculado ao proprio usuario. */
-export async function fetchOwnUnoClientFimCarteira() {
-  const row = await fetchOwnUnoClient()
-  const record = Array.isArray(row) ? row[0] : row
-  return parseFimCarteira(record?.fim_carteira)
-}
-
-export async function fetchUnoDashboard(period, { refresh = false } = {}) {
-  const years = yearsInRange(period.startDate, period.endDate)
-
-  const [demonstrativo, ...evolucaoMetas] = await Promise.all([
-    fetchDemonstrativo(period.month, period.year, period.clientId, 12, refresh),
-    ...years.map((ano) => fetchEvolucaoMeta(ano, period.clientId, { refresh }))
-  ])
-  const evolucoes = evolucaoMetas.map((m) => m.data)
-  // Idade do dado na tela = a da copia mais antiga entre as consultas (null se nao veio de cache).
-  const dates = [demonstrativo.fetchedAt, ...evolucaoMetas.map((m) => m.fetchedAt)].filter(Boolean)
-  const fetchedAt = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null
-
-  // month/year devolvidos podem ser anteriores aos pedidos (fallback do
-  // fetchDemonstrativo) — o chamador usa isso pra corrigir o mes selecionado
-  // na tela quando o mes pedido nao tinha dado fechado.
-  return { demonstrativo: demonstrativo.data, demonstrativoMonth: demonstrativo.month, demonstrativoYear: demonstrativo.year, evolucoes, fetchedAt }
 }

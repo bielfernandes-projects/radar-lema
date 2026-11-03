@@ -4,7 +4,6 @@ import {
   canAccessLemaExclusive,
   resolveUnoClientId
 } from "../_shared/access.ts";
-import { decideUnoCache, isCacheable } from "../_shared/unoCache.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -17,9 +16,7 @@ const unoDemoClientId = Deno.env.get("UNO_DEMO_CLIENT_ID") || "192";
 const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  // O front lê quando a cópia guardada foi feita (ver uno_cache).
-  "Access-Control-Expose-Headers": "x-uno-fetched-at, x-uno-cache"
+  "Access-Control-Allow-Methods": "GET, OPTIONS"
 };
 
 // SEC-008: CORS restrito a origins do app. Configuravel via APP_ORIGINS
@@ -53,25 +50,16 @@ function withCors(origin: string | null) {
   return headers;
 }
 
-function jsonResponse(payload: unknown, origin: string | null, fetchedAt: string, cache: string) {
-  return new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "x-uno-fetched-at": fetchedAt,
-      "x-uno-cache": cache,
-      ...withCors(origin)
-    }
-  });
-}
-
-// Endpoints permitidos e seus parametros aceitos (além do client id).
-const ENDPOINTS: Record<string, string[]> = {
-  demonstrativoFundosCliente: ["consulting_id", "mes", "ano"],
-  fundosCliente: ["consulting_id", "start_date", "end_date"],
-  evolucaoAnualCliente: ["consulting_id", "ano"],
-  clienteUNO: ["consulting_id"]
+// Endpoints por cliente: parametros aceitos (além do client id) e o nome que o
+// UNO espera para o client id (dashboardCliente usa cliente_id, os demais client_id).
+const ENDPOINTS: Record<string, { params: string[]; clientKey: string }> = {
+  dashboardCliente: { params: ["mes", "ano", "periodo"], clientKey: "cliente_id" },
+  fundosCliente: { params: ["consulting_id", "start_date", "end_date"], clientKey: "client_id" },
+  clienteUNO: { params: ["consulting_id"], clientKey: "client_id" }
 };
+
+// Conteudo global do UNO (sem cliente, sem parametros): qualquer usuario logado le.
+const GLOBAL_ENDPOINTS = ["melhoriasUNO"];
 
 // Endpoints que nao sao por cliente (listam todos os clientes do
 // consulting_id) — nunca recebem client_id/cliente_id e so o Super Admin
@@ -139,7 +127,8 @@ Deno.serve(async (req) => {
   const endpoint = url.searchParams.get("endpoint") || "";
 
   const isListEndpoint = Boolean(LIST_ENDPOINTS[endpoint]);
-  if (!ENDPOINTS[endpoint] && !isListEndpoint) {
+  const config = ENDPOINTS[endpoint];
+  if (!config && !isListEndpoint && !GLOBAL_ENDPOINTS.includes(endpoint)) {
     return new Response("Endpoint invalido", { status: 400, headers: withCors(origin) });
   }
 
@@ -148,9 +137,6 @@ Deno.serve(async (req) => {
   }
 
   const query = new URLSearchParams();
-  // Chave do cache (só demonstrativo/evolução, que gastam pageview do ComDinheiro).
-  let cacheKey: string | null = null;
-  let isDemoClient = false;
 
   if (isListEndpoint) {
     // Lista todos os clientes do consulting_id — sem client_id nenhum.
@@ -158,7 +144,7 @@ Deno.serve(async (req) => {
       const value = url.searchParams.get(key);
       if (value) query.set(key, value);
     }
-  } else {
+  } else if (config) {
     // Resolve qual cliente UNO real consultar. Cliente comum: sempre o
     // vinculado ao proprio perfil (profiles.uno_client_id ja guarda o
     // client_id real do UNO — ignora qualquer client_id que o front mande,
@@ -173,38 +159,11 @@ Deno.serve(async (req) => {
       fallback: unoDemoClientId
     });
 
-    for (const key of ENDPOINTS[endpoint]) {
+    for (const key of config.params) {
       const value = url.searchParams.get(key);
       if (value) query.set(key, value);
     }
-    // Todos os endpoints usam client_id. demonstrativoFundosCliente usa cliente_id.
-    if (endpoint === "demonstrativoFundosCliente") {
-      query.set("cliente_id", resolvedClientId);
-    } else {
-      query.set("client_id", resolvedClientId);
-    }
-    isDemoClient = resolvedClientId === unoDemoClientId;
-    if (isCacheable(endpoint)) cacheKey = `${endpoint}?${query.toString()}`;
-  }
-
-  const refresh = url.searchParams.get("refresh") === "1";
-  if (cacheKey) {
-    const { data: cached, error: cacheError } = await adminClient
-      .from("uno_cache")
-      .select("payload, fetched_at")
-      .eq("cache_key", cacheKey)
-      .maybeSingle();
-    if (cacheError) console.error("uno-cache read", cacheError.message);
-    const decision = decideUnoCache({
-      hasRow: Boolean(cached),
-      fetchedAt: cached?.fetched_at,
-      refresh,
-      isSuperAdmin,
-      isDemo: isDemoClient
-    });
-    if (decision === "serve" && cached) {
-      return jsonResponse(cached.payload, origin, cached.fetched_at, "hit");
-    }
+    query.set(config.clientKey, resolvedClientId);
   }
 
   const targetUrl = `${unoApiBase}/${endpoint}?${query.toString()}`;
@@ -238,20 +197,6 @@ Deno.serve(async (req) => {
         status: res.status,
         headers: { "Content-Type": "application/json", ...withCors(origin) }
       });
-    }
-    if (cacheKey) {
-      // Guarda só respostas 200 em JSON; falha ao gravar não derruba a consulta.
-      try {
-        const payload = JSON.parse(text);
-        const fetchedAt = new Date().toISOString();
-        const { error: writeError } = await adminClient
-          .from("uno_cache")
-          .upsert({ cache_key: cacheKey, payload, fetched_at: fetchedAt });
-        if (writeError) console.error("uno-cache write", writeError.message);
-        return jsonResponse(payload, origin, fetchedAt, refresh ? "refresh" : "miss");
-      } catch (err) {
-        console.error("uno-cache", err);
-      }
     }
     return new Response(text, {
       status: res.status,

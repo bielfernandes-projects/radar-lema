@@ -68,7 +68,7 @@ export function monthRange(month, year) {
   }
 }
 
-const MONTH_ABBR = [
+export const MONTH_ABBR = [
   'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
 ]
 

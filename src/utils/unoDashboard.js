@@ -1,113 +1,51 @@
 /**
  * View-model do Dashboard UNO.
  *
- * Antes: as ~90 linhas que combinavam os helpers de `uno.js` (media ponderada
- * de VaR, cadeia merged→range→series, os calculos de patrimonio/rentabilidade/
- * meta/gap, o loop de comparacao, os tooltips) viviam soltas no corpo de
- * `DashboardUno.jsx` e nao eram alcancaveis por teste — e todo o git log desse
- * arquivo eram bugs nessa montagem.
- *
- * Agora `buildUnoDashboardViewModel(raw, { period, month, year })` recebe o
- * payload cru do proxy (`{ demonstrativo, evolucoes }`) e devolve um view-model
- * plano; o componente so faz `useMemo` + JSX. Fixtures reais + esse view-model
- * sao a rede de regressao do cluster.
+ * `buildUnoDashboardViewModel(raw)` recebe a resposta crua de `dashboardCliente`
+ * (o UNO ja entrega indicadores, evolucao e comparativo calculados) e devolve um
+ * view-model plano; o componente so faz `useMemo` + JSX.
  */
-import {
-  normalizeFunds,
-  summarizeFunds,
-  rangeForPeriod,
-  mergeEvolucaoAnual,
-  monthsBetween,
-  buildEvolucaoSeries,
-  compoundPercent
-} from './uno'
+import { MONTH_ABBR } from './uno'
 
-const round4 = (n) => Number(Number(n).toFixed(4))
+const num = (v) => (v === null || v === undefined ? null : Number(v))
 
-/**
- * buildComparisonSeries: serie do grafico "Rentabilidade x Meta". Alem do
- * valor mensal, acumula o composto ponto a ponto (produto de 1 + v/100) —
- * o ultimo `rentAcum`/`metaAcum` bate com `compoundPercent` da serie inteira.
- */
-function buildComparisonSeries(series) {
-  let accRent = 1
-  let accMeta = 1
-  let hasRent = false
-  let hasMeta = false
-  return series.map((s) => {
-    if (s.rentMes !== null) {
-      accRent *= 1 + Number(s.rentMes) / 100
-      hasRent = true
-    }
-    if (s.metaMes !== null) {
-      accMeta *= 1 + Number(s.metaMes) / 100
-      hasMeta = true
-    }
-    return {
-      label: s.label,
-      rentMes: s.rentMes !== null ? round4(s.rentMes) : null,
-      metaMes: s.metaMes !== null ? round4(s.metaMes) : null,
-      rentAcum: hasRent ? round4((accRent - 1) * 100) : null,
-      metaAcum: hasMeta ? round4((accMeta - 1) * 100) : null
-    }
-  })
+// "10/2025" -> "Out/2025"
+function label(periodo) {
+  const [month, year] = String(periodo ?? '').split('/')
+  const abbr = MONTH_ABBR[Number(month) - 1]
+  return abbr ? `${abbr}/${year}` : String(periodo ?? '')
 }
 
-export function buildUnoDashboardViewModel(raw, { period, month, year }) {
-  // VaR: media ponderada do VAR_PAR de cada fundo — unica coisa que ainda vem
-  // do demonstrativo mensal. Patrimonio/Rentabilidade/Meta vem inteiros do
-  // evolucaoAnualCliente (mesma fonte que o proprio UNO usa).
-  const funds = normalizeFunds(raw?.demonstrativo)
-  const summary = summarizeFunds(funds)
-  const fundsSaldo = summary.totalSaldo
-  const varValue =
-    fundsSaldo > 0
-      ? funds.reduce((acc, f) => acc + f.varFundo * (f.saldo / fundsSaldo), 0)
-      : null
-
-  const merged = mergeEvolucaoAnual(raw?.evolucoes)
-  const range = rangeForPeriod(period, month, year)
-  const series = buildEvolucaoSeries(merged, monthsBetween(range.startDate, range.endDate))
-
-  const lastPoint = series.length > 0 ? series[series.length - 1] : null
-  const patrimonio = lastPoint?.patrimonio ?? null
-  const rentabilidadeMes = lastPoint?.rentMes ?? null
-  const metaMes = lastPoint?.metaMes ?? null
-  const rentabilidadeAcum = compoundPercent(series.map((s) => s.rentMes))
-  const metaAcum = compoundPercent(series.map((s) => s.metaMes))
-  const gapMes =
-    metaMes !== null && rentabilidadeMes !== null ? rentabilidadeMes - metaMes : null
-  const gapAcum =
-    rentabilidadeAcum !== null && metaAcum !== null ? rentabilidadeAcum - metaAcum : null
-
-  const firstPatrimonio = series.find((s) => s.patrimonio !== null)?.patrimonio ?? null
-
-  // R$ do mes: rendimento financeiro do demonstrativo. R$ do acumulado:
-  // diferenca de patrimonio real (ja livre de aportes/resgates).
-  const rentMesTooltip =
-    rentabilidadeMes !== null
-      ? { pct: rentabilidadeMes, rendimento: summary.totalRendimento }
-      : null
-  const rentAcumTooltip =
-    rentabilidadeAcum !== null && lastPoint && firstPatrimonio !== null
-      ? {
-          pct: rentabilidadeAcum,
-          valor: (lastPoint.patrimonio ?? 0) - firstPatrimonio,
-          fromLabel: series[0]?.label ?? null,
-          toLabel: lastPoint.label
-        }
-      : null
+export function buildUnoDashboardViewModel(raw) {
+  const ind = raw?.indicadores
+  const rentMes = num(ind?.rentabilidade?.mes)
+  const rentAcum = num(ind?.rentabilidade?.acumulada)
 
   return {
-    patrimonio,
-    rentabilidade: { mes: rentabilidadeMes, acum: rentabilidadeAcum },
-    meta: { mes: metaMes, acum: metaAcum },
-    gap: { mes: gapMes, acum: gapAcum },
-    varValue,
-    tooltips: { rentMes: rentMesTooltip, rentAcum: rentAcumTooltip },
-    evolution: series
-      .filter((s) => s.patrimonio !== null)
-      .map((s) => ({ label: s.label, valor: s.patrimonio })),
-    comparison: buildComparisonSeries(series)
+    patrimonio: num(ind?.patrimonio),
+    rentabilidade: { mes: rentMes, acum: rentAcum },
+    meta: { mes: num(ind?.meta?.mes), acum: num(ind?.meta?.acumulada) },
+    gap: { mes: num(ind?.gap?.mes), acum: num(ind?.gap?.acumulado) },
+    varValue: num(ind?.var),
+    tooltips: {
+      rentMes: rentMes !== null ? { pct: rentMes, rendimento: num(ind.rentabilidade.mes_rs) } : null,
+      rentAcum:
+        rentAcum !== null
+          ? {
+              pct: rentAcum,
+              valor: num(ind.rentabilidade.acumulada_rs),
+              fromLabel: label(raw.inicio_periodo),
+              toLabel: label(raw.fim_periodo)
+            }
+          : null
+    },
+    evolution: (raw?.evolucao_patrimonio ?? []).map((p) => ({ label: label(p.periodo), valor: Number(p.valor) })),
+    comparison: (raw?.comparativo ?? []).map((c) => ({
+      label: label(c.periodo),
+      rentMes: num(c.rentabilidade_mes),
+      metaMes: num(c.meta_mes),
+      rentAcum: num(c.rentabilidade_acumulada),
+      metaAcum: num(c.meta_acumulada)
+    }))
   }
 }
