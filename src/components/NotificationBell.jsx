@@ -66,6 +66,7 @@ export default function NotificationBell() {
         <IconButton
           color="inherit"
           onClick={handleOpen}
+          data-tour="sino"
           aria-label={unread.length > 0 ? `Notificações, ${unread.length} não lidas` : 'Notificações'}
           sx={{ p: 0.75 }}
         >

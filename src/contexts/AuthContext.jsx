@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, name, user_type, role, is_uno_client, uno_client_id, home_layout')
+      .select('id, email, name, user_type, role, is_uno_client, uno_client_id, home_layout, tutorial_seen_at')
       .eq('id', userId)
       .single()
 

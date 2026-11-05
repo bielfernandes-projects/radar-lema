@@ -40,6 +40,7 @@ export default function TopBar({ onMenuClick }) {
         <IconButton
           color="inherit"
           aria-label="Abrir menu"
+          data-tour="menu-mobile"
           edge="start"
           sx={{ mr: 1, display: { xs: 'inline-flex', md: 'none' } }}
           onClick={onMenuClick}

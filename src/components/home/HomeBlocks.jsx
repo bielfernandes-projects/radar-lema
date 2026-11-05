@@ -42,7 +42,7 @@ function SectionHeader({ id, to, moreLabel = 'Ver todos' }) {
   const navigate = useNavigate()
   const { icon: Icon, title } = HOME_BLOCKS.find((b) => b.id === id)
   return (
-    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+    <Stack data-tour={id} direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
       <Stack direction="row" alignItems="center" spacing={1}>
         <Icon size={22} />
         <Typography variant="h5" component="h2" sx={{ fontFamily: DISPLAY_FONT }}>

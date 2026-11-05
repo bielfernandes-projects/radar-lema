@@ -405,6 +405,7 @@ export default function Sidebar({ open, onClose, variant = 'permanent', width = 
 
   return (
     <Box
+      data-tour="menu-desktop"
       sx={{
         width,
         flexShrink: 0,

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material'
 import { usePWAInstall } from '../hooks/usePWAInstall'
+import { useAuth } from '../contexts/AuthContext'
 
 const IOS_HELP =
   'Toque no botão de compartilhar (o quadrado com uma seta, no menu do Safari) e depois em "Adicionar à Tela de Início".'
@@ -12,10 +13,13 @@ const ANDROID_HELP =
 // (display-mode standalone) nao aparece. "Agora nao" so vale ate recarregar.
 export default function InstallPrompt() {
   const { install, canPrompt, isInstalled, isIOS } = usePWAInstall()
+  const { profile, loading } = useAuth()
   const [dismissed, setDismissed] = useState(false)
 
   const isAndroid = /android/i.test(navigator.userAgent)
-  if (isInstalled || dismissed || !(isIOS || isAndroid)) return null
+  // Enquanto o tutorial de primeiro uso nao foi visto, o passo de instalacao dele substitui este pop-up.
+  const tutorialPending = loading || (profile && !profile.tutorial_seen_at)
+  if (isInstalled || dismissed || tutorialPending || !(isIOS || isAndroid)) return null
 
   const handleInstall = async () => {
     await install()

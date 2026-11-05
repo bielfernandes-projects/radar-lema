@@ -5,6 +5,7 @@ import { SlidersHorizontal } from '@phosphor-icons/react'
 import { useHomeLayout } from '../hooks/useHomeLayout'
 import { HOME_BLOCK_COMPONENTS } from '../components/home/HomeBlocks'
 import HomeCustomizeDialog from '../components/home/HomeCustomizeDialog'
+import AppTour from '../tour/AppTour'
 
 export default function Feed() {
   const { layout, save } = useHomeLayout()
@@ -19,7 +20,7 @@ export default function Feed() {
       </Typography>
 
       <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
-        <Button startIcon={<SlidersHorizontal size={20} />} onClick={() => setCustomizing(true)}>
+        <Button data-tour="personalizar" startIcon={<SlidersHorizontal size={20} />} onClick={() => setCustomizing(true)}>
           Personalizar
         </Button>
       </Stack>
@@ -30,6 +31,8 @@ export default function Feed() {
           const Block = HOME_BLOCK_COMPONENTS[item.id]
           return <Block key={item.id} />
         })}
+
+      <AppTour />
 
       <HomeCustomizeDialog
         open={customizing}
