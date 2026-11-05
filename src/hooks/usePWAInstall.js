@@ -10,51 +10,57 @@ function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
 }
 
+// O navegador dispara beforeinstallprompt uma unica vez. O evento fica guardado
+// aqui (fora do hook) para que o pop-up e o botao de Configuracoes, montados em
+// momentos diferentes, enxerguem o mesmo prompt.
+let deferredPrompt = null
+const listeners = new Set()
+const notify = () => listeners.forEach((fn) => fn())
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    deferredPrompt = e
+    notify()
+  })
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null
+    notify()
+  })
+}
+
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [, rerender] = useState(0)
   const [isInstalled, setIsInstalled] = useState(isStandalone)
-  const [canPrompt, setCanPrompt] = useState(false)
 
   useEffect(() => {
-    const onBeforeInstallPrompt = (e) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      setCanPrompt(true)
+    const onChange = () => {
+      setIsInstalled(isStandalone())
+      rerender((n) => n + 1)
     }
-
-    const onAppInstalled = () => {
-      setIsInstalled(true)
-      setCanPrompt(false)
-      setDeferredPrompt(null)
-    }
-
-    setIsInstalled(isStandalone())
-
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-    window.addEventListener('appinstalled', onAppInstalled)
-
+    listeners.add(onChange)
+    onChange()
+    window.addEventListener('appinstalled', onChange)
     return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-      window.removeEventListener('appinstalled', onAppInstalled)
+      listeners.delete(onChange)
+      window.removeEventListener('appinstalled', onChange)
     }
   }, [])
 
   const install = useCallback(async () => {
     if (!deferredPrompt) return
-    await deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    setDeferredPrompt(null)
-    setCanPrompt(false)
+    const prompt = deferredPrompt
+    await prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    deferredPrompt = null
+    notify()
     return outcome
-  }, [deferredPrompt])
+  }, [])
+
+  const canPrompt = Boolean(deferredPrompt)
 
   return useMemo(
-    () => ({
-      install,
-      canPrompt,
-      isInstalled,
-      isIOS: isIOS()
-    }),
+    () => ({ install, canPrompt, isInstalled, isIOS: isIOS() }),
     [install, canPrompt, isInstalled]
   )
 }
