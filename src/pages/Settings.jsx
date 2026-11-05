@@ -219,28 +219,6 @@ export default function Settings() {
     }
   }
 
-  const handleTestNotification = async () => {
-    if (!('Notification' in window)) {
-      setTestResult('Seu navegador não suporta notificações.')
-      return
-    }
-
-    const permission = await Notification.requestPermission()
-    if (permission === 'granted') {
-      new Notification('RPPApp', {
-        body: 'Assim apareceriam seus lembretes antes dos eventos.',
-        icon: '/icons/icon-192x192.png'
-      })
-      setTestResult('')
-    } else if (permission === 'denied') {
-      setTestResult(
-        'Permissão negada. Ative nas configurações do navegador.'
-      )
-    } else {
-      setTestResult('Permissão não concedida.')
-    }
-  }
-
   const handleRemoveAll = async (eventId) => {
     await removeReminders(eventId)
     await refreshReminders()
@@ -575,14 +553,6 @@ export default function Settings() {
                 />
               )}
 
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={handleTestNotification}
-                sx={{ mt: 2 }}
-              >
-                Testar notificação
-              </Button>
               {testResult && (
                 <Alert severity="warning" sx={{ mt: 1 }}>
                   {testResult}
