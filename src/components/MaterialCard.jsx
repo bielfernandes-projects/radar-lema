@@ -83,10 +83,17 @@ export default function MaterialCard({ material }) {
     if (locked) return
     setLoadingPreview(true)
     setError('')
+    // Celular nao renderiza PDF dentro de iframe (fica em branco, so da para baixar).
+    // Ai abrimos o PDF numa aba propria, onde o visualizador nativo funciona. A aba e
+    // aberta antes do await para o navegador nao bloquear como popup.
+    const mobile = window.matchMedia?.('(pointer: coarse)')?.matches
+    const tab = mobile ? window.open('', '_blank') : null
     try {
       const url = await getMaterialUrl(material.storage_path, material.file_name, { download: false })
-      setPreviewUrl(url)
+      if (tab) tab.location.href = url
+      else setPreviewUrl(url)
     } catch (err) {
+      tab?.close()
       setError(err?.message || 'Não foi possível abrir o material.')
     }
     setLoadingPreview(false)
