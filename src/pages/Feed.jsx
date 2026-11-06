@@ -5,8 +5,6 @@ import { SlidersHorizontal } from '@phosphor-icons/react'
 import { useHomeLayout } from '../hooks/useHomeLayout'
 import { HOME_BLOCK_COMPONENTS } from '../components/home/HomeBlocks'
 import HomeCustomizeDialog from '../components/home/HomeCustomizeDialog'
-import AppTour from '../tour/AppTour'
-
 export default function Feed() {
   const { layout, save } = useHomeLayout()
   const [customizing, setCustomizing] = useState(false)
@@ -31,8 +29,6 @@ export default function Feed() {
           const Block = HOME_BLOCK_COMPONENTS[item.id]
           return <Block key={item.id} />
         })}
-
-      <AppTour />
 
       <HomeCustomizeDialog
         open={customizing}

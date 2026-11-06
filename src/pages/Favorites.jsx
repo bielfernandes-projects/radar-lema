@@ -113,7 +113,7 @@ export default function Favorites() {
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <Stack spacing={2} sx={{ mb: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" component="h1">
+          <Typography data-tour="favoritos-titulo" variant="h4" component="h1">
             Favoritos
           </Typography>
           <ClearFiltersButton disabled={!hasFilters} onClick={clearFilters} />

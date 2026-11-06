@@ -109,6 +109,7 @@ export default function EventList() {
         </Stack>
 
         <TextField
+          data-tour="eventos-busca"
           label="Buscar eventos"
           placeholder="Título ou descrição"
           value={filters.q}
@@ -126,7 +127,9 @@ export default function EventList() {
         />
       </Stack>
 
-      <EventFilters categories={categories} showCustomDateFilter />
+      <div data-tour="eventos-filtros">
+        <EventFilters categories={categories} showCustomDateFilter />
+      </div>
 
       <FilterSummary />
 
@@ -160,8 +163,12 @@ export default function EventList() {
           </Typography>
 
           <Grid container spacing={3}>
-            {paginatedEvents.map((event) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={event.id}>
+            {paginatedEvents.map((event, index) => (
+              <Grid
+                data-tour={index === 0 ? 'primeiro-evento' : undefined}
+                size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
+                key={event.id}
+              >
                 <EventCard
                   event={event}
                   isFavorite={favoriteIds.has(event.id)}

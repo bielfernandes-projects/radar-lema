@@ -322,6 +322,7 @@ export default function Settings() {
       </Typography>
 
       <Tabs
+        data-tour="config-abas"
         value={tab}
         onChange={(e, value) => setTab(value)}
         variant="scrollable"
@@ -331,7 +332,7 @@ export default function Settings() {
         <Tab label="Perfil" value="perfil" />
         <Tab label="Notificações" value="notificacoes" />
         <Tab label="Lembretes" value="lembretes" />
-        <Tab label="Instalar app" value="instalar" />
+        <Tab label="Instalar app" value="instalar" data-tour="config-instalar" />
       </Tabs>
 
       {tab === 'perfil' && (

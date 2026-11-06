@@ -47,7 +47,7 @@ export default function ListPage({
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+      <Stack data-tour="pagina-titulo" direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h4" component="h1">
           {title}
         </Typography>
@@ -94,8 +94,12 @@ export default function ListPage({
             </Typography>
           )}
           <Grid container spacing={variant === 'list' ? 1.5 : 3}>
-            {items.map((item) => (
-              <Grid size={variant === 'list' ? 12 : { xs: 12, sm: 6, md: 4, lg: 3 }} key={item.id}>
+            {items.map((item, index) => (
+              <Grid
+                data-tour={index === 0 ? 'pagina-primeiro-item' : undefined}
+                size={variant === 'list' ? 12 : { xs: 12, sm: 6, md: 4, lg: 3 }}
+                key={item.id}
+              >
                 {renderItem(item)}
               </Grid>
             ))}

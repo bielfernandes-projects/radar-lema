@@ -5,6 +5,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { sectionOf } from '../../lib/analytics'
 import { useLogEvent } from '../../hooks/useLogEvent'
+import GuidedTour from '../../tour/GuidedTour'
 
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -63,6 +64,7 @@ export default function Layout({ children }) {
           width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` }
         }}
       >
+        <GuidedTour />
         {children}
       </Box>
     </Box>

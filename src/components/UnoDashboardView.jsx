@@ -360,7 +360,7 @@ export default function UnoDashboardView({ embedded = false }) {
       >
         <UnoCta demo />
 
-        <Box className="report-filters-row" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
+        <Box className="report-filters-row" data-tour="dash-filtros" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap', mb: 1 }}>
           <FormControl size="small" sx={{ minWidth: { xs: 84, sm: 140 } }}>
             <Select
               value={shown?.month ?? ''}
@@ -442,6 +442,7 @@ export default function UnoDashboardView({ embedded = false }) {
 
           <Button
             className="report-button"
+            data-tour="dash-relatorio"
             variant="contained"
             onClick={handlePrint}
             startIcon={<Printer size={18} />}
@@ -469,6 +470,7 @@ export default function UnoDashboardView({ embedded = false }) {
 
         <Box
           className="report-interactive-hide"
+          data-tour="dash-periodo"
           sx={{
             display: 'flex',
             alignItems: 'center',

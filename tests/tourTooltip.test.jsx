@@ -6,7 +6,7 @@ function setup(index, size = 3) {
   const props = {
     index,
     size,
-    step: { title: 'Menu', content: 'Texto do passo' },
+    step: { title: 'Menu', content: 'Texto do passo', data: { section: 'Notícias' } },
     tooltipProps: { role: 'dialog' },
     // O joyride injeta aria-label em ingles nestes props; o cartao tem que sobrepor com PT-BR.
     backProps: { onClick: vi.fn(), 'aria-label': 'Back' },
@@ -18,11 +18,13 @@ function setup(index, size = 3) {
 }
 
 describe('TourTooltip', () => {
-  it('mostra o passo X de Y, titulo e conteudo', () => {
+  it('mostra a tela atual, titulo, conteudo e a barra de progresso', () => {
     setup(0)
-    expect(screen.getByText('Passo 1 de 3')).toBeInTheDocument()
+    expect(screen.getByText('Notícias')).toBeInTheDocument()
     expect(screen.getByText('Menu')).toBeInTheDocument()
     expect(screen.getByText('Texto do passo')).toBeInTheDocument()
+    const bar = screen.getByRole('progressbar', { name: 'Passo 1 de 3' })
+    expect(bar).toHaveAttribute('aria-valuenow', String(Math.round((1 / 3) * 100)))
   })
 
   it('no primeiro passo nao tem Voltar e tem Proximo e Agora nao', () => {

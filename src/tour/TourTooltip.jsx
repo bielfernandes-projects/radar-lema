@@ -1,7 +1,8 @@
-import { Box, Button, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, LinearProgress, Paper, Stack, Typography } from '@mui/material'
 import { DISPLAY_FONT } from '../theme/theme'
 
-// Cartao do tour: texto grande e botoes grandes (publico 50+).
+// Cartao do tour: texto grande e botoes grandes (publico 50+). O tour e longo (percorre o app
+// inteiro), entao em vez de "Passo 14 de 27" mostra a tela em que esta e uma barra de progresso.
 export default function TourTooltip({ backProps, index, primaryProps, size, skipProps, step, tooltipProps }) {
   const isLast = index === size - 1
   return (
@@ -10,9 +11,17 @@ export default function TourTooltip({ backProps, index, primaryProps, size, skip
       elevation={8}
       sx={{ p: 3, borderRadius: 3, width: 'min(420px, calc(100vw - 32px))', maxHeight: '85vh', overflowY: 'auto' }}
     >
-      <Typography variant="overline" color="text.secondary">
-        {`Passo ${index + 1} de ${size}`}
-      </Typography>
+      {step.data?.section && (
+        <Typography variant="overline" color="text.secondary">
+          {step.data.section}
+        </Typography>
+      )}
+      <LinearProgress
+        variant="determinate"
+        value={((index + 1) / size) * 100}
+        aria-label={`Passo ${index + 1} de ${size}`}
+        sx={{ height: 6, borderRadius: 3, mb: 1.5 }}
+      />
       {step.title && (
         <Typography variant="h5" component="h2" sx={{ fontFamily: DISPLAY_FONT, mb: 1 }}>
           {step.title}

@@ -15,6 +15,7 @@ export default function Help() {
         {SUPPORT_EMAIL ? ` Não achou o que procurava? Escreva para ${SUPPORT_EMAIL}.` : ''}
       </Typography>
       <Button
+        data-tour="ajuda-tutorial"
         variant="outlined"
         size="large"
         sx={{ mb: 3, minHeight: 48 }}
@@ -22,7 +23,9 @@ export default function Help() {
       >
         Ver o tutorial de novo
       </Button>
-      <FaqList />
+      <div data-tour="ajuda-faq">
+        <FaqList />
+      </div>
     </Container>
   )
 }
